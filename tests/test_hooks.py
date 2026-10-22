@@ -219,6 +219,9 @@ class GithubScopeTest(unittest.TestCase):
         self.assertEqual(self.run_scope("git -C " + upr + " push --force-with-lease=x:$(git rev-parse y) origin x", t),
                          "ask")
         self.assertEqual(self.run_scope("echo $(git -C " + upr + " push origin x)", t), "ask")
+        # a read inside a substitution is not a write (sd35, 2026-10-21: `out=$(gh run list -R <fork> ...)` prompted)
+        self.assertNotEqual(self.run_scope("out=$(gh run list -R AlexPerrin/OpenRune-Server --commit abc --json url); echo $out", t), "ask")
+        self.assertEqual(self.run_scope("x=$(gh pr create -R OpenRune/OpenRune-Server --head AlexPerrin:fix/x --title t --body b)", t), "ask")
 
     def test_push_from_a_worktree_created_in_the_same_command(self):
         # The archive push that prompted (2026-10-20): `git -C clone worktree add $W fork/docs && ... cd $W && git push`.

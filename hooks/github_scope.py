@@ -160,8 +160,14 @@ def main():
     # Heredoc bodies are data (scripts, file contents), not commands: drop them before splitting.
     command = sp.strip_heredocs(command)
     kinds, asks = [], []
-    if sp.hidden_writes(command):
-        asks.append("a push or GitHub call inside a command substitution")
+    # a push or gh call inside `$(...)`: judged like any other segment (a read such as `gh run list` is not a write)
+    for inner in re.findall(r"\$\(([^()]*)\)", command) + re.findall(r"`([^`]*)`", command):
+        if re.search(r"\bgit\b.*\bpush\b|\bgh\b|fork\.sh", inner):
+            kind, detail = classify(inner, cwd)
+            if kind in ("upstream", "unknown"):
+                asks.append(f"inside a command substitution: {detail}")
+            elif kind == "ours":
+                kinds.append("ours")
     for seg in sp.resolved_segments(command):
         sp.note_worktree(sp.words(seg), cwd)
         nd = sp.cd_target(sp.words(seg), cwd)
