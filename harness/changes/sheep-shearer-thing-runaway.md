@@ -7,13 +7,13 @@ role: server-dev
 stage: ready
 hold: null
 deps: []
-branch: null
+branch: fix/sheep-shearer-thing-runaway
 commit: null
 local_only: false
 owner: null
 instances: []
 created: '2026-10-20T01:42:40Z'
-updated: '2026-10-22T02:08:34Z'
+updated: '2026-10-22T02:16:31Z'
 ---
 ## Change
 Implement the penguin (The Thing) running away on shear per the OSRS Wiki, lifting the caveat in #366's PR text.
@@ -27,3 +27,4 @@ Implement the penguin (The Thing) running away on shear per the OSRS Wiki, lifti
 ## Log
 - 2026-10-21T00:25:19Z migrated from v2 tasks: sheep-shearer-thing-runaway
 - 2026-10-22T02:08:34Z triage: parity gap, small; after the user's plugins' content
+- 2026-10-22T02:16:31Z branch fix/<slug> (grooming)

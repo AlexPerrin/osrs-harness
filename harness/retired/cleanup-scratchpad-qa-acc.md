@@ -18,7 +18,7 @@ local_only: false
 owner: null
 instances: []
 created: '2026-10-20T01:42:44Z'
-updated: '2026-10-22T02:08:34Z'
+updated: '2026-10-22T02:16:31Z'
 ---
 ## Change
 Delete scratchpad qa/ and acc/ after the acc gates. sd22's unique refs are archived in re/upstream-pr/or as refs/archive/sd22/* (fin-hunter-rumours dcf92ca13 is the older linear rumours, useful for hunter-split-ship): keep them.
@@ -30,3 +30,4 @@ Delete scratchpad qa/ and acc/ after the acc gates. sd22's unique refs are archi
 - 2026-10-21T00:25:19Z migrated from v2 tasks: cleanup-scratchpad-qa-acc
 - 2026-10-21T00:25:19Z hold blocked: waiting for genie, cannon
 - 2026-10-22T02:08:34Z triage: after the cannon and genie folds
+- 2026-10-22T02:16:31Z retired (grooming 2026-10-21): session scratchpads are temporary; nothing to track

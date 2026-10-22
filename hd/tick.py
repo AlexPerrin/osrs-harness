@@ -165,6 +165,8 @@ def ship_and_train(ctx):
         if ch.stage != "checked" or ch.hold:
             continue
         if ch.get("track") == "server":
+            if ctx.obs.pin(ch.get("branch")) == ch.get("commit"):
+                continue   # integration already carries this commit (a re-hand-over for a spec or a record): no train
             if ctx.dry_run:
                 ctx.act(f"{slug}: would join the train queue [dry run]")
                 continue

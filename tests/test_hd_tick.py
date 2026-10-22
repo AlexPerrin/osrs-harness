@@ -130,6 +130,17 @@ class ReapTest(unittest.TestCase):
         self.assertEqual((cli.stage, cli.hold), ("checked", "blocked"))
         self.assertNotIn(("enqueue", "cli"), self.calls)
 
+    def test_already_pinned_commit_is_not_queued(self):
+        """A hand-over of a commit integration already carries (a spec written for a live change) never queues a train."""
+        ch = H.change("feat", "server", stage="dev", commit=SHA, owner="sd1", evidence="re/evidence/feat",
+                      pr="https://github.com/AlexPerrin/OpenRune-Server/pull/9")
+        obs = FakeObserver(tips={("fork", "content/feat"): SHA}, evidence={"re/evidence/feat": ["x"]},
+                           docs={"accuracy/feat.md": "x"}, ci={("content/feat", SHA): "success"}, pins={"content/feat": SHA},
+                           live={"integration": "c" * 40}, contains={("fork", "c" * 40, SHA): True}, records=[])
+        tick.tick(obs)
+        self.assertNotIn(("enqueue", "feat"), self.calls)
+        self.assertEqual(store.load("feat").stage, "live")
+
     def test_check_fail_returns_to_ready_with_items(self):
         """BR-S5."""
         ch = H.change("feat", "server", stage="dev", commit=SHA, owner="sd1", evidence="re/evidence/feat")

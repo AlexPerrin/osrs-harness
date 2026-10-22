@@ -1,5 +1,5 @@
 ---
-slug: client-gpu-plugin-feasibility
+slug: gpu-plugin-feasibility
 track: client
 title: 'Stretch goal: RuneLite''s GPU plugin on the Android app (feasibility)'
 prio: P2
@@ -7,13 +7,13 @@ role: client-dev
 stage: ready
 hold: null
 deps: []
-branch: null
+branch: client/gpu-plugin-feasibility
 commit: null
 local_only: false
 owner: null
 instances: []
 created: '2026-10-20T04:39:08Z'
-updated: '2026-10-22T02:08:34Z'
+updated: '2026-10-22T02:16:31Z'
 ---
 ## Change
 Stretch goal: RuneLite's GPU plugin on the Android app (feasibility)
@@ -26,3 +26,4 @@ Stretch goal: RuneLite's GPU plugin on the Android app (feasibility)
 ## Log
 - 2026-10-21T00:25:19Z migrated from v2 tasks: client-gpu-plugin-feasibility
 - 2026-10-22T02:08:34Z triage: stretch goal (user): its own spike; after the user's plugins' client work
+- 2026-10-22T02:16:31Z renamed from client-gpu-plugin-feasibility (grooming: slug = the branch slug, BR-C1)

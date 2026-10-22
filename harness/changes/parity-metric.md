@@ -1,19 +1,19 @@
 ---
-slug: server-parity-metric
-track: server
+slug: parity-metric
+track: harness
 title: 'Server progress metric: parity with the official OSRS server (tools/harness/server_parity.py)'
 prio: P2
-role: server-dev
+role: harness-dev
 stage: ready
 hold: null
 deps: []
-branch: null
+branch: harness/parity-metric
 commit: null
 local_only: false
 owner: null
 instances: []
 created: '2026-10-20T06:10:54Z'
-updated: '2026-10-22T02:08:34Z'
+updated: '2026-10-22T02:16:31Z'
 ---
 ## Change
 Server progress metric: parity with the official OSRS server (tools/harness/server_parity.py)
@@ -27,3 +27,4 @@ Server progress metric: parity with the official OSRS server (tools/harness/serv
 ## Log
 - 2026-10-21T00:25:19Z migrated from v2 tasks: server-parity-metric
 - 2026-10-22T02:08:34Z triage: the server progress tile; P2
+- 2026-10-22T02:16:31Z renamed from server-parity-metric (grooming: slug = the branch slug, BR-C1)

@@ -7,13 +7,13 @@ role: server-dev
 stage: ready
 hold: null
 deps: []
-branch: null
+branch: fix/farming-compost
 commit: null
 local_only: false
 owner: null
 instances: []
 created: '2026-10-20T01:42:40Z'
-updated: '2026-10-22T02:08:34Z'
+updated: '2026-10-22T02:16:30Z'
 ---
 ## Change
 Using Compost on a patch gives 'Nothing interesting happens.'; expected 'You treat the allotment with compost.' (wiki Compost), with the patch's compost state set. Unblocks client: Did I Compost hub plugin (gen 44).
@@ -28,3 +28,4 @@ Using Compost on a patch gives 'Nothing interesting happens.'; expected 'You tre
 ## Log
 - 2026-10-21T00:25:19Z migrated from v2 tasks: farming-compost
 - 2026-10-22T02:08:34Z triage: parity gap, small; after the user's plugins' content
+- 2026-10-22T02:16:30Z branch fix/<slug> (grooming)

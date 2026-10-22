@@ -7,13 +7,13 @@ role: server-dev
 stage: ready
 hold: null
 deps: []
-branch: null
+branch: local/ci-game-cache-key
 commit: null
-local_only: false
+local_only: true
 owner: null
 instances: []
 created: '2026-10-22T00:42:23Z'
-updated: '2026-10-22T02:08:34Z'
+updated: '2026-10-22T02:16:31Z'
 ---
 ## Change
 CI: game-data actions cache key must change with the cache revision
@@ -26,3 +26,4 @@ CI: game-data actions cache key must change with the cache revision
 ## Log
 - 2026-10-22T00:42:23Z created (ready)
 - 2026-10-22T02:08:34Z triage: every fork CI run depends on it; next server dev slot after the user's content
+- 2026-10-22T02:16:31Z fork-only: the fork's CI workflow (local/, BR-C7)

@@ -23,7 +23,7 @@ cost:
   minutes: 0.0
   usd: 0
 created: '2026-10-20T01:42:42Z'
-updated: '2026-10-22T02:08:34Z'
+updated: '2026-10-22T02:16:31Z'
 ---
 ## Change
 Rewrite STATE.md on the fork's docs branch for the post-cutover state (integration 5cc473397 live since 2026-10-19): current branches, next tasks, the gates model.
@@ -38,3 +38,4 @@ Rewrite STATE.md on the fork's docs branch for the post-cutover state (integrati
 - 2026-10-22T01:56:05Z run sd38 ended: ? turns, 0.0 min, $0, exit stopped:not spawned: docs-branch work does not fit the server lifecycle (no merge base with main); held for the console
 - 2026-10-22T01:56:05Z hold decision: STATE.md on the fork's docs branch is not a server change (no branch off main, no CI, no train): the console rewrites it after the pending train deploys (the live integration changes then), or it folds into the next server-dev run that touches STATE.md. Decide: console (default) or drop.
 - 2026-10-22T01:56:35Z dev -> ready: run sd38 ended without a hand-over
+- 2026-10-22T02:16:31Z retired (grooming 2026-10-21): the console rewrites the fork's STATE.md after the pending train deploys (not a server change)
