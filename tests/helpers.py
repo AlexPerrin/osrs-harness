@@ -16,6 +16,7 @@ FORK_URL = "https://github.com/AlexPerrin/OpenRune-Server.git"
 FORK_SSH = "git@github.com:AlexPerrin/OpenRune-Server.git"
 UPSTREAM_URL = "https://github.com/OpenRune/OpenRune-Server.git"
 OURS_URL = "https://github.com/AlexPerrin/osrs-plugins-reverse.git"
+HARNESS_SSH = "git@github.com:AlexPerrin/osrs-harness.git"
 
 
 def git(cwd, *args):

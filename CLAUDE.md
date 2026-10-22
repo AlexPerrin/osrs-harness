@@ -19,8 +19,8 @@ hooks/           the Claude Code hooks the client repo's .claude wiring execs (d
 harness/         policy.yaml and changes/ (committed); state/ (git-ignored: events.jsonl, leases, runs, batches,
                  approvals, images, deploys, live.json, daemon.json, server.json)
 image.sh deploy.sh Dockerfile.integration   the train's image and deploy steps
-integrate.py task.py orchestrate.py handover-check.sh ship.sh progress_report.py   v2 (integrate.py's helpers are
-                 used by hd/batches.py; the rest is history, kept for its tests)
+integrate.py task.py handover-check.sh ship.sh progress_report.py   v2 (integrate.py's helpers are used by
+                 hd/batches.py; the rest is history, kept for its tests)
 tests/           python3 -m unittest discover -s tests
 ```
 

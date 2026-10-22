@@ -21,7 +21,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import shellparse as sp  # noqa: E402
 
 ROOT = os.environ.get("CLAUDE_PROJECT_DIR") or os.environ.get("HD_CLIENT_ROOT") or os.path.expanduser("~/osrs-plugins-reverse")
-OURS = {"alexperrin/osrs-plugins-reverse", "alexperrin/openrune-server"}
+OURS = {"alexperrin/osrs-plugins-reverse", "alexperrin/openrune-server", "alexperrin/osrs-harness"}
 FORK = "AlexPerrin/OpenRune-Server"
 UPSTREAM = "OpenRune/OpenRune-Server"
 GH_WRITES = {
