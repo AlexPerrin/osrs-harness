@@ -17,7 +17,7 @@ owner: null
 instances: []
 live_commit: c23023014e7a5664cacce616c362bca5560406bf
 created: '2026-10-21T00:25:19Z'
-updated: '2026-10-21T00:25:19Z'
+updated: '2026-10-22T02:08:34Z'
 ---
 ## Change
 Branch `fin/goblin-diplomacy` carried by the live server at its pin; no v2 task.

@@ -13,7 +13,7 @@ local_only: false
 owner: null
 instances: []
 created: '2026-10-22T00:42:23Z'
-updated: '2026-10-22T00:42:23Z'
+updated: '2026-10-22T02:08:34Z'
 ---
 ## Change
 CI: game-data actions cache key must change with the cache revision
@@ -25,3 +25,4 @@ CI: game-data actions cache key must change with the cache revision
 
 ## Log
 - 2026-10-22T00:42:23Z created (ready)
+- 2026-10-22T02:08:34Z triage: every fork CI run depends on it; next server dev slot after the user's content

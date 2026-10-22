@@ -22,7 +22,7 @@ summary: 'User''s plugins first (re/evidence/hub-batch-next/user-plugins.md): 16
   rsprofile keys to settings.properties at each login (slot backup lacked them; backup pushed back while logged in).'
 live_commit: 0c7431bf0595bcf279c2db7a060d1617a2264f39
 created: '2026-10-20T01:42:43Z'
-updated: '2026-10-21T00:25:19Z'
+updated: '2026-10-22T02:08:34Z'
 ---
 ## Change
 More hub plugins from the ranking (scratchpad/client38/ranking.json, keep it, or refetch); netcheck + stubcheck each (docs/client-state.md Next tasks 2).

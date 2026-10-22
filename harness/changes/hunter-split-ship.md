@@ -14,7 +14,7 @@ owner: sd32
 instances:
 - desktop
 created: '2026-10-20T01:42:41Z'
-updated: '2026-10-22T00:15:20Z'
+updated: '2026-10-22T02:08:34Z'
 ---
 ## Change
 7 fin/hunter-* branches (local only, re/upstream-pr/dev-hunter): linearise rumours (the older linear rumours are archived as refs/archive/sd22/fin-hunter-rumours dcf92ca13 in re/upstream-pr/or), gate each, write texts; integration still uses fin/hunter.

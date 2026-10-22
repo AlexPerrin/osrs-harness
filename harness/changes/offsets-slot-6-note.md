@@ -14,7 +14,7 @@ owner: null
 instances: []
 live_commit: null
 created: '2026-10-20T01:42:42Z'
-updated: '2026-10-21T00:25:19Z'
+updated: '2026-10-22T02:08:34Z'
 ---
 ## Change
 offsets.md: Client vtable slot 6 0x421a20 is the draw on doCycle's thread (frame fn 0x86bdc8), per qa/client-world-entry-thread-safety.md. Done in f01f851 (gen 46).

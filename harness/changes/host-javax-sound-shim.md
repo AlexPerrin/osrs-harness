@@ -14,7 +14,7 @@ owner: null
 instances: []
 live_commit: null
 created: '2026-10-20T01:42:43Z'
-updated: '2026-10-21T00:25:19Z'
+updated: '2026-10-22T02:08:34Z'
 ---
 ## Change
 Drop Sounds threw NoClassDefFoundError: javax/sound/sampled/Clip at start (v0.1.0 gate); shim javax.sound.sampled onto the host audio path (as AudioPlayer), Drop Sounds pin dropped. Done: 1da314a / e8a3836, merged 788b384 (Network QA PASS).

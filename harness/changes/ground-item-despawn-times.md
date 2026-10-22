@@ -21,14 +21,14 @@ summary: 'sd33''s 4th commit (ObjRegistry.singleCopy and ZoneUpdateTransformer.c
   main e85278c9a (241) with identical patches, head d0fe09c63 on fork PR #23, CI green. The two CI failures before that were this branch''s pre-241 game-data actions cache (key hashes only game.example.yml):
   entry deleted, bug filed as ci-game-cache-key. Spec, PR text and STATE.md on fork docs (696f55e2f); spec no longer lists the copy-owner bug as open.'
 live_commit: 8bc126d4937ef0c813aea42cc1d1e6e5d9d204e5
-batch: int-20261022-4
+batch: int-20261022-5
 cost:
   runs: 3
   turns: 88
   minutes: 40.2
   usd: 7.78
 created: '2026-10-20T01:42:40Z'
-updated: '2026-10-22T01:10:43Z'
+updated: '2026-10-22T02:08:34Z'
 ---
 ## Change
 Every player drop currently despawns after 200 ticks (constants.lootdrop_duration). Match OSRS Wiki 'Drop': tradeables become public after 60 s and despawn after a further 120 s (300 ticks total); untradeables 180 s; clue scrolls 61 min. Repro: ::item 10180 1, drop, gone 115 s later. Unblocks client: Clue Juggling Timers, Ground Items despawn (gen 44, scratchpad/g44/).
@@ -61,3 +61,4 @@ Ground items: keep the owner when an obj is copied (ObjRegistry.singleCopy, Zone
 - 2026-10-22T01:00:02Z run sd34 ended: 56 turns, 33.7 min, $4.97, exit ok
 - 2026-10-22T01:00:03Z dev -> checked: hand-over check PASS
 - 2026-10-22T01:10:43Z in train int-20261022-4: integration 749d6dd58 pushed; gate, image and deploy pending
+- 2026-10-22T02:05:10Z in train int-20261022-5: integration 17c773333 pushed; gate, image and deploy pending

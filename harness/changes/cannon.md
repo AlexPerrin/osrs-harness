@@ -25,7 +25,7 @@ summary: 'Text only, fork docs 4c75a5850: PR text checklist and spec header now 
   at bc243d141.'
 live_commit: bc243d141fc27d5128d29d8266cf51e89a4f6c08
 created: '2026-10-20T05:16:26Z'
-updated: '2026-10-22T00:00:47Z'
+updated: '2026-10-22T02:08:34Z'
 ---
 ## Change
 Cannon (#354): PR text and spec header wording for the upstream gate

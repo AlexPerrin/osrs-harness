@@ -14,7 +14,7 @@ owner: null
 instances: []
 live_commit: null
 created: '2026-10-20T01:42:43Z'
-updated: '2026-10-21T00:25:19Z'
+updated: '2026-10-22T02:08:34Z'
 ---
 ## Change
 A native 30 arriving after the rebuild release tick could post LOGGED_IN twice (unguarded, never seen). Done: 910f450 + f01f851, merged 7ec40ca (gen 46).

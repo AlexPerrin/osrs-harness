@@ -21,10 +21,13 @@ summary: 'Left: client verification (hub-clue-steps-tier) after the deploy. Chec
   (devtools-desktop MCP not connected; lock never taken).'
 live_commit: 48b320359a91f9f0974c1ffc562e510c315bacf5
 created: '2026-10-20T01:42:40Z'
-updated: '2026-10-21T00:25:19Z'
+updated: '2026-10-22T02:08:34Z'
 ---
 ## Change
 Clue scroll Check should say 'You have completed N steps on this <tier> clue scroll.'; local/treasure-trails checkSteps lacks the tier. Unblocks client: Clue Steps hub plugin (gen 44). Gate: internal.
+
+
+Retirement rule (from `drop-local-treasure-trails`): fork STATE.md task 5: drop local/treasure-trails once upstream's clue scrolls land (keep the varp names so saves carry over).
 
 ## Definition of done
 - [x] Check on a clue scroll of each tier prints 'You have completed N steps on this <tier> clue scroll.' with the right tier word
@@ -35,3 +38,4 @@ Clue scroll Check should say 'You have completed N steps on this <tier> clue scr
 
 ## Log
 - 2026-10-21T00:25:19Z migrated from v2 tasks: clue-check-steps-tier
+- 2026-10-22T02:08:34Z folded drop-local-treasure-trails in (triage)

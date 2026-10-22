@@ -24,7 +24,7 @@ cost:
   minutes: 12.0
   usd: 5.09
 created: '2026-10-20T01:42:44Z'
-updated: '2026-10-22T00:25:50Z'
+updated: '2026-10-22T02:08:34Z'
 ---
 ## Change
 Find which roadmap items (content-* tasks) have RSProx recordings in re/ref/rsprox/ (search by NPC id / TEXT) and note them in each task's Log, so specs start from real traffic.

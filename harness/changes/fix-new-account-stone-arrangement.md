@@ -13,7 +13,7 @@ local_only: false
 owner: null
 instances: []
 created: '2026-10-20T01:42:42Z'
-updated: '2026-10-21T00:25:19Z'
+updated: '2026-10-22T02:08:34Z'
 ---
 ## Change
 Upstream's account default sets varbit 4607 to 1 after the login frame is picked, so a new account starts on toplevel 161 with 4607 = 1 (sq25, qa/gameframe-fullscreen-map.md). Check against OSRS's new-account frame and fix the default (fix/new-account-stone-arrangement).
@@ -26,3 +26,4 @@ Upstream's account default sets varbit 4607 to 1 after the login frame is picked
 
 ## Log
 - 2026-10-21T00:25:19Z migrated from v2 tasks: fix-new-account-stone-arrangement
+- 2026-10-22T02:08:34Z triage: parity gap, small; after the user's plugins' content

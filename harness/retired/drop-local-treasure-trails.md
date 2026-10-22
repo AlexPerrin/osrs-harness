@@ -13,7 +13,7 @@ local_only: false
 owner: null
 instances: []
 created: '2026-10-20T01:42:42Z'
-updated: '2026-10-21T00:25:19Z'
+updated: '2026-10-22T02:08:34Z'
 ---
 ## Change
 fork STATE.md task 5: drop local/treasure-trails once upstream's clue scrolls land (keep the varp names so saves carry over).
@@ -23,3 +23,4 @@ fork STATE.md task 5: drop local/treasure-trails once upstream's clue scrolls la
 
 ## Log
 - 2026-10-21T00:25:19Z migrated from v2 tasks: drop-local-treasure-trails
+- 2026-10-22T02:08:34Z retired (triage 2026-10-21): folded into treasure-trails

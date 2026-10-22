@@ -2,7 +2,7 @@
 slug: spec-fix-06-76
 track: server
 title: 'Dev''s check: fix/06-76 branches'
-prio: P2
+prio: P3
 role: server-dev
 stage: ready
 hold: null
@@ -13,7 +13,7 @@ local_only: false
 owner: null
 instances: []
 created: '2026-10-21T00:25:19Z'
-updated: '2026-10-21T00:25:19Z'
+updated: '2026-10-22T02:08:34Z'
 ---
 ## Change
 Accuracy spec + internal gate for each fork fix/* branch 06-76 that still lacks it (fork STATE.md task 4); the internal PASS each is what upstream-fixes-batch-4 needs. Then the upstream gate where the branch goes upstream.
@@ -25,3 +25,4 @@ Accuracy spec + internal gate for each fork fix/* branch 06-76 that still lacks 
 
 ## Log
 - 2026-10-21T00:25:19Z migrated from v2 tasks: spec-fix-06-76
+- 2026-10-22T02:08:33Z triage: specs for the 16 pre-v3 fix/* branches so their upstream gates can run; low until the user's plugins' content is in

@@ -23,7 +23,7 @@ summary: GD d77ac2b76 CI green; second branch content/witchs-potion-unstacked 23
   See log.
 live_commit: d77ac2b76eefe47211f4d15138563c19ddf19bfd
 created: '2026-10-20T01:42:40Z'
-updated: '2026-10-22T00:06:00Z'
+updated: '2026-10-22T02:08:34Z'
 ---
 ## Change
 #367 Goblin Diplomacy (draft since 2026-10-18, user) and #368 Witch's Potion are stacked on #366's old f69c8ed4c (old Sheep Shearer + R&J). Rebuild each off upstream main alone (the -829 branches 4f5e59627 / 4dc1ac9c7 are the candidates, internal PASS); any shared base (QuestTalkFixture) merges upstream first. Then replace #367/#368 with a non-force-push merge commit after the user's OK (sq24).

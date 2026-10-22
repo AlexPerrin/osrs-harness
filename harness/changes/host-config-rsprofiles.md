@@ -14,7 +14,7 @@ owner: null
 instances: []
 live_commit: null
 created: '2026-10-20T01:42:43Z'
-updated: '2026-10-21T00:25:19Z'
+updated: '2026-10-22T02:08:34Z'
 ---
 ## Change
 ConfigManager.getRSProfiles() was missing; Time Tracking's farming completion check threw NoSuchMethodError (v0.1.0 gate). Done: 77baa50, merged 4a572ce. Device restore: restore settings.properties first (the login now writes rsprofile keys).

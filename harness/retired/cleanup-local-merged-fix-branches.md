@@ -26,7 +26,7 @@ cost:
   minutes: 5.1
   usd: 2.15
 created: '2026-10-20T01:42:44Z'
-updated: '2026-10-22T00:08:15Z'
+updated: '2026-10-22T02:08:34Z'
 ---
 ## Change
 Delete local copies of the merged fix/02, 03, 04, 27, 58, 60, 62 (deleted on the fork 2026-10-18).
@@ -52,3 +52,4 @@ Auto-merging tools/harness/tests/test_hd_tick.py
 CONFLICT (content): Merge conflict in tools/harness/tests/test_hd_tick.py
 Automatic merge failed; fix conflicts and then commit the result.
 - 2026-10-22T00:08:15Z hold decision: hd1 deleted the stale local fix/* copies (done, a side effect with no code); its commit da8da2d only re-pinned two lease tests, superseded by ff85881 on master, and conflicts. Nothing to merge: either run `git merge --no-ff -s ours da8da2df` on master yourself so the change observes live, or deny and the change stays as history
+- 2026-10-22T02:08:34Z retired (triage 2026-10-21): work done by hd1 (stale local fix/* copies deleted); its commit held only superseded test edits, nothing to merge

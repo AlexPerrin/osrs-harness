@@ -32,7 +32,7 @@ cost:
   minutes: 19.5
   usd: 7.54
 created: '2026-10-20T01:42:40Z'
-updated: '2026-10-22T00:38:23Z'
+updated: '2026-10-22T02:08:34Z'
 ---
 ## Change
 Fish barrel Check sends GAMEMESSAGE lines instead of the chatbox message box (interface 193 comp 2: 'The barrel is empty.' / 'The barrel contains: 3 x Raw shrimps' / 'The barrel is full. It may be emptied at a bank.'); Destroy (op 5) does nothing (FishBarrelScript dispatch `else -> {}`). A spawned barrel sits in the tester's slot 15 until Destroy works. Unblocks client: Fish Barrel hub plugin (gen 44).

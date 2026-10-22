@@ -14,7 +14,7 @@ owner: null
 instances: []
 live_commit: null
 created: '2026-10-20T01:42:42Z'
-updated: '2026-10-21T00:25:19Z'
+updated: '2026-10-22T02:08:34Z'
 ---
 ## Change
 SceneObjects posted no ItemDespawned for ground items that leave the scene, so Ground Items double-counted after a teleport round trip (pre-existing; qa/client-hostfixes-gen45.md). Done: 9930e21 + 359aa21, merged 5c0a8dc (gen 46, dev's check).

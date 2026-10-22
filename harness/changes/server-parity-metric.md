@@ -13,7 +13,7 @@ local_only: false
 owner: null
 instances: []
 created: '2026-10-20T06:10:54Z'
-updated: '2026-10-21T00:25:19Z'
+updated: '2026-10-22T02:08:34Z'
 ---
 ## Change
 Server progress metric: parity with the official OSRS server (tools/harness/server_parity.py)
@@ -26,3 +26,4 @@ Server progress metric: parity with the official OSRS server (tools/harness/serv
 
 ## Log
 - 2026-10-21T00:25:19Z migrated from v2 tasks: server-parity-metric
+- 2026-10-22T02:08:34Z triage: the server progress tile; P2

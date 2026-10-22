@@ -13,7 +13,7 @@ local_only: false
 owner: null
 instances: []
 created: '2026-10-20T01:42:41Z'
-updated: '2026-10-21T00:25:19Z'
+updated: '2026-10-22T02:08:33Z'
 ---
 ## Change
 Our Doric's Quest overlaps upstream #334 (another contributor; merged upstream per repin-2, fin/doric dropped from integration). If anything remains to contribute, upstream as a draft PR only, referencing #334 (user, 2026-10-18). Depends on the gates.
@@ -27,3 +27,4 @@ Our Doric's Quest overlaps upstream #334 (another contributor; merged upstream p
 
 ## Log
 - 2026-10-21T00:25:19Z migrated from v2 tasks: overlap-doric-334
+- 2026-10-22T02:08:33Z retired (triage 2026-10-21): upstream merged Doric's Quest (#334, in main 829b9477d); we carry no doric branch

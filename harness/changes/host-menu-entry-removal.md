@@ -18,7 +18,7 @@ summary: 'Host gap 2 fixed: MenuOpened runs in a menu session and AndroidMenu.ap
   shortened menu ran Talk-to; no exceptions. Host Java only, no network change. Evidence: screenshots, menu-logcat.txt, repack.log (7 telemetry lines). Device restored (check all OK, lock freed).'
 live_commit: 6d82e5db9380b7aaada4b2e996b758c97ba6731e
 created: '2026-10-20T01:42:43Z'
-updated: '2026-10-21T00:25:19Z'
+updated: '2026-10-22T02:08:34Z'
 ---
 ## Change
 Host gap 2: let plugins remove native menu entries (No Examine) through the host's menu hook (docs/client-state.md Next tasks 3).

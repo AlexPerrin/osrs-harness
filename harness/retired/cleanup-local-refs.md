@@ -27,7 +27,7 @@ cost:
   minutes: 6.2
   usd: 2.47
 created: '2026-10-20T01:42:44Z'
-updated: '2026-10-22T00:14:32Z'
+updated: '2026-10-22T02:08:34Z'
 ---
 ## Change
 Delete local refs in re/upstream-pr/or: new/*, pre-rebase/*, refs/qa/fix/73-75.
@@ -45,3 +45,4 @@ Delete local refs in re/upstream-pr/or: new/*, pre-rebase/*, refs/qa/fix/73-75.
 - 2026-10-22T00:13:09Z ship: the main tree has uncommitted changes in code dirs
 - 2026-10-22T00:13:09Z hold exception: ship: the main tree has uncommitted changes in code dirs
 - 2026-10-22T00:14:32Z hold decision: hd2 deleted the stale local refs in re/upstream-pr/or (done, a side effect with no code); its commit 196efe0 only edits tools/harness/tests/test_live.py for a test it found failing (already fixed on master) and would conflict. Nothing to merge: run `git merge --no-ff -s ours 196efe03` on master yourself if you want the change to observe live, or deny and it stays as history
+- 2026-10-22T02:08:34Z retired (triage 2026-10-21): work done by hd2 (stale refs deleted); its commit held only a superseded test edit, nothing to merge

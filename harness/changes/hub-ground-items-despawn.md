@@ -27,7 +27,7 @@ cost:
   minutes: 81.9
   usd: 16.24
 created: '2026-10-20T01:42:43Z'
-updated: '2026-10-22T01:19:49Z'
+updated: '2026-10-22T02:08:34Z'
 ---
 ## Change
 Ground Items despawn timers and the Clue Juggling Timers plugin on the device once the server uses OSRS despawn times.

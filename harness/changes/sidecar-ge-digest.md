@@ -14,7 +14,7 @@ owner: null
 instances: []
 network: true
 created: '2026-10-20T03:34:37Z'
-updated: '2026-10-21T00:25:19Z'
+updated: '2026-10-22T02:08:34Z'
 ---
 ## Change
 Sidecar: serve the GE digest (404 now, client retries every 10 s)
@@ -26,3 +26,4 @@ Sidecar: serve the GE digest (404 now, client retries every 10 s)
 
 ## Log
 - 2026-10-21T00:25:19Z migrated from v2 tasks: sidecar-ge-digest
+- 2026-10-22T02:08:34Z triage: not on the user's plugin list

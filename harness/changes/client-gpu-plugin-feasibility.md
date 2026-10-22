@@ -13,7 +13,7 @@ local_only: false
 owner: null
 instances: []
 created: '2026-10-20T04:39:08Z'
-updated: '2026-10-21T00:25:19Z'
+updated: '2026-10-22T02:08:34Z'
 ---
 ## Change
 Stretch goal: RuneLite's GPU plugin on the Android app (feasibility)
@@ -25,3 +25,4 @@ Stretch goal: RuneLite's GPU plugin on the Android app (feasibility)
 
 ## Log
 - 2026-10-21T00:25:19Z migrated from v2 tasks: client-gpu-plugin-feasibility
+- 2026-10-22T02:08:34Z triage: stretch goal (user): its own spike; after the user's plugins' client work

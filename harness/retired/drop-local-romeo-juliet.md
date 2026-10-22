@@ -13,7 +13,7 @@ local_only: false
 owner: null
 instances: []
 created: '2026-10-20T01:42:42Z'
-updated: '2026-10-21T00:25:19Z'
+updated: '2026-10-22T02:08:34Z'
 ---
 ## Change
 fork STATE.md task 6: drop local/romeo-juliet when upstream #299 merges (check the varp 144 saves carry over).
@@ -23,3 +23,4 @@ fork STATE.md task 6: drop local/romeo-juliet when upstream #299 merges (check t
 
 ## Log
 - 2026-10-21T00:25:19Z migrated from v2 tasks: drop-local-romeo-juliet
+- 2026-10-22T02:08:34Z retired (triage 2026-10-21): folded into romeo-juliet

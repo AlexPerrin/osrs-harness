@@ -17,7 +17,7 @@ local_only: false
 owner: null
 instances: []
 created: '2026-10-20T01:42:42Z'
-updated: '2026-10-21T00:25:19Z'
+updated: '2026-10-22T02:08:33Z'
 ---
 ## Change
 Upstream the fork fix/* branches 10, 11, 22, 25, 31, 36, 37, 54, 56, 59/63 (held), 69, 70, 71, 76, one PR each, after the internal PASS of each (spec-fix-06-76).
@@ -29,3 +29,4 @@ Upstream the fork fix/* branches 10, 11, 22, 25, 31, 36, 37, 54, 56, 59/63 (held
 ## Log
 - 2026-10-21T00:25:19Z migrated from v2 tasks: upstream-fixes-batch-4
 - 2026-10-21T00:25:19Z hold blocked: waiting for spec-fix-06-76
+- 2026-10-22T02:08:33Z retired (triage 2026-10-21): v2 batching concept: in v3 each fix branch is its own change and gates on its own once its spec exists

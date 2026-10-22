@@ -4,16 +4,17 @@ track: client
 title: 'Stretch goal: 117 HD on the Android app (feasibility)'
 prio: P2
 role: client-dev
-stage: ready
+stage: dev
 hold: null
 deps: []
 branch: null
 commit: null
 local_only: false
-owner: null
-instances: []
+owner: cd50
+instances:
+- device
 created: '2026-10-20T04:39:08Z'
-updated: '2026-10-21T00:25:19Z'
+updated: '2026-10-22T02:08:34Z'
 ---
 ## Change
 Stretch goal: 117 HD on the Android app (feasibility)
@@ -25,3 +26,5 @@ Stretch goal: 117 HD on the Android app (feasibility)
 
 ## Log
 - 2026-10-21T00:25:19Z migrated from v2 tasks: client-117hd-feasibility
+- 2026-10-22T01:54:43Z ready -> dev: dispatched to cd50
+- 2026-10-22T01:54:43Z run cd50 started (client-dev, stage dev, instances device)

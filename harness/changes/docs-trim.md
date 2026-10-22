@@ -18,7 +18,7 @@ summary: 'docs/client-state.md rewritten as current state only (202 -> 127 lines
   left as they are (reference, not state). Docs only, no build or device.'
 live_commit: 82f263c59502134b164202b1ea9b0573e9b46d46
 created: '2026-10-20T01:42:43Z'
-updated: '2026-10-22T00:03:28Z'
+updated: '2026-10-22T02:08:34Z'
 ---
 ## Change
 Trim docs/client-state.md and companions: move history to docs/client-handoff.md, keep state current and short.

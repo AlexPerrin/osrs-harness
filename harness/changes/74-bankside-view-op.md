@@ -1,15 +1,16 @@
 ---
 slug: 74-bankside-view-op
 track: server
-title: 'Bankside view op: rebase onto upstream main, spec and PR text for the upstream gate'
-prio: P2
+title: 'style: spotlessApply on the files this branch touches'
+prio: P3
 role: server-dev
 stage: live
 hold:
-  kind: failed
-  reason: 'further work on the branch (fix-bankside-view-op-refresh): Bankside view op: rebase onto upstream main, spec and PR text for the upstream gate (a new commit re-enters at dev)'
-  since: '2026-10-21T00:25:19Z'
-deps: []
+  kind: blocked
+  reason: upstream gate needs accuracy/<slug>.md first (spec-fix-06-76 writes the specs for the pre-v3 fixes)
+  since: '2026-10-22T02:08:33Z'
+deps:
+- spec-fix-06-76
 branch: fix/74-bankside-view-op
 commit: a86998e235e16fa332af0b6e7fc461a8aa1c4ee0
 local_only: false
@@ -18,7 +19,7 @@ instances: []
 spec: bankside-view-op
 live_commit: a86998e235e16fa332af0b6e7fc461a8aa1c4ee0
 created: '2026-10-20T04:33:51Z'
-updated: '2026-10-21T00:25:19Z'
+updated: '2026-10-22T02:08:34Z'
 ---
 ## Change
 Bankside view op: rebase onto upstream main, spec and PR text for the upstream gate
@@ -31,3 +32,4 @@ Bankside view op: rebase onto upstream main, spec and PR text for the upstream g
 ## Log
 - 2026-10-21T00:25:19Z migrated from v2 tasks: fix-bankside-view-op-refresh, gate-bankside-view-op
 - 2026-10-21T00:25:19Z hold failed: further work on the branch (fix-bankside-view-op-refresh): Bankside view op: rebase onto upstream main, spec and PR text for the upstream gate (a new commit re-enters at dev)
+- 2026-10-22T02:08:33Z hold blocked: upstream gate needs accuracy/<slug>.md first (spec-fix-06-76 writes the specs for the pre-v3 fixes)

@@ -17,7 +17,7 @@ local_only: false
 owner: null
 instances: []
 created: '2026-10-20T01:42:43Z'
-updated: '2026-10-21T00:25:19Z'
+updated: '2026-10-22T02:08:34Z'
 ---
 ## Change
 Did I Compost's treated path on the device once Compost on a patch works on the server (docs/client-state.md Next tasks 1).
@@ -29,3 +29,4 @@ Did I Compost's treated path on the device once Compost on a patch works on the 
 ## Log
 - 2026-10-21T00:25:19Z migrated from v2 tasks: hub-did-i-compost
 - 2026-10-21T00:25:19Z hold blocked: waiting for farming-compost
+- 2026-10-22T02:08:34Z triage: not on the user's plugin list

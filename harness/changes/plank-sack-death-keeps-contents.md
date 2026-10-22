@@ -13,7 +13,7 @@ local_only: false
 owner: null
 instances: []
 created: '2026-10-20T01:42:42Z'
-updated: '2026-10-21T00:25:19Z'
+updated: '2026-10-22T02:08:34Z'
 ---
 ## Change
 Plank sack gap vs OSRS (merged #357): the sack keeps its contents on death. One fix, one PR; no tests-only PR.
@@ -26,3 +26,4 @@ Plank sack gap vs OSRS (merged #357): the sack keeps its contents on death. One 
 
 ## Log
 - 2026-10-21T00:25:19Z migrated from v2 tasks: plank-sack-death-keeps-contents
+- 2026-10-22T02:08:34Z triage: parity gap, small; after the user's plugins' content

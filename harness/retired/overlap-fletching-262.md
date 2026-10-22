@@ -13,7 +13,7 @@ local_only: false
 owner: null
 instances: []
 created: '2026-10-20T01:42:41Z'
-updated: '2026-10-21T00:25:19Z'
+updated: '2026-10-22T02:08:33Z'
 ---
 ## Change
 Our fletching overlaps upstream #262: upstream as a draft PR only, referencing #262 (user, 2026-10-18). fix/06, 07, 69 stay local until #299 merges. Depends on the gates.
@@ -27,3 +27,4 @@ Our fletching overlaps upstream #262: upstream as a draft PR only, referencing #
 
 ## Log
 - 2026-10-21T00:25:19Z migrated from v2 tasks: overlap-fletching-262
+- 2026-10-22T02:08:33Z retired (triage 2026-10-21): folded into fletching

@@ -26,7 +26,7 @@ cost:
   minutes: 2.9
   usd: 11.77
 created: '2026-10-20T01:42:40Z'
-updated: '2026-10-22T01:18:57Z'
+updated: '2026-10-22T02:08:34Z'
 ---
 ## Change
 fix/stile-approach 8a8c0ca7a failed the internal gate: the player walks onto the stile's own blocking tile, so it never climbs. Fix: start the climb from the tile outside the stile on the player's side, in line with it; check in game; update the PR text. Covers the #366 review item 'stile jump from too far away (player not always in the pen)'.

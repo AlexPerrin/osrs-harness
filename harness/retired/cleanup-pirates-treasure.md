@@ -13,7 +13,7 @@ local_only: false
 owner: null
 instances: []
 created: '2026-10-20T01:42:42Z'
-updated: '2026-10-21T00:25:19Z'
+updated: '2026-10-22T02:08:33Z'
 ---
 ## Change
 content/pirates-treasure on the fork: squash the fixup commit and rebase onto the quest test fixture once it is merged upstream.
@@ -24,3 +24,4 @@ content/pirates-treasure on the fork: squash the fixup commit and rebase onto th
 
 ## Log
 - 2026-10-21T00:25:19Z migrated from v2 tasks: cleanup-pirates-treasure
+- 2026-10-22T02:08:33Z retired (triage 2026-10-21): folded into pirates-treasure

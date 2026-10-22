@@ -24,7 +24,7 @@ summary: 'accuracy/genie.md rewritten on fork docs 9eb87c281 (27 rules, RSProx 3
   39375089748 green at 3ccb86bd8. In-game not run (desktop MCP down); left to the gate.'
 live_commit: 3ccb86bd85c6d96e1e067761d0bb72d64a7d47fd
 created: '2026-10-20T01:42:41Z'
-updated: '2026-10-22T00:00:51Z'
+updated: '2026-10-22T02:08:34Z'
 ---
 ## Change
 No accuracy spec exists for the Genie (acc/genie). Write accuracy/genie.md with accuracy-check (wiki + cache baseline, RSProx NPC search) so the gate-acc-genie companion has a spec to check against. Existing material: openrune/upstream/accuracy/.

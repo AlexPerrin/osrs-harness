@@ -14,7 +14,7 @@ owner: null
 instances: []
 live_commit: null
 created: '2026-10-20T01:42:43Z'
-updated: '2026-10-21T00:25:19Z'
+updated: '2026-10-22T02:08:34Z'
 ---
 ## Change
 26x26 override refused vs 15x14 (plugin-host row overstated it); crop canvas-size sprite overrides to the game's trimmed sprite for Poison's heart. Done: e2ee7b7, merged faac757 (gen 46).
