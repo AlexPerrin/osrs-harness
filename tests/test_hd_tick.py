@@ -139,6 +139,9 @@ class ReapTest(unittest.TestCase):
                            live={"integration": "c" * 40}, contains={("fork", "c" * 40, SHA): True}, records=[])
         tick.tick(obs)
         self.assertNotIn(("enqueue", "feat"), self.calls)
+        self.assertEqual(store.load("feat").stage, "checked")
+        tick.tick(obs)   # the next tick observes it live (pin = commit, the live integration carries it)
+        self.assertNotIn(("enqueue", "feat"), self.calls)
         self.assertEqual(store.load("feat").stage, "live")
 
     def test_check_fail_returns_to_ready_with_items(self):

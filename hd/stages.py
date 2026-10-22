@@ -38,12 +38,13 @@ RECORD_VERDICT = re.compile(r"^## Verdict: \*\*(PASS|FAIL)\*\*", re.M)
 
 
 def gate_record(records, branch, commit):
-    """The QA record (name, verdict) for branch at commit among (name, text) records, or None. The upstream line
-    wins; an older record with only a Verdict line was a full run and counts (publish_gate.py does the same)."""
+    """The QA record (name, verdict) for the commit among (name, text) records, or None. The commit is the identity
+    (a branch may be renamed; the record's Branch line is informational). The upstream line wins; an older record
+    with only a Verdict line was a full run and counts (publish_gate.py does the same)."""
     best = None
     for name, text in records or []:
-        mb, mc = RECORD_BRANCH.search(text), RECORD_COMMIT.search(text)
-        if not (mb and mc) or mb.group(1) != branch or not commit.startswith(mc.group(1)):
+        mc = RECORD_COMMIT.search(text)
+        if not mc or not commit.startswith(mc.group(1)):
             continue
         m = RECORD_GATE.search(text) or RECORD_VERDICT.search(text)
         if m:
