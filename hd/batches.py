@@ -401,6 +401,30 @@ def _summary_rc(gate_dir):
     return rc
 
 
+def docker_up():
+    """The docker engine answers (`docker info`). HD_DOCKER overrides the binary; tests stub it."""
+    try:
+        r = subprocess.run([os.environ.get("HD_DOCKER") or "docker", "info"], capture_output=True, timeout=30)
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return r.returncode == 0
+
+
+def _docker_wait(b, step):
+    """A gate or image step that failed while the engine is down is an environment fault, not the integrator's: the
+    batch stays at the step and restarts it once the engine answers. Returns (handled, action)."""
+    if docker_up():
+        if not b.pop("docker_wait", None):
+            return False, None
+        (_start_gate if step == "gating" else _start_image)(b)
+        return True, f"{b['id']}: docker is back, {step} restarted"
+    if not b.get("docker_wait"):
+        b["docker_wait"] = True
+        _step(b, step, detail="docker engine unreachable; the step restarts when it answers")
+        return True, f"{b['id']}: docker engine unreachable, {step} waits"
+    return True, None
+
+
 def _poll(b, obs):
     """A background step: timeout, or its result when the process ended. Returns an action string or None."""
     step = b["step"]
@@ -414,6 +438,9 @@ def _poll(b, obs):
     if step == "gating":
         rc = _summary_rc(b["gate_dir"])
         if rc != 0:
+            handled, action = _docker_wait(b, step)
+            if handled:
+                return action
             on_exception(b, f"gate rc={rc} ({b['gate_dir']}.logs/summary):\n{_tail(b['log'])}")
             return f"{b['id']}: gate rc={rc} -> exception"
         _start_image(b)
@@ -421,6 +448,9 @@ def _poll(b, obs):
     if step == "imaging":
         rec = store.rec_load("images", b["integration"][:7])
         if not rec or rec.get("key_hash") != "match" or rec.get("boot") != "ok":
+            handled, action = _docker_wait(b, step)
+            if handled:
+                return action
             why = ("no image record" if not rec else
                    f"key hash {rec.get('key_hash')}, boot {rec.get('boot')}")
             on_exception(b, f"image failed: {why}\n{_tail(b['log'])}")

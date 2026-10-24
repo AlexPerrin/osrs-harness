@@ -76,6 +76,7 @@ git -C "$STUB_FORK" fetch -q "$STUB_UPSTREAM" main:main
 """,
     "docker": """#!/usr/bin/env bash
 # records every call; answers inspect/run/logs the way image.sh and deploy.sh read them
+if [ "$1" = info ]; then [ "${STUB_DOCKER_DOWN:-}" = 1 ] && exit 1; exit 0; fi
 echo "$*" >> "$STUB_LOG"
 case $1 in
 inspect) if [ "$2" = osrs-openrune ]; then echo sha256:live; else echo sha256:new; fi ;;
@@ -209,9 +210,9 @@ class TrainTest(unittest.TestCase):
         env.update(INTEGRATION_CLONE=self.clone, INTEGRATION_TOOLS_WT=os.path.join(t, "tools-wt"),
                    INTEGRATION_REMOTE="fork", HD_QA_SH=os.path.join(stubs, "qa.sh"),
                    HD_IMAGE_SH=os.path.join(stubs, "image.sh"), HD_DEPLOY_SH=os.path.join(stubs, "deploy.sh"),
-                   HD_FORK_SH=os.path.join(stubs, "fork.sh"), HD_QA_ROOT=os.path.join(t, "qa"),
+                   HD_FORK_SH=os.path.join(stubs, "fork.sh"), HD_DOCKER=os.path.join(stubs, "docker"), HD_QA_ROOT=os.path.join(t, "qa"),
                    STUB_FORK=self.fork, STUB_UPSTREAM=self.up)
-        for k in ("STUB_GATE_RC", "STUB_KEY_HASH", "STUB_DEPLOY_RESULT"):
+        for k in ("STUB_GATE_RC", "STUB_KEY_HASH", "STUB_DEPLOY_RESULT", "STUB_DOCKER_DOWN"):
             os.environ.pop(k, None)
         p = mock.patch.dict(os.environ, env)
         p.start()
@@ -386,6 +387,23 @@ class TrainTest(unittest.TestCase):
         self.assertNotIn("content/d", integrate.listed(self.fork_show("integration.txt")))
         self.assertEqual(len(self.integration_pushes()), 1)
         self.assertTrue(leases.holds("integration", leases.DAEMON))
+        self.assertEqual(self.run_to("imaged")["step"], "imaged")
+
+    def test_gate_failure_with_docker_down_waits_and_restarts(self):
+        batches.enqueue(self.checked("ta", "fix/a"))
+        os.environ["STUB_GATE_RC"] = "1"
+        os.environ["STUB_DOCKER_DOWN"] = "1"
+        batches.advance(self.obs, now=True)
+        b = self.only_batch()
+        batches.wait_step(b)
+        for _ in range(3):
+            batches.advance(self.obs)
+        b = self.only_batch()
+        self.assertEqual(b["step"], "gating")
+        self.assertTrue(b.get("docker_wait"))
+        self.assertNotIn("exception", [s["step"] for s in b["steps"]])
+        del os.environ["STUB_DOCKER_DOWN"], os.environ["STUB_GATE_RC"]
+        self.assertIn("docker is back", " ".join(batches.advance(self.obs)))
         self.assertEqual(self.run_to("imaged")["step"], "imaged")
 
     def test_gate_failure_is_an_exception(self):
