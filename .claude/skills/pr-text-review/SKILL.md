@@ -15,3 +15,7 @@ Upstream's rules: `.github/CONTRIBUTING.md` and the PR template `.github/pull_re
 
 ## Report
 Each false or missing item, with what it should say. No list of the items that passed.
+
+**Tests (hard check).** List every test file and test method the diff adds against upstream `main`. Each one must be justified in
+the PR text as a rule with several cases or a regression a reviewer asked for; otherwise the check FAILS and the test is removed from the PR.
+The maintainer declines tests for simple content, and we keep sending too many.

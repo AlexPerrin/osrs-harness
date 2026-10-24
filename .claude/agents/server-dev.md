@@ -51,7 +51,9 @@ QA (`server-qa`) runs only the upstream gate.
    `name = -1` (names prefixed with the feature), run `python3 tools/scripts/fix_gameval_conflicts.py`, commit what
    it assigns (docs/workflow.md "Gameval ids"). Commit subjects feat:/fix:. Tests only where the change needs one to be right (a rule with several cases, a
    reported regression): the maintainer declines tests for handlers, packets, shops and simple content (#348, 2026-10-21:
-   "No Test is needed for this tbh"); say in the PR text why each new test exists.
+   "No Test is needed for this tbh"); say in the PR text why each new test exists. **The default is NO test in an upstream PR**: a review fix, a bug fix and anything content-shaped
+   ships without one (a fix does not get a regression test unless the reviewer asked for it); test files you used to check your own work stay out of the
+   commit. If in doubt, leave it out.
 4. **Verify** with `build-test`: dev builds with `qa.sh dev <name> <clone>` (your warm container; `qa.sh dev-stop
    <name>` when done); behaviour against the spec with `accuracy-check`; and `ab-test` on desktop RuneLite against
    your branch server where it renders, driven with the `osrs-devtools-desktop` MCP under the desktop lock. The
