@@ -11,7 +11,7 @@ import os
 import re
 import subprocess
 
-from . import ROOT, fork_clone, store
+from . import HD_HOME, ROOT, fork_clone, store
 from . import policy
 from .util import pid_alive
 
@@ -84,10 +84,12 @@ class Observer:
             _run(["git", "-C", self.clone, "fetch", "-q", self.upstream_remote, "main"], timeout=120)
 
     def _repo(self, repo):
+        if repo == "harness":
+            return HD_HOME
         return self.ours if repo == "ours" else self.clone
 
     def _ref(self, repo, name):
-        if repo == "ours":
+        if repo in ("ours", "harness"):
             return f"refs/heads/{name}"
         if repo == "fork":
             return f"refs/remotes/{self.fork_remote}/{name}"

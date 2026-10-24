@@ -24,6 +24,12 @@ def track(name):
     return get()["tracks"][name]
 
 
+def live_target(name):
+    """The branch whose containing a change's commit makes it live (client: master of the client repo; harness: main of
+    this repo)."""
+    return track(name).get("live_target") or "master"
+
+
 def tracks():
     return list(get()["tracks"])
 

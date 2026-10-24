@@ -70,6 +70,20 @@ class Change(dict):
     def dod_unticked(self):
         return re.findall(r"^- \[ \] .*", self.body, re.M)
 
+    def tick_dod(self, numbers):
+        """Tick definition-of-done items by 1-based position among the `- [ ]` / `- [x]` lines; returns the ticked
+        texts. ValueError on a number out of range (nothing changes)."""
+        items = list(re.finditer(r"^- \[[ x]\] ", self.body, re.M))
+        bad = [n for n in numbers if not 1 <= n <= len(items)]
+        if bad:
+            raise ValueError(f"no definition-of-done item {', '.join(map(str, bad))} (the change has {len(items)})")
+        texts = []
+        for n in sorted(set(numbers), reverse=True):
+            m = items[n - 1]
+            texts.insert(0, self.body[m.end():].split("\n", 1)[0])
+            self.body = self.body[:m.start()] + "- [x] " + self.body[m.end():]
+        return texts
+
     def has_dod(self):
         return bool(re.search(r"^- \[[ x]\] ", self.body, re.M)) and "(write the definition of done" not in self.body
 

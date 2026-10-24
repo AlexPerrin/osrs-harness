@@ -4,7 +4,9 @@ are ok. Rules are those of v2's handover-check.sh (reused because they are right
 
 Every track: branch and commit set; definition of done all ticked; evidence dir non-empty (docs-only client
 changes excepted).
-Client / harness: the branch exists at the commit in this repo; the commit is not on master yet; a repack log with
+Client / harness: the branch exists at the commit (client: the client repo, target master; harness: this repo, target
+main, policy `live_target`); the commit is not on the target yet (a harness change handed over on main itself needs
+only main to contain it); a repack log with
 the policy's 7 `telemetry:` lines and device evidence (a logcat extract or a data-tool dump); `netqa*.md` when
 `network: true`. A docs-only change (every file since merge-base(master) is *.md) needs none of the build evidence.
 Server: the commit is on the fork at the branch tip; off upstream main; accuracy/<spec>.md on the fork's docs
@@ -14,7 +16,7 @@ with rc=0."""
 import os
 import re
 
-from . import ROOT, policy
+from . import ROOT, policy, stages
 
 
 def items(ch, obs):
@@ -37,22 +39,28 @@ def items(ch, obs):
     evp = ev if os.path.isabs(ev) else os.path.join(ROOT, ev)
     pol = policy.get().get("evidence", {})
     if track in ("client", "harness"):
-        tip = obs.branch_tip("ours", branch)
+        repo, target = stages.repo_of(track), policy.live_target(track)
+        tip = obs.branch_tip(repo, branch)
         if tip is None:
             fail(f"no local branch {branch}")
+        elif stages.on_target(ch):
+            held = obs.contains(repo, branch, commit)
+            (ok if held else fail)(f"{branch} contains the commit" if held else f"{branch} does not contain {commit[:9]}")
         elif tip != commit:
             fail(f"branch {branch} is at {tip[:9]}, not {commit[:9]}")
         else:
             ok("branch is at the commit")
-        on_master = obs.contains("ours", "master", commit)
-        if on_master:
-            fail("commit already on master")
-        elif on_master is False:
-            ok("not yet on master")
+        on_target = obs.contains(repo, target, commit)
+        if on_target and stages.on_target(ch):
+            ok(f"commit already on {target} (handed over on {target}; the daemon has nothing to merge)")
+        elif on_target:
+            fail(f"commit already on {target}")
+        elif on_target is False:
+            ok(f"not yet on {target}")
         else:
-            fail("could not read master")
-        mb = obs.merge_base("ours", "master", commit)
-        changed = obs.changed_files("ours", mb, commit) if mb else None
+            fail(f"could not read {target}")
+        mb = obs.merge_base(repo, target, commit)
+        changed = obs.changed_files(repo, mb, commit) if mb else None
         docs_only = bool(changed) and all(f.endswith(".md") for f in changed)
         if docs_only:
             ok(f"docs-only change ({len(changed)} markdown files): no build or device evidence needed")

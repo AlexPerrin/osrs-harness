@@ -169,7 +169,7 @@ def ship_and_train(ctx):
                 ctx.act(f"{slug}: queued for the next train")
         else:
             if ctx.dry_run:
-                ctx.act(f"{slug}: would merge into master [dry run]")
+                ctx.act(f"{slug}: would merge into {policy.live_target(ch.get('track'))} [dry run]")
                 continue
             ok, msg = ship.merge_to_master(ch)
             store.add_log(ch, f"ship: {msg}")

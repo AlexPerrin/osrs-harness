@@ -19,7 +19,7 @@ tracks:
     instances: [desktop]
     qa_instances: [desktop]
   harness:
-    live_target: master
+    live_target: main                # this repo's main (not the client's master): a harness change is live when it contains the commit
     branch_prefixes: [harness/]
     dev_role: harness-dev
     dev_slots: 1

@@ -2,6 +2,18 @@
 
 One short entry per issue, newest first: symptom, root cause, evidence, fix, how to recognise it again.
 
+## 2026-10-24 Harness hand-over check read the client repo's master
+
+- **Symptom.** `hd check handover-upstream-ci` (handed over with `--repo ~/osrs-harness --branch main`) failed with
+  "no local branch main" and "could not read master"; each FAIL re-dispatched a dev.
+- **Root cause.** The harness moved out of the client repo, but `check`, `stages.observed` and `ship` still read the
+  client repo's `master` for the harness track (policy `tracks.harness.live_target: master`).
+- **Fix.** `policy.live_target(track)`, `stages.repo_of(track)` (harness = `HD_HOME`, observer repo `harness`); policy
+  target `main`; a change handed over on main itself needs only main to contain the commit; `ship` merges harness
+  changes into main of this repo, no push. `hd dod` added so agents can tick the definition of done.
+  Tests: `tests/test_hd_harness_track.py`.
+- **Recognise.** A harness change failing on "no local branch" / "could not read master" with the commit on main.
+
 ## 2026-10-24 Upstream PR lookup by branch found nothing
 
 - **Symptom.** With the CI fix in, `hd check stile-approach` still read "CI pending" although upstream #406 was green.

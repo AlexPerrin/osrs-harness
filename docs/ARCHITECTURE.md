@@ -50,7 +50,7 @@ flowchart LR
 | `hd/leases.py` | resources (devices, desktops, integration lock, live server, Ghidra) as lease records; grants, take, drain, reclaim |
 | `hd/agents.py` | names, briefs, booking a run (record, leases, owner, `agent request` event), link, end, stop, lingering |
 | `hd/batches.py` + `train/` (`integrate.py`, `image.sh`, `deploy.sh`) | trains (queue, pins, rebuild, gate, image, deploy, re-pin) and release batches |
-| `hd/ship.py` | client and harness changes merge into master (`--no-ff`, pushed) |
+| `hd/ship.py` | checked client and harness changes merge into their live target (`--no-ff`; the client push only) |
 | `hd/heal.py` | idle leases, lingering runs, a dev run ended without hand-over, dead containers, dead batch processes, deadlocks |
 | `hd/actions.py` | what needs the user's OK, computed from observed state (section 8) |
 | `hd/drive.py` | the console's work list (section 7) |
@@ -132,7 +132,7 @@ stateDiagram-v2
   ready --> dev: dispatch (agent run booked, owner set)
   dev --> checked: hand-over check PASS
   dev --> ready: check FAIL (items listed) / run ended without hand-over / blocked
-  checked --> live: client, harness: master contains the commit (ship merges)
+  checked --> live: client: client repo master contains the commit; harness: this repo main contains it (ship merges)
   checked --> live: server: pinned in integration and the live server runs it (train + deploy)
   live --> gated: server: PASS record at the commit on the fork docs branch
   gated --> published: server: OpenRune PR open, not draft, at the commit
@@ -144,6 +144,12 @@ stateDiagram-v2
 Holds (`blocked`, `decision`, `failed`, `exception`) overlay any stage; they never are a stage. `next_executor`: `ready`
 or a `failed` hold on ready/live/published needs a dev; a live, non-local server change without a PASS record needs a
 server-qa gate; a `blocked`/`decision`/`exception` hold needs nothing. Unknown facts (gh down) never regress a stage.
+
+Harness track: branches and the live target are read in this repo (`stages.repo_of`), the target is policy
+`tracks.harness.live_target` (`main`); the client's master is never read. A `harness/<slug>` branch passes the check
+while main lacks the commit; a change handed over on `main` itself passes while main contains the commit (no merge, no
+BR-C2 drift as main moves on). The daemon merges `harness/*` into main and never pushes it. An agent ticks its
+definition of done with `hd dod <slug> <n>...` (on the store; agents cannot edit change files).
 
 ## 6. The tick (tick.py)
 Order, each step in its own try/except (a failure is an `error` event): 1 reconcile (derive stages, deps to blocked holds)

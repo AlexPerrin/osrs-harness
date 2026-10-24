@@ -10,7 +10,20 @@ live: gated needs live at the same commit), BR-S2 (stages are observed, never se
 """
 import re
 
+from . import policy
 from .store import STAGES
+
+def repo_of(track):
+    """Which repo a track's branches and live target are read in: server = the fork, harness = this repo, client = the
+    client repo."""
+    return {"server": "fork", "harness": "harness"}.get(track, "ours")
+
+
+def on_target(ch):
+    """A change handed over on its live target itself (a harness change committed to main): the branch tip moving on
+    is normal, not BR-C2 drift."""
+    return ch.get("branch") == policy.live_target(ch.get("track")) and ch.get("track") != "server"
+
 
 TERMINAL = {"client": "live", "harness": "live", "server": "merged"}
 
@@ -61,7 +74,7 @@ def observed(ch, obs):
     track, branch, commit = ch.get("track"), ch.get("branch"), ch.get("commit")
     if not (branch and commit):
         return out
-    repo = "fork" if track == "server" else "ours"
+    repo = repo_of(track)
     tip = obs.branch_tip(repo, branch)
     out["tip"] = (tip, f"{repo}/{branch} at {tip[:9]}" if tip else f"{repo}/{branch} not found")
     # live
@@ -78,9 +91,10 @@ def observed(ch, obs):
             out["live"] = (c, f"live integration {integ[:9]} {'carries' if c else 'lacks'} {commit[:9]}" if c is not None
                            else "could not read the live integration commit")
     else:
-        c = obs.contains("ours", "master", commit)
-        out["live"] = (c, f"master {'contains' if c else 'does not contain'} {commit[:9]}" if c is not None
-                       else "could not read master")
+        target = policy.live_target(track)
+        c = obs.contains(repo_of(track), target, commit)
+        out["live"] = (c, f"{target} {'contains' if c else 'does not contain'} {commit[:9]}" if c is not None
+                       else f"could not read {target}")
     if track != "server" or ch.get("local_only"):
         return out
     # gated: a PASS record at the commit on the fork's docs branch
@@ -131,7 +145,8 @@ def derive(ch, obs, idx):
     obs_ = observed(ch, obs)
     tip = obs_.get("tip", (None, ""))[0]
     commit = ch.get("commit")
-    moved = tip if (tip and commit and not (tip.startswith(commit) or commit.startswith(tip))) else None
+    moved = tip if (tip and commit and not on_target(ch)
+                    and not (tip.startswith(commit) or commit.startswith(tip))) else None
     if rec in ("backlog", "ready", "dev"):
         ok, open_ = deps_met(ch, idx)
         if rec == "backlog":
@@ -145,7 +160,7 @@ def derive(ch, obs, idx):
         return "dev", f"agent {ch.get('owner') or '?'}", moved
     # checked and above: climb while observed true
     stage = "checked"
-    waiting = "the next train" if track == "server" else "the merge into master"
+    waiting = "the next train" if track == "server" else f"the merge into {policy.live_target(track)}"
     end = terminal(ch)
     for s in ("live", "gated", "published", "merged"):
         if STAGES.index(s) > STAGES.index(end):

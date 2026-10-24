@@ -111,6 +111,21 @@ def cmd_log(a):
     store.save(ch)
 
 
+def cmd_dod(a):
+    """Tick definition-of-done items on the store's copy of the change (agents cannot edit change files)."""
+    ch = _load(a.slug)
+    try:
+        texts = ch.tick_dod(a.numbers)
+    except ValueError as e:
+        sys.exit(f"hd: {e}")
+    nums = sorted(set(a.numbers))
+    store.add_log(ch, "dod ticked: " + ", ".join(map(str, nums)))
+    store.save(ch)
+    events.emit("dod", change=a.slug, items=nums)
+    for n, t in zip(nums, texts):
+        print(f"{a.slug}: [x] {n} {t[:90]}")
+
+
 def cmd_note(a):
     events.emit("note", text=a.text, note_kind=a.kind)
     print("noted")
@@ -495,6 +510,7 @@ def main(argv=None):
     s = sp.add_parser("list"); s.add_argument("--track"); s.add_argument("--stage"); s.add_argument("--all", action="store_true"); s.set_defaults(f=cmd_list)
     s = sp.add_parser("show"); s.add_argument("slug"); s.set_defaults(f=cmd_show)
     s = sp.add_parser("log"); s.add_argument("slug"); s.add_argument("message"); s.set_defaults(f=cmd_log)
+    s = sp.add_parser("dod"); s.add_argument("slug"); s.add_argument("numbers", nargs="+", type=int, help="1-based items"); s.set_defaults(f=cmd_dod)
     s = sp.add_parser("note"); s.add_argument("text"); s.add_argument("--kind", default="note"); s.set_defaults(f=cmd_note)
     s = sp.add_parser("handover"); s.add_argument("slug"); s.add_argument("--branch", required=True); s.add_argument("--commit", required=True)
     s.add_argument("--evidence"); s.add_argument("--summary"); s.add_argument("--pr"); s.add_argument("--ci"); s.add_argument("--repo")
