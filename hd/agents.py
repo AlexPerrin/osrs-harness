@@ -119,6 +119,11 @@ RULES = ("Rules (the user's, standing): read game state through the data tools (
          "and never wait on CI after the hand-over.")
 
 
+def fork_clone():
+    """The OpenRune fork clone (policy repos.fork_clone; INTEGRATION_CLONE overrides): where the integrator works."""
+    return os.environ.get("INTEGRATION_CLONE") or os.path.join(ROOT, policy.repos().get("fork_clone", "re/upstream-pr/or"))
+
+
 def brief(ch, role, stage, instances):
     """The spawn prompt. Its first line names the change (hooks find the slug in the transcript); the role file is
     loaded by --agent, so role rules stay out of it."""
@@ -129,6 +134,8 @@ def brief(ch, role, stage, instances):
         head.append(f"Change file: {ch.path} (the change, its definition of done and the log). Read it first.")
     lines = head + _stage_text(ch, stage, name) + _lease_text(name, instances)
     lines.append(f"Evidence goes in {_evidence(ch)}/ (the main checkout; never a scratchpad or a worktree's re/).")
+    if role == "integrator":
+        lines.append(f"Work from the OpenRune fork clone {fork_clone()}, not the client checkout; the client repo is for client work only.")
     lines.append(RULES)
     body = getattr(ch, "body", "") or ""
     text = "\n".join(lines) + "\n"
@@ -186,7 +193,7 @@ def spawn(ch, role, stage, instances=None):
     mode = os.environ.get("HD_SPAWN") or policy.get()["agents"].get("spawn_mode")
     if mode == "headless":
         mode = None
-    cwd = ROOT if mode else workspace(name, role)
+    cwd = fork_clone() if role == "integrator" else ROOT if mode else workspace(name, role)
     log = _log_path(name)
     rec = {"name": name, "role": role, "change": slug, "stage": stage, "pid": None, "pgid": None, "started": iso(),
            "cwd": cwd, "log": log, "budget": b, "instances": list(instances), "ended": None, "exit": None}

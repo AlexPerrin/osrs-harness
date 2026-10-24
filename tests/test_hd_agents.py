@@ -50,6 +50,14 @@ class AgentsTest(unittest.TestCase):
         self.assertIn(f"{HD} resolve int-20261021-1", b)
         self.assertIn("CONFLICT in Foo.kt", b)
         self.assertIn("Instances granted to you: none.", b)
+        self.assertIn(f"Work from the OpenRune fork clone {agents.fork_clone()}", b)
+
+    def test_integrator_runs_in_the_fork_clone(self):
+        store.rec_save("batches", "int-2", {"id": "int-2", "kind": "train", "step": "exception", "exception": "x"})
+        rec = agents.spawn(store.rec_load("batches", "int-2"), "integrator", "train", [])
+        self.assertEqual(rec["cwd"], agents.fork_clone())
+        self.assertNotEqual(agents.fork_clone(), agents.ROOT)
+        self.assertEqual(agents.spawn(H.change("feat", "server"), "server-dev", "dev")["cwd"], agents.ROOT)
 
     def test_spawn_fake(self):
         ch = H.change("feat", "server")
