@@ -23,6 +23,13 @@ class HealTest(unittest.TestCase):
         except OSError:
             return []
 
+    def test_boot_container_kept_while_its_image_step_runs(self):
+        store.rec_save("batches", "int-1", {"id": "int-1", "kind": "train", "step": "imaging", "steps": []})
+        obs = FakeObserver(containers={"hd-boot-abc": {"status": "Exited (1) 15 seconds ago"}})
+        self.assertEqual(heal.run(obs, {}), [])
+        store.rec_save("batches", "int-1", {"id": "int-1", "kind": "train", "step": "exception", "steps": []})
+        self.assertEqual(heal.run(obs, {}), ["container hd-boot-abc removed (Exited (1) 15 seconds ago)"])
+
     def test_idle_lease_reclaimed_with_evidence(self):
         util.freeze("2026-10-21T01:00:00Z")
         leases.grant("desktop", "sq1", 600)

@@ -112,6 +112,8 @@ waited=0
 while [ "$waited" -lt "$TIMEOUT" ]; do
     ready=$($DOCKER logs "$name" 2>&1 | grep -m1 'Server ready in' || true)
     [ -n "$ready" ] && break
+    state=$($DOCKER inspect "$name" --format '{{.State.Status}}' 2>/dev/null || echo gone)
+    case $state in exited|dead|gone) die "boot check: the container $state before 'Server ready in' ($($DOCKER logs "$name" 2>&1 | tail -n 15 | tr '\n' ' '))" 5 ;; esac
     sleep "$POLL"
     waited=$((waited + POLL))
 done

@@ -81,12 +81,19 @@ def _docker(*args):
     return r.returncode == 0, (r.stdout + r.stderr).strip()
 
 
+def _imaging():
+    from . import batches
+    return any(b.get("step") == "imaging" for b in batches.open_batches())
+
+
 def _containers(obs, idx):
     out = []
     for prefix in ("qa-or-", "hd-boot-"):
         for c in obs.containers(prefix) or []:
             st = str(c.get("status") or "")
             if st.lower().startswith("up") or st == "running":
+                continue
+            if prefix == "hd-boot-" and _imaging():   # the boot container is evidence until image.sh ends
                 continue
             ok, text = _docker("rm", "-f", c["name"])
             events.emit("heal", action="container-removed", container=c["name"], status=st, ok=ok, detail=text[-200:])

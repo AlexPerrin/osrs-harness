@@ -79,7 +79,8 @@ git -C "$STUB_FORK" fetch -q "$STUB_UPSTREAM" main:main
 if [ "$1" = info ]; then [ "${STUB_DOCKER_DOWN:-}" = 1 ] && exit 1; exit 0; fi
 echo "$*" >> "$STUB_LOG"
 case $1 in
-inspect) if [ "$2" = osrs-openrune ]; then echo sha256:live; else echo sha256:new; fi ;;
+inspect) if [ "$4" = "{{.State.Status}}" ]; then echo "${STUB_BOOT_STATE:-running}"
+         elif [ "$2" = osrs-openrune ]; then echo sha256:live; else echo sha256:new; fi ;;
 run)
   if [ "$2" = -d ]; then echo cid; exit 0; fi
   img=$5; h=deadbeefcafe0000
@@ -533,6 +534,13 @@ class ScriptTest(unittest.TestCase):
             ctx = os.path.join(self.d, "images-ctx", f"image-{self.sha[:7]}")
             with open(os.path.join(ctx, "data", "cache", "LIVE", ".limit")) as f:
                 self.assertEqual(f.read(), "|" if not env else "10198|")
+
+    def test_image_boot_container_exit_fails_fast_with_its_logs(self):
+        c = self.clone()
+        r = self.run_script("image.sh", c, "int-t-1", STUB_NO_READY="1", STUB_BOOT_STATE="exited",
+                            **dict(self.image_env, HD_IMAGE_TIMEOUT="600"))
+        self.assertEqual(r.returncode, 5, r.stdout + r.stderr)
+        self.assertIn("the container exited before 'Server ready in'", r.stdout + r.stderr)
 
     def test_image_ok(self):
         c = self.clone()
