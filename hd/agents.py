@@ -190,7 +190,9 @@ def spawn(ch, role, stage, instances=None):
     log = _log_path(name)
     rec = {"name": name, "role": role, "change": slug, "stage": stage, "pid": None, "pgid": None, "started": iso(),
            "cwd": cwd, "log": log, "budget": b, "instances": list(instances), "ended": None, "exit": None}
-    if stage == "train" or ch.get("batch"):
+    # A batch gate (the release pseudo-change: its id is the batch) follows the batch's step; a change's own gate does
+    # not, though a live change carries the `batch` it went live in (its step `live` would stop the run at once).
+    if stage == "train" or (ch.get("batch") and ch.get("batch") == ch.get("id")):
         rec["batch"] = slug if stage == "train" else ch.get("batch")
     if mode in ("fake", "print", "console"):
         os.makedirs(os.path.dirname(log), exist_ok=True)

@@ -179,6 +179,15 @@ class AgentsTest(unittest.TestCase):
         self.assertEqual(whys, ["lingering: batch at rebuilding", "lingering: gate recorded"])
 
 
+    def test_gate_of_live_change_ignores_its_old_batch(self):
+        # a live change carries the batch it went live in (step `live`); its own gate run must not follow that step
+        ch = H.change("feat", "server", stage="live", commit=SHA, batch="int-1")
+        store.rec_save("batches", "int-1", {"id": "int-1", "kind": "train", "step": "live"})
+        rec = agents.spawn(ch, "server-qa", "gate")
+        self.assertNotIn("batch", rec)
+        self.assertEqual(agents.lingering(store.index()), [])
+
+
 if __name__ == "__main__":
     unittest.main()
 
