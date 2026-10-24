@@ -19,7 +19,6 @@ is an event; agents execute one stage with a budget; only two actions need the u
   daemon    the loop and the dashboard server
   dashboard progress, status, approvals (section 9)
   kpi       the harness KPIs from the event log
-  migrate   v2 task store -> v3 changes
 
 Paths: HD_HOME is this repo (osrs-harness); ROOT is the client checkout (HD_CLIENT_ROOT, default
 ~/osrs-plugins-reverse; the main checkout also from a worktree), where evidence, worktrees and the client build live;

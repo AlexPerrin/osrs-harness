@@ -14,7 +14,7 @@ there keep working.
 ```
 hd.py            the command line (python3 ~/osrs-harness/hd.py ...; `hd` in the docs)
 hd/              the daemon: store, events, policy, stages, observe, check, leases, agents, batches, ship, approvals,
-                 heal, tick, daemon, dashboard, kpi, metrics, migrate
+                 heal, tick, daemon, dashboard, kpi, metrics
 hooks/           the Claude Code hooks the client repo's .claude wiring execs (deny_publish, task_stop, slot_stop, ...)
 harness/         policy.yaml and changes/ (committed); state/ (git-ignored: events.jsonl, leases, runs, batches,
                  approvals, images, deploys, live.json, daemon.json, server.json)

@@ -16,13 +16,13 @@ and the KPIs read. The orchestrator session is a console; the user acts only on 
 
 ## Layout
 ```
-tools/harness/hd.py              the command line (hd ...): changes, daemon, leases, approvals, batches, events, migrate
+tools/harness/hd.py              the command line (hd ...): changes, daemon, leases, approvals, batches, events
 tools/harness/hd/                the package (one module per concern; each docstring is its spec)
   util events store policy       clock (UTC in, Eastern out), the event log, the records, policy.yaml
   stages observe check           the lifecycle preconditions, external truth, the hand-over check
   leases agents batches ship     resources, stage executors, trains and releases, the client merge
   approvals heal tick daemon     the user's queue, repairs, the tick, the loop + HTTP server
-  dashboard kpi migrate          the page and text views, the KPIs, v2 tasks -> changes
+  dashboard kpi          the page and text views, the KPIs
 tools/harness/image.sh           gated clone -> deploy image (keys only by COPY --from the live image; boot check)
 tools/harness/deploy.sh          image -> live (rollback tag, compose up --no-deps, "Server ready in", auto-rollback)
 tools/harness/Dockerfile.integration
@@ -89,7 +89,7 @@ hd start|stop        (the tick loop; restart it freely for a code change)   hd t
 hd approvals         hd approve <id>               hd deny <id> --note "..."
 hd lease status      hd batches                    hd train --now       hd resume <batch>
 hd new --track server --slug x --title "..." --server-dod [--prio P1] [--deps a,b]
-hd migrate [--apply] (v2 tasks -> changes, once)   hd lint   hd check <slug>
+hd lint   hd check <slug>
 python3 tools/harness/rsprox_coverage.py [slug...] [--log] [--offline]   (roadmap RSProx coverage; manifest harness/rsprox-coverage.yaml)
 ```
 Tests: `python3 -m unittest discover -s tools/harness/tests` (a test per business rule: test_hd_*.py).

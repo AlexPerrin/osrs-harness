@@ -29,7 +29,7 @@ Resources
   lease status [<res>]   lease holds <res> <who>   lease drain <res>   lease undrain <res>
 Approvals, batches, events
   approvals   approve <id> [--note]   deny <id> --note "..."   batches   train [--now]   resume <batch>
-  release-request <tag>   events [--kind k] [--change s] [--limit n]   kpi   migrate [--apply]
+  release-request <tag>   events [--kind k] [--change s] [--limit n]   kpi
 """
 import argparse
 import json
@@ -498,11 +498,6 @@ def cmd_kpi(a):
     print(json.dumps(kpi.compute(), indent=1, default=str))
 
 
-def cmd_migrate(a):
-    from . import migrate
-    return migrate.main(apply=a.apply)
-
-
 def main(argv=None):
     p = argparse.ArgumentParser(prog="hd", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sp = p.add_subparsers(dest="cmd", required=True)
@@ -556,7 +551,6 @@ def main(argv=None):
     s = sp.add_parser("events"); s.add_argument("--kind"); s.add_argument("--change"); s.add_argument("--limit", type=int, default=50); s.set_defaults(f=cmd_events)
     sp.add_parser("kpi").set_defaults(f=cmd_kpi)
     sp.add_parser("recount").set_defaults(f=cmd_recount)
-    s = sp.add_parser("migrate"); s.add_argument("--apply", action="store_true"); s.set_defaults(f=cmd_migrate)
     sp.add_parser("version").set_defaults(f=lambda a: print("hd 3.0"))
     a = p.parse_args(argv)
     try:
