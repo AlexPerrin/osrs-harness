@@ -2,11 +2,15 @@
 slug: ground-item-despawn-times
 track: server
 title: Ground item despawn times (OSRS Drop rules)
-prio: P1
+prio: P2
 role: server-dev
 stage: checked
 hold: null
-deps: []
+deps:
+- cannon-review-354
+- genie-review-355
+- goblin-diplomacy-review-367
+- witchs-potion-review-368
 branch: fix/ground-item-despawn-times
 commit: d0fe09c630e7456433348ee273f3e9cd8353cc82
 local_only: false
@@ -28,7 +32,7 @@ cost:
   minutes: 40.2
   usd: 7.78
 created: '2026-10-20T01:42:40Z'
-updated: '2026-10-22T02:08:34Z'
+updated: '2026-10-24T19:32:22Z'
 ---
 ## Change
 Every player drop currently despawns after 200 ticks (constants.lootdrop_duration). Match OSRS Wiki 'Drop': tradeables become public after 60 s and despawn after a further 120 s (300 ticks total); untradeables 180 s; clue scrolls 61 min. Repro: ::item 10180 1, drop, gone 115 s later. Unblocks client: Clue Juggling Timers, Ground Items despawn (gen 44, scratchpad/g44/).
@@ -62,3 +66,4 @@ Ground items: keep the owner when an obj is copied (ObjRegistry.singleCopy, Zone
 - 2026-10-22T01:00:03Z dev -> checked: hand-over check PASS
 - 2026-10-22T01:10:43Z in train int-20261022-4: integration 749d6dd58 pushed; gate, image and deploy pending
 - 2026-10-22T02:05:10Z in train int-20261022-5: integration 17c773333 pushed; gate, image and deploy pending
+- 2026-10-24T19:32:22Z 2026-10-24 reset (user): settle the existing upstream PRs (#354 #355 #367 #368) before opening new ones; depends on their review fixes, P2

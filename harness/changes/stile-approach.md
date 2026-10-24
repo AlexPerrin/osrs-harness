@@ -2,11 +2,15 @@
 slug: stile-approach
 track: server
 title: 'Stile: approach from the outside tile'
-prio: P1
+prio: P2
 role: server-dev
 stage: gated
 hold: null
-deps: []
+deps:
+- cannon-review-354
+- genie-review-355
+- goblin-diplomacy-review-367
+- witchs-potion-review-368
 branch: fix/stile-approach
 commit: 513144d3dfcfcfd5613123bbe3457b952192c384
 local_only: false
@@ -26,7 +30,7 @@ cost:
   minutes: 2.9
   usd: 11.77
 created: '2026-10-20T01:42:40Z'
-updated: '2026-10-22T02:08:34Z'
+updated: '2026-10-24T19:32:22Z'
 ---
 ## Change
 fix/stile-approach 8a8c0ca7a failed the internal gate: the player walks onto the stile's own blocking tile, so it never climbs. Fix: start the climb from the tile outside the stile on the player's side, in line with it; check in game; update the PR text. Covers the #366 review item 'stile jump from too far away (player not always in the pen)'.
@@ -48,3 +52,4 @@ fix/stile-approach 8a8c0ca7a failed the internal gate: the player walks onto the
 - 2026-10-22T01:18:26Z gate PASS claimed: record qa/stile-approach.md pushed to fork docs 91dcc82c4 (the earlier gate call ran before the push went through) (the record on docs is what counts)
 - 2026-10-22T01:18:56Z live -> gated: observed
 - 2026-10-22T01:18:57Z run sq33 ended: 16 turns, 2.9 min, $11.77, exit ok
+- 2026-10-24T19:32:22Z 2026-10-24 reset (user): settle the existing upstream PRs (#354 #355 #367 #368) before opening new ones; depends on their review fixes, P2

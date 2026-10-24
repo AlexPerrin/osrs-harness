@@ -2,11 +2,15 @@
 slug: 11-dense-clientscript-ids
 track: server
 title: 'fix: Take the stock clientscript maximum from the cache and the CS2 project'
-prio: P1
+prio: P2
 role: server-dev
 stage: checked
 hold: null
-deps: []
+deps:
+- cannon-review-354
+- genie-review-355
+- goblin-diplomacy-review-367
+- witchs-potion-review-368
 branch: fix/11-dense-clientscript-ids
 commit: c2f528fca73e316fe1a58e5f7124bb402e8f21cd
 local_only: true
@@ -27,7 +31,7 @@ cost:
   usd: 0
   tokens: 231639
 created: '2026-10-21T00:25:19Z'
-updated: '2026-10-22T02:08:34Z'
+updated: '2026-10-24T19:32:22Z'
 ---
 ## Change
 Branch `fix/11-dense-clientscript-ids` carried by the live server at its pin; no v2 task.
@@ -53,3 +57,4 @@ Branch `fix/11-dense-clientscript-ids` carried by the live server at its pin; no
 - 2026-10-22T01:55:36Z handover fix/11-dense-clientscript-ids@c2f528fca: sd35: StockClientScripts reads the stock clientscript range from the cache; PluginPacks.checkClientScriptIds fails a build on shadowing; quest 10197-10198, spawn 10199-10209; rebased onto upstream main e85278c9a
 - 2026-10-22T02:04:07Z dev -> checked: hand-over check PASS
 - 2026-10-22T02:05:10Z in train int-20261022-5: integration 17c773333 pushed; gate, image and deploy pending
+- 2026-10-24T19:32:22Z 2026-10-24 reset (user): settle the existing upstream PRs (#354 #355 #367 #368) before opening new ones; depends on their review fixes, P2

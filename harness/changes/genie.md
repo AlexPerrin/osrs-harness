@@ -24,7 +24,7 @@ summary: 'accuracy/genie.md rewritten on fork docs 9eb87c281 (27 rules, RSProx 3
   39375089748 green at 3ccb86bd8. In-game not run (desktop MCP down); left to the gate.'
 live_commit: 3ccb86bd85c6d96e1e067761d0bb72d64a7d47fd
 created: '2026-10-20T01:42:41Z'
-updated: '2026-10-22T02:08:34Z'
+updated: '2026-10-24T19:32:22Z'
 ---
 ## Change
 No accuracy spec exists for the Genie (acc/genie). Write accuracy/genie.md with accuracy-check (wiki + cache baseline, RSProx NPC search) so the gate-acc-genie companion has a spec to check against. Existing material: openrune/upstream/accuracy/.
@@ -36,3 +36,4 @@ No accuracy spec exists for the Genie (acc/genie). Write accuracy/genie.md with 
 - 2026-10-21T00:25:19Z migrated from v2 tasks: spec-genie, fix-genie-gate-findings, gate-acc-genie
 - 2026-10-21T00:25:19Z hold decision: branch acc/genie is not one-change-one-branch (BR-C1): fold into content/genie (changes the upstream PR head: your OK per PR), then point integration at it; then: Genie (#355): leave on the next call tick after Talk-to; lamp XP equal to the message (fix-genie-gate-findings): Genie (#355): leave on the next call tick after Talk-to; lamp XP equal to the message
 - 2026-10-22T00:00:51Z live -> checked: drift: integration pin is absent, not 3ccb86bd8 (next train)
+- 2026-10-24T19:32:22Z 2026-10-24 reset: review fixes and the gate findings are genie-review-355 (on the PR head content/genie)
