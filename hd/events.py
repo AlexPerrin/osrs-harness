@@ -1,5 +1,5 @@
 """The event log (BR-H4): `harness/state/events.jsonl`, append-only, one JSON object per line, UTC. Every stage
-change, hold, batch step, lease event, agent request, start and end, denial, drift, deploy, re-pin and metric
+change, hold, batch step, lock event, agent request, start and end, denial, drift, deploy, re-pin and metric
 recount is one line. The KPIs and every post-mortem read it; nothing rewrites it.
 
   emit(kind, **fields)      append one event; returns it
@@ -12,7 +12,7 @@ Kinds (the `kind` field; `data` holds the rest):
   check      hand-over check: result (PASS|FAIL), items
   batch      a train or release step: batch, step (queued|pinning|rebuilding|gating|imaging|deploying|live|
              exception|failed|rolled-back|published), detail
-  lease      resource lease: action (grant|take|heartbeat|release|reclaim|expire|drain|undrain|deny), resource,
+  lease      resource lock: action (take|release|reclaim|deny), resource,
              holder, purpose, why
   agent      start|request|end|stop-request: name, role, change, stage; on end: turns, minutes, tokens, exit
   denial     a hook or classifier denied an action: source, rule, command (truncated)

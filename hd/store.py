@@ -5,7 +5,7 @@ checkboxes, `## Log` with dated lines). Front matter keys (the order they are wr
   slug, track (client|server|harness), title, prio (P0-P3), role (the dev role that executes `dev`),
   stage (backlog|ready|dev|checked|live|gated|published|merged), hold ({kind, reason, since} or null),
   deps (slugs), branch, commit (the handed-over commit), local_only (server: local/* branch, ends at live),
-  owner (the agent in dev), instances (granted for the stage), evidence (dir), pr (fork PR url), ci (run url),
+  owner (the agent in dev), evidence (dir), pr (fork PR url), ci (run url),
   upstream_pr (number), spec (accuracy/<spec>.md), network (client: touches networking), summary,
   gated_commit, live_commit, published_commit, batch, cost ({runs, turns, tokens, minutes}), created, updated.
 
@@ -28,9 +28,9 @@ PRIOS = ("P0", "P1", "P2", "P3")
 ROLES = {"client": "client-dev", "server": "server-dev", "harness": "harness-dev"}
 QA_ROLES = {"client": "client-qa", "server": "server-qa"}
 KEYS = ("slug", "track", "title", "prio", "role", "stage", "hold", "deps", "branch", "commit", "local_only",
-        "owner", "instances", "evidence", "pr", "ci", "upstream_pr", "spec", "network", "summary", "gated_commit",
+        "owner", "evidence", "pr", "ci", "upstream_pr", "spec", "network", "summary", "gated_commit",
         "live_commit", "published_commit", "batch", "cost", "created", "updated")
-LIST_KEYS = ("deps", "instances")
+LIST_KEYS = ("deps",)
 FRONT = re.compile(r"---\n(.*?)\n---\n?(.*)", re.S)
 
 
@@ -107,6 +107,7 @@ def load(slug):
     if not m:
         raise ValueError(f"{p}: no front matter")
     meta = yaml.safe_load(m.group(1)) or {}
+    meta.pop("instances", None)   # retired key: dropped on the next save
     for k in LIST_KEYS:
         if meta.get(k) is None:
             meta[k] = []
@@ -164,7 +165,7 @@ def new(slug, track, title, prio="P2", role=None, deps=(), dod=(), text="", bran
         raise ValueError("a change leaves backlog only with a definition of done (BR-C3)")
     ch = Change({"slug": slug, "track": track, "title": title, "prio": prio, "role": role or ROLES[track],
                  "stage": stage, "hold": None, "deps": list(deps), "branch": branch, "commit": None,
-                 "local_only": bool(local_only), "owner": None, "instances": [], "created": iso()})
+                 "local_only": bool(local_only), "owner": None, "created": iso()})
     if network:
         ch["network"] = True
     if spec:

@@ -1,16 +1,16 @@
 """harnessd (hd): built against docs/PRD.md.
 
-A change is the only unit of work; stages are observed, never set by hand; resources are leases; every state change
+A change is the only unit of work; stages are observed, never set by hand; shared resources are locks; every state change
 is an event; agents execute one stage and are spawned by the console session; two kinds of action need the user's OK in chat. The package:
 
   util      clock (UTC in, US Eastern out), atomic files, slugs
   events    append-only events.jsonl (BR-H4)
-  store     change / lease / run / batch records on disk
+  store     change / lock / run / batch records on disk
   policy    harness/policy.yaml: tracks, roles, resources, limits (BR-P*)
   stages    the lifecycle and each stage's precondition per track (BR-C*, BR-S*)
   observe   external truth: git refs, fork CI, GitHub PRs, docker, processes (BR-H1)
   check     the hand-over check (the `checked` precondition)
-  leases    the lease service (BR-R*)
+  leases    the shared-resource locks (BR-R*)
   agents    stage executors booked by the daemon, spawned by the console (BR-G*)
   batches   trains and releases: queue, rebuild, gate, image, deploy (BR-B*)
   actions   what needs the user's OK, observed from the remotes (BR-A*)

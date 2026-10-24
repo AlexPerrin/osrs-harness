@@ -5,7 +5,7 @@ description: "Run Network QA on a client build: DNS lookups, app sockets, expect
 # Network QA
 
 Procedure, expected hosts and must-not-appear list: docs/app-telemetry.md "Network QA". Run it inside a
-`device-test` slot.
+`device-test` run of your own client.
 
 When it's required: changes to `tools/repack.sh`, `patch_telemetry.py` or `patch_server.py`; a new APK or game
 version; the sidecar or jav_config; host networking code; a hub plugin that makes network calls; every release.

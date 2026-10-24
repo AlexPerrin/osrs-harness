@@ -7,19 +7,18 @@ client repo holds client code and releases only; server code and server tooling 
 
 **New session: read docs/HANDOFF.md first.** The rules: docs/PRD.md (BR-*). How it is built: docs/ARCHITECTURE.md.
 Run from the client checkout (`HD_CLIENT_ROOT`, default `~/osrs-plugins-reverse`), where agents work, evidence lives
-(`re/evidence/<slug>/`) and the client builds; the client repo keeps thin shims at `tools/harness/hd.py`,
-`tools/hooks/*.py` and `tools/device-lock.sh` that exec this repo.
+(`re/evidence/<slug>/`) and the client builds; the client repo keeps thin shims at `tools/harness/hd.py`
+and `tools/hooks/*.py` that exec this repo.
 
 ```
 hd.py            the command line (python3 ~/osrs-harness/hd.py ...; `hd` in the docs)
-hd/              the daemon (store, events, policy, stages, observe, check, leases, agents, batches, ship, heal, tick,
+hd/              the daemon (store, events, policy, stages, observe, check, locks (leases.py), agents, batches, ship, heal, tick,
                  daemon, kpi, metrics) and the console's side (actions, drive)
 hooks/           the Claude Code hooks the role files and the client repo's .claude wiring exec
 harness/         policy.yaml and changes/ (committed); state/ (git-ignored)
 .claude/         agents/ (role files) and skills/ (drive = the console loop; the track rules; the QA procedures)
-device-lock.sh   instance leases
 docs/            ARCHITECTURE.md, PRD.md, HANDOFF.md (current state), ISSUES.md (incidents and root causes)
-train/           image.sh deploy.sh Dockerfile.integration instances.tsv integrate.py: the train's steps
+train/           image.sh deploy.sh Dockerfile.integration integrate.py: the train's steps
 tests/           python3 -m unittest discover -s tests
 ```
 

@@ -132,7 +132,6 @@ class DenyPublishTest(unittest.TestCase):
         # --- orchestrator-only actions, whatever the flags
         ("openrune/upstream/openrune.sh deploy abc123", "ours", FORK, DENY),
         ("docker compose --env-file switch.env up -d", "ours", DOCS, DENY),
-        ("LOCK_NAME=device tools/device-lock.sh grant cd1 60 reuse", "ours", FORK, DENY),
         ("python3 tools/progress.py", "ours", NONE, DENY),
         ("python3 tools/progress.py --dry-run", "ours", FORK, ALLOW),
     ]

@@ -1,4 +1,4 @@
-"""The integration deny rules in deny_publish.py and LOCK_DIR in device-lock.sh. Temp lock dirs only."""
+"""The integration deny rules in deny_publish.py Temp dirs only."""
 import os
 import shutil
 import subprocess
@@ -19,8 +19,6 @@ class IntegrationDenyTest(unittest.TestCase):
         # (command, cwd (relative to a temp root), denied)
         ("tools/harness/deploy.sh int-20261020-1", ".", True),
         ("tools/harness/ship.sh fix-x", ".", True),
-        ("LOCK_NAME=desktop tools/device-lock.sh reclaim idle", ".", True),
-        ("LOCK_NAME=desktop tools/device-lock.sh revoke sd28", ".", True),
         ("tools/harness/ship.sh fix-x --dry-run", ".", True),
         ("bash tools/harness/image.sh re/harness/qa/x int-20261020-1", ".", True),
         ("/home/alex/osrs-plugins-reverse/tools/harness/deploy.sh", ".", True),
@@ -100,34 +98,3 @@ class IntegrationDenyTest(unittest.TestCase):
                              capture_output=True, text=True, env=dict(os.environ, HD_EVENTS=os.devnull)).stdout
         self.assertIn('"deny"', out)
         self.assertIn("integration images, deploys", out)
-
-
-class LockDirTest(unittest.TestCase):
-    """device-lock.sh is a wrapper over `hd lease` (harness v3): the lease lives in the hd state dir and LOCK_DIR
-    holds only the v2 mirror files (osrs-<name>.lock/owner while held, osrs-<name>-status)."""
-
-    def setUp(self):
-        import hd_helpers
-        self.d = hd_helpers.sandbox(self)
-        self.lock_dir = os.environ["HD_LOCK_DIR"]
-
-    def run_lock(self, *args, name="device"):
-        env = dict(os.environ, LOCK_NAME=name, LOCK_DIR=self.lock_dir)
-        return subprocess.run(["bash", os.path.join(ROOT, "device-lock.sh"), *args], capture_output=True, text=True, env=env)
-
-    def test_lock_dir_holds_every_file(self):
-        who = "sd99"
-        self.assertEqual(self.run_lock("grant", who, "30", "reuse", name="desktop").returncode, 0)
-        r = self.run_lock("take", who, "ab test", name="desktop")
-        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-        self.assertTrue(os.path.isfile(os.path.join(self.lock_dir, "osrs-desktop.lock", "owner")))
-        self.assertIn("taking desktop (sd99 dev, ab test)", open(os.path.join(self.lock_dir, "osrs-desktop.lock", "owner")).read())
-        self.assertNotEqual(self.run_lock("status", name="desktop").returncode, 0)
-        self.assertEqual(self.run_lock("take", "other", "x", name="desktop").returncode, 1)
-        self.assertEqual(self.run_lock("free", who, name="desktop").returncode, 0)
-        self.assertFalse(os.path.exists(os.path.join(self.lock_dir, "osrs-desktop.lock")))
-        self.assertEqual(self.run_lock("status", name="desktop").returncode, 0)
-
-    def test_default_is_tmp(self):
-        src = open(os.path.join(ROOT, "device-lock.sh")).read()
-        self.assertIn("HD_LOCK_DIR=${LOCK_DIR:-${HD_LOCK_DIR:-/tmp}}", src)

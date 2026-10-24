@@ -1,17 +1,15 @@
 """Agents are stage executors (BR-G1..G4): one change, one stage, a fresh context, a brief generated from the
-change. v4: agents are spawned from the console session only. The daemon decides and books a run (record, leases,
-owner, an `agent request` event with the brief's path); the console session (`hd drive`) spawns it with the Agent
-tool, links it (`hd run-link`), and reports its end (`hd run-end`). Roles: client-dev, server-dev, client-qa,
+change. v4: agents are spawned from the console session only. The daemon decides and books a run (record, owner, an `agent request` event with the brief's path); the console session (`hd drive`) spawns it with
+the Agent tool, links it (`hd run-link`), and reports its end (`hd run-end`). Roles: client-dev, server-dev, client-qa,
 server-qa, integrator, harness-dev (harness/policy.yaml).
 
 Run record `harness/state/runs/<name>.json`:
-  {name, role, change, stage, console: True, started, log (the brief), instances, ended, exit, turns, minutes, tokens,
+  {name, role, change, stage, console: True, started, log (the brief), ended, exit, turns, minutes, tokens,
    result, agent_id, batch}
 Agent names: policy `agents.names` prefix + a counter (`harness/state/counters.json`), continuing v2's gens.
 
-  brief(ch, role, stage, instances)   the spawn prompt (the change file, the name, the leases, how to hand over)
-  spawn(ch, role, stage, instances)   grant leases, set owner, write the brief to the log, record the run, emit the
-                                      request; returns the run record. For stage `train` the record passed is the
+  brief(ch, role, stage)              the spawn prompt (the change file, the name, how to hand over)
+  spawn(ch, role, stage)              set owner, write the brief to the log, record the run, emit the request; returns the run record. For stage `train` the record passed is the
                                       batch (its id names the change).
   running()                           run records not ended
   link(name, agent_id)                the Agent-tool id of a run (for TaskStop on a stop-request)
@@ -91,26 +89,15 @@ def _evidence(ch):
     return os.path.join(evidence_dir(), _slug(ch))
 
 
-def _lease_text(name, instances):
-    if not instances:
-        return ["Instances granted to you: none."]
-    return [f"Instances granted to you (take without asking): {', '.join(instances)}. Take one only when you start using",
-            "it and free it right after. The lease is bound to your process: it counts as in use while you run and is",
-            "reclaimed once you end (no heartbeat needed; `lease heartbeat` exists only for a helper outside your process):",
-            f"  take with: {HD} lease take <instance> {name} \"<what>\"",
-            f"  heartbeat: {HD} lease heartbeat <instance> {name}",
-            f"  free: {HD} lease release <instance> {name}"]
-
-
 RULES = ("Rules (the user's, standing): read game state through the data tools (osrs-devtools, osrs-devtools-desktop, "
-         "osrs-mcp), never screenshots unless the user asks; evidence is a logcat extract or a data-tool dump. Keep leases "
-         "only while in use. Keep scripts and temp files under `<scratchpad>/<your-name>/`, never at the scratchpad's top "
+         "osrs-mcp), never screenshots unless the user asks; evidence is a logcat extract or a data-tool dump. Start your own "
+         "client (its own port and account state) when you need one and stop it when you are done. Keep scripts and temp files under `<scratchpad>/<your-name>/`, never at the scratchpad's top "
          "level. Report a denied action, never work around it. Once you have handed over, gated, resolved, blocked or "
-         "failed, stop every background job you started, free every lease, send one line and exit; start nothing new "
+         "failed, stop every background job you started (your client too), send one line and exit; start nothing new "
          "and never wait on CI after the hand-over.")
 
 
-def brief(ch, role, stage, instances):
+def brief(ch, role, stage):
     """The spawn prompt. Its first line names the change (hooks find the slug in the transcript); the role file is
     loaded by --agent, so role rules stay out of it."""
     slug, name = _slug(ch), ch.get("owner") or "<name>"
@@ -118,7 +105,7 @@ def brief(ch, role, stage, instances):
             f"role `{role}`."]
     if isinstance(ch, store.Change):
         head.append(f"Change file: {ch.path} (the change, its definition of done and the log). Read it first.")
-    lines = head + _stage_text(ch, stage, name) + _lease_text(name, instances)
+    lines = head + _stage_text(ch, stage, name)
     lines.append(f"Evidence goes in {_evidence(ch)}/ (the main checkout; never a scratchpad or a worktree's re/).")
     if role == "integrator":
         lines.append(f"Work from the OpenRune fork clone {fork_clone()}, not the client checkout; the client repo is for client work only.")
@@ -132,12 +119,6 @@ def brief(ch, role, stage, instances):
 
 # --- spawn --------------------------------------------------------------------------------------------------------
 
-def _default_instances(ch, role, stage):
-    track = ch.get("track") or policy.role(role)["track"]
-    t = policy.track(track)
-    return list(t.get("qa_instances" if stage == "gate" else "instances") or [])
-
-
 def _persist(ch):
     if isinstance(ch, store.Change):
         store.save(ch)
@@ -146,28 +127,24 @@ def _persist(ch):
         store.rec_save(BATCHES, ch["id"], ch)
 
 
-def spawn(ch, role, stage, instances=None):
+def spawn(ch, role, stage):
     slug = _slug(ch)
     name = next_name(role)
-    if instances is None:
-        instances = _default_instances(ch, role, stage)
-    for inst in instances:
-        leases.grant(inst, name, reuse=True, purpose=f"{stage} {slug}", change=slug)
-    ch["owner"], ch["instances"] = name, list(instances)
+    ch["owner"] = name
     if isinstance(ch, store.Change):
         if stage == "dev" and ch.stage == "ready":
             store.set_stage(ch, "dev", f"dispatched to {name}")
-        store.add_log(ch, f"run {name} started ({role}, stage {stage}, instances {', '.join(instances) or 'none'})")
+        store.add_log(ch, f"run {name} started ({role}, stage {stage})")
     log = _log_path(name)
     rec = {"name": name, "role": role, "change": slug, "stage": stage, "console": True, "started": iso(), "log": log,
-           "instances": list(instances), "ended": None, "exit": None}
+           "ended": None, "exit": None}
     # A batch gate (the release pseudo-change: its id is the batch) follows the batch's step; a change's own gate does
     # not, though a live change carries the `batch` it went live in (its step `live` would stop the run at once).
     if stage == "train" or (ch.get("batch") and ch.get("batch") == ch.get("id")):
         rec["batch"] = slug if stage == "train" else ch.get("batch")
     os.makedirs(os.path.dirname(log), exist_ok=True)
     with open(log, "w") as f:
-        f.write(brief(ch, role, stage, instances))
+        f.write(brief(ch, role, stage))
     _persist(ch)
     store.rec_save(RUNS, name, rec)
     events.emit("agent", action="start", name=name, role=role, change=slug, stage=stage)
@@ -190,16 +167,14 @@ def link(name, agent_id):
     return r
 
 
-def _free_leases(name):
+def _free_locks(name):
     for res, r in leases.status_all().items():
         if r.get("holder") == name:
             leases.release(res, name)
-        if name in (r.get("grants") or {}):
-            leases.revoke(res, name)
 
 
 def _end(r, exit_, turns=None, tokens=None, minutes=None, result=""):
-    """Bookkeeping for a run that is over: the record, the change's cost and owner, leases, event."""
+    """Bookkeeping for a run that is over: the record, the change's cost and owner, locks, event."""
     r.update(ended=iso(), exit=exit_, turns=turns, minutes=minutes, tokens=tokens, result=(result or "")[-500:])
     store.rec_save(RUNS, r["name"], r)
     name, slug = r["name"], r.get("change")
@@ -218,7 +193,7 @@ def _end(r, exit_, turns=None, tokens=None, minutes=None, result=""):
         store.save(ch)
     events.emit("agent", action="end", name=name, role=r.get("role"), change=slug, stage=r.get("stage"),
                 turns=turns, minutes=minutes, tokens=tokens, exit=exit_)
-    _free_leases(name)
+    _free_locks(name)
     return r
 
 

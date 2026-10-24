@@ -1,4 +1,4 @@
-"""hd heal (BR-H2, BR-H3): idle leases, lingering agents, dead runs, stale containers, dead batch steps, deadlock;
+"""hd heal (BR-H2): idle locks, lingering agents, dead runs, stale containers, dead batch steps, deadlock;
 a broken step never stops the others."""
 import os
 import unittest
@@ -32,21 +32,19 @@ class HealTest(unittest.TestCase):
 
     def test_idle_lease_reclaimed_with_evidence(self):
         util.freeze("2026-10-21T01:00:00Z")
-        leases.grant("desktop", "sq1", 600)
-        leases.take("desktop", "sq1", "gate", container="qa-or-feat")
+        leases.take("ghidra", "sq1", "gate", container="qa-or-feat")
         obs = FakeObserver(containers={"qa-or-feat": {"status": "running"}})
-        self.assertEqual(heal.run(obs, {}), [])   # fresh heartbeat
+        self.assertEqual(heal.run(obs, {}), [])   # the attached container runs
         util.freeze("2026-10-21T02:00:00Z")
         self.assertEqual(heal.run(obs, {}), [])   # the attached container runs
         obs = FakeObserver(containers={"qa-or-feat": {"status": "exited"}})
         acts = heal.run(obs, {})
         self.assertEqual(len(acts), 2)   # the reclaim, then the exited container's removal
-        self.assertIn("lease desktop reclaimed from sq1: attached container qa-or-feat is not running", acts[0])
+        self.assertIn("lock ghidra reclaimed from sq1: attached container qa-or-feat is not running", acts[0])
         self.assertEqual(acts[1], "container qa-or-feat removed (exited)")
-        self.assertIsNone(leases.status("desktop")["holder"])
+        self.assertIsNone(leases.status("ghidra")["holder"])
         ev = [e for e in events.read(kinds=["lease"]) if e["action"] == "reclaim"][-1]
-        self.assertEqual((ev["holder"], ev["resource"]), ("sq1", "desktop"))
-        self.assertIn("heartbeat", ev)
+        self.assertEqual((ev["holder"], ev["resource"]), ("sq1", "ghidra"))
         self.assertIn("attached container qa-or-feat is not running", ev["why"])
 
     def test_lingering_agent_stopped(self):
@@ -61,7 +59,6 @@ class HealTest(unittest.TestCase):
         self.assertEqual(acts, [f"agent {rec['name']} stopped: lingering: owner is None (change at checked)"])
         r = store.rec_load(agents.RUNS, rec["name"])
         self.assertEqual(r["exit"], "stopped:lingering: owner is None (change at checked)")
-        self.assertNotIn(rec["name"], leases.status("desktop")["grants"])
         self.assertEqual(store.load("feat").stage, "checked")
 
     def test_dead_run_without_handover_back_to_ready(self):
@@ -112,26 +109,6 @@ class HealTest(unittest.TestCase):
         ev = events.read(kinds=["batch"])[-1]
         self.assertEqual((ev["batch"], ev["step"]), ("int-1", "exception"))
         self.assertEqual(heal.run(obs, {}), [])
-
-    def test_deadlock_drains(self):
-        """BR-H3: cli (deps: srv) holds the device while srv's image waits for a deploy that needs the device."""
-        H.change("srv", "server", stage="checked", commit=SHA)
-        cd1 = agents.spawn(H.change("cli", "client", deps=["srv"]), "client-dev", "dev")["name"]
-        cd2 = agents.spawn(H.change("other", "client"), "client-dev", "dev", ["desktop"])["name"]
-        leases.take("device", cd1, "check")
-        leases.take("desktop", cd2, "check")
-        self.assertEqual(heal.run(FakeObserver(), store.index()), [])   # deploy_ready not implemented: skipped
-        orig = batches.deploy_ready
-        batches.deploy_ready = lambda obs: {"id": "int-1", "includes": ["srv"]}
-        self.addCleanup(setattr, batches, "deploy_ready", orig)
-        acts = heal.run(FakeObserver(), store.index())
-        self.assertEqual(acts, [f"deadlock: device held by {cd1} for cli, which waits for int-1 (deps in the batch); draining device"])
-        self.assertTrue(leases.status("device")["drain"])
-        self.assertIsNone(leases.status("desktop")["drain"])
-        ev = events.read(kinds=["heal"])[-1]
-        self.assertEqual((ev["action"], ev["resource"], ev["batch"]), ("deadlock", "device", "int-1"))
-        self.assertIn("detected", ev)
-        self.assertEqual(heal.run(FakeObserver(), store.index()), [])   # already draining
 
     def test_a_broken_step_never_stops_the_others(self):
         orig = batches.open_batches

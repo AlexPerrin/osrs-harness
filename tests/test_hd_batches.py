@@ -32,7 +32,7 @@ content/old
 local/integration-tools
 """
 T0, T1 = "2026-10-21T01:00:00Z", "2026-10-21T01:11:00Z"
-DEPLOY_RESOURCES = ("device", "desktop", "desktop2", "live-server")
+DEPLOY_RESOURCES = ("live-server",)
 
 STUBS = {
     "qa.sh": """#!/usr/bin/env bash
@@ -111,7 +111,6 @@ def close_fds():
 
 def take_deploy_leases():
     for r in DEPLOY_RESOURCES:
-        leases.drain(r)
         ok, msg = leases.take(r, leases.DAEMON, purpose="deploy")
         assert ok, msg
 
@@ -138,7 +137,7 @@ class QueueTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             batches.enqueue(H.change("c1", track="client", stage="checked", commit=SHA))
 
-    def test_deploy_needs_the_daemons_leases(self):
+    def test_deploy_needs_the_daemons_live_server_lock(self):
         b = store.rec_save("batches", "int-20261021-1", {"id": "int-20261021-1", "kind": "train", "step": "imaged",
                                                            "includes": [], "steps": [], "integration": SHA,
                                                            "evidence": os.path.join(self.d, "evidence", "x"),
@@ -314,7 +313,7 @@ class TrainTest(unittest.TestCase):
         self.assertEqual(b["step"], "imaged", acts)
         self.assertEqual(b["image"], "osrs-openrune:integration-" + b["integration"][:7])
         self.assertEqual(store.rec_load("images", b["integration"][:7])["key_hash"], "match")
-        # a deploy is refused until the daemon holds every instance and the live server
+        # a deploy is refused until the daemon holds the live-server lock
         self.assertTrue(any(a.startswith("deploy refused") for a in acts), acts)
         self.assertEqual(batches.deploy_ready(self.obs)["id"], b["id"])
         take_deploy_leases()
@@ -333,7 +332,6 @@ class TrainTest(unittest.TestCase):
                          (b["integration"], "osrs-openrune:integration-stub", self.main0, "osrs-openrune:rollback-0000000"))
         for r in DEPLOY_RESOURCES + ("integration",):
             self.assertIsNone(leases.status(r)["holder"], r)
-            self.assertIsNone(leases.status(r)["drain"], r)
         dep = events.read(kinds=["deploy"])
         self.assertEqual((dep[-1]["result"], dep[-1]["batch"], dep[-1]["changes"]), ("ok", b["id"], ["ta", "tb"]))
         self.assertEqual(self.step_events(b["id"]),
@@ -442,7 +440,6 @@ class TrainTest(unittest.TestCase):
         self.assertEqual(events.read(kinds=["deploy"])[-1]["result"], "rollback")
         for r in DEPLOY_RESOURCES + ("integration",):
             self.assertIsNone(leases.status(r)["holder"], r)
-            self.assertIsNone(leases.status(r)["drain"], r)
         self.assertEqual(self.step_events(b["id"])[-2:], ["deploying", "exception"])
         b = batches.resume(b["id"])
         self.assertEqual(b["step"], "imaged")
@@ -631,7 +628,7 @@ class ScriptTest(unittest.TestCase):
                          ("ok", new, "osrs-openrune:rollback-5cc4733", self.sha))
         self.assertIn("Server ready in", rec["ready_line"])
 
-    def test_deploy_refused_without_the_leases(self):
+    def test_deploy_refused_without_the_live_server_lock(self):
         env = self.deploy_setup(leased=False)
         r = self.run_script("deploy.sh", "int-t-1", **env)
         self.assertEqual(r.returncode, 75, r.stdout + r.stderr)
@@ -639,7 +636,7 @@ class ScriptTest(unittest.TestCase):
             self.assertIn(res, r.stderr)
         self.assertEqual(self.calls(), [])
         self.assertIsNone(store.rec_load("deploys", "int-t-1"))
-        leases.release("device", leases.DAEMON)
+        leases.take("live-server", "someone-else", "x")
         r = self.run_script("deploy.sh", "int-t-1", **env)
         self.assertEqual(r.returncode, 75)
 

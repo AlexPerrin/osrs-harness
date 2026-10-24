@@ -1,5 +1,5 @@
-"""Fixtures for the hd (harness v3) tests: a temp harness dir (changes, state, policy copy, lock mirror), the
-FakeObserver, and change factories. Nothing touches the real store, /tmp locks or the network."""
+"""Fixtures for the hd (harness v3) tests: a temp harness dir (changes, state, policy copy), the
+FakeObserver, and change factories. Nothing touches the real store, or the network."""
 import os
 import shutil
 import sys
@@ -9,7 +9,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)   # the harness repo
 sys.path.insert(0, ROOT)
 
-ENV_KEYS = ("HD_HARNESS_DIR", "HD_STATE_DIR", "HD_EVENTS", "HD_POLICY", "HD_LOCK_DIR", "HD_EVIDENCE_DIR", "HD_NO_FETCH", "HD_NO_RECOUNT")
+ENV_KEYS = ("HD_HARNESS_DIR", "HD_STATE_DIR", "HD_EVENTS", "HD_POLICY", "HD_EVIDENCE_DIR", "HD_NO_FETCH", "HD_NO_RECOUNT")
 
 
 def write_test_policy(dest):
@@ -32,13 +32,12 @@ def sandbox(test):
     harness = os.path.join(d, "harness")
     os.makedirs(os.path.join(harness, "changes"))
     os.makedirs(os.path.join(harness, "state"))
-    os.makedirs(os.path.join(d, "locks"))
     os.makedirs(os.path.join(d, "evidence"))
     write_test_policy(os.path.join(harness, "policy.yaml"))
     old = {k: os.environ.get(k) for k in ENV_KEYS}
     os.environ.update(HD_HARNESS_DIR=harness, HD_STATE_DIR=os.path.join(harness, "state"),
                       HD_EVENTS=os.path.join(harness, "state", "events.jsonl"),
-                      HD_POLICY=os.path.join(harness, "policy.yaml"), HD_LOCK_DIR=os.path.join(d, "locks"),
+                      HD_POLICY=os.path.join(harness, "policy.yaml"),
                       HD_EVIDENCE_DIR=os.path.join(d, "evidence"), HD_NO_FETCH="1", HD_NO_RECOUNT="1")
 
     def restore():

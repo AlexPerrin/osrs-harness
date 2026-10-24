@@ -21,8 +21,7 @@ clones `agents/<name>/or`, `server-tools` = fork branch `local/server-tools`); r
    RuneLite instances can confirm the cache and quest list; Android tolerance needs a BlueStacks client test.
 2. `check_cache.py` derives its limit from the cache's stock maximum (custom ids right after it); then
    `HD_MAX_CLIENTSCRIPT_ID` leaves `image.sh`.
-3. Prune the remaining timed mechanisms (train debounce, gate/image/deploy-ready timeouts, lease minutes and
-   heartbeats in policy `batches:` and `leases:`, `leases.grant` minutes); replace with observed facts. Also dead hook
+3. Prune the remaining timed mechanisms (train debounce, gate/image/deploy-ready timeouts in policy `batches:`); replace with observed facts. Also dead hook
    rules for ship.sh and integrate.py.
 4. Wire `slot_stop.py` and `task_stop.py` into every dev/QA role file (only harness-dev and integrator have
    `task_stop`; nobody has `slot_stop`), so every agent hands over before it ends.

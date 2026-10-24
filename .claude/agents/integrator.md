@@ -28,7 +28,7 @@ failure) and how to handle each are in skill `server-track`, "Integrator".
 resumes the train.
 
 ## Nevers
-Never push `integration`, build or tag images, deploy or restart the live server, touch instances, push to
+Never push `integration`, build or tag images, deploy or restart the live server, push to
 OpenRune/*, or rewrite a content branch. Work from the fork clone, not the client checkout. Read game data through
 `osrs-mcp`.
 

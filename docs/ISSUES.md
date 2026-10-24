@@ -2,6 +2,17 @@
 
 One short entry per issue, newest first: symptom, root cause, evidence, fix, how to recognise it again.
 
+## 2026-10-24 Instance leases made every agent wait for a shared client
+
+- **Symptom.** Dispatch stalled while an agent held `device` or `desktop`; a pending deploy drained instances and
+  agents waited on each other; many lease, grant and drain steps sat between a ready change and a run.
+- **Root cause.** Client instances were modelled as shared resources, so a lock, a grant, a drain and a deadlock rule
+  existed for something each agent can simply start for itself.
+- **Fix.** Instance leases, grants, drain, the deadlock rule, `device-lock.sh` and `train/instances.tsv` are deleted;
+  dispatch waits on slots only; each agent starts its own client and stops it when done. Locks remain only for
+  `integration`, `live-server` and `ghidra`.
+- **Recognise.** A ready change stalled with a free slot; a `lease` event with action grant or drain in old logs.
+
 ## 2026-10-24 The console's EnterWorktree broke the subagents' Bash
 
 - **Symptom.** Agents spawned while the console session sat in a worktree could not run Bash commands.

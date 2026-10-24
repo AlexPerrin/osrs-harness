@@ -1,18 +1,17 @@
 """One driver tick (problem 3f, PRD section 8), in this order:
 
-  1 observe + reconcile   every change's stage re-derived from git, CI, GitHub, docker and the leases; a record
+  1 observe + reconcile   every change's stage re-derived from git, CI, GitHub, docker and the locks; a record
                           that disagrees is repaired and logged as `drift`; a branch that moved past its
                           hand-over re-enters at ready (BR-C2); deps set or clear `blocked` holds (BR-C4)
   2 reap                  a change at dev with a hand-over gets the check: PASS -> checked,
                           FAIL -> ready with the failing items (BR-S5)
   3 ship / train          checked client and harness changes merge into master; checked server changes join the
                           queue; trains advance (rebuild, gate, image) one step, never blocking
-  4 deploy                a gated image deploys once every instance is drained and leased by the daemon (BR-B3,
-                          BR-R4); included changes become live, dependents unblock
+  4 deploy                a gated image deploys once the daemon holds `live-server` (BR-B3); included changes become live, dependents unblock
   5 re-pin                upstream main moved: fast-forward, drop merged branches, train (BR-B5)
   6 gates                 live server changes need the upstream gate; the release rule makes a release batch
-  7 dispatch              ready changes x free slots x free leases, by priority (BR-C5); one agent per stage
-  8 heal                  idle leases, lingering agents, dead containers, stuck batches, deadlocks (BR-H2, H3)
+  7 dispatch              ready changes x free slots, by priority (BR-C5); one agent per stage
+  8 heal                  idle locks, lingering agents, dead containers, stuck batches (BR-H2)
   9 log                  the `tick` event with its actions and the stalled changes
 
 Every step runs in its own try/except: a failure is an `error` event, the others still run. `dry_run` observes,
@@ -21,7 +20,7 @@ import time
 import traceback
 
 from . import actions, agents, batches, check, events, heal, leases, metrics, policy, ship, stages, store
-from .util import iso, minutes_since
+from .util import iso
 
 
 class Ctx:
@@ -188,45 +187,18 @@ def ship_and_train(ctx):
 
 # --- 4 deploy -----------------------------------------------------------------------------------------------------------
 
-def deploy_resources():
-    return list(policy.instances()) + ["live-server"]
-
-
 def deploy(ctx):
     b = batches.deploy_ready(ctx.obs)
     if not b:
-        for r in deploy_resources():
-            if leases.status(r).get("drain") and not leases.status(r).get("holder"):
-                leases.undrain(r)
         return
     if ctx.dry_run:
         ctx.act(f"deploy of {b.get('id')} pending [dry run]")
         return
-    res = deploy_resources()
-    cap = policy.get().get("leases", {}).get("drain_cap_minutes", 30)
-    for r in res:
-        st = leases.status(r)
-        if st.get("holder") and st["holder"] != leases.DAEMON:
-            leases.drain(r)
-            is_idle, why = leases.idle(r, container_alive=lambda n: (ctx.obs.container(n) or {}).get("status") == "running")
-            d = st.get("drain") or leases.status(r).get("drain") or {}
-            m = minutes_since(d.get("since")) or 0
-            if is_idle:
-                leases.reclaim(r, f"idle during the drain for the deploy of {b['id']}: {why}")
-                ctx.act(f"{r}: reclaimed for the deploy ({why})")
-            elif m > cap:
-                leases.reclaim(r, f"drain cap {cap} min passed for the deploy of {b['id']} (held {m:.0f} min, backstop)")
-                ctx.act(f"{r}: reclaimed for the deploy (cap)")
-    if not leases.holders_free([r for r in res if leases.status(r).get("holder") != leases.DAEMON]):
-        held = [f"{r} by {leases.status(r)['holder']}" for r in res if leases.status(r).get("holder") not in (None, leases.DAEMON)]
-        ctx.act(f"deploy of {b['id']} waits for: {', '.join(held)}")
-        return
-    for r in res:
-        if not leases.holds(r, leases.DAEMON):
-            ok, msg = leases.take(r, leases.DAEMON, f"deploy {b['id']}")
-            if not ok:
-                ctx.act(f"deploy of {b['id']}: {msg}")
-                return
+    if not leases.holds("live-server", leases.DAEMON):
+        ok, msg = leases.take("live-server", leases.DAEMON, f"deploy {b['id']}")
+        if not ok:
+            ctx.act(f"deploy of {b['id']}: {msg}")
+            return
     ok, msg = batches.deploy(b, ctx.obs)
     ctx.act(f"deploy {b['id']}: {msg}")
 
@@ -295,10 +267,9 @@ def gates(ctx):
                 ctx.act(f"release {b['id']}: gate {rec[0]} ({rec[1]})")
                 continue
             if b.get("step") == "queued" and not any(r.get("role") == "client-qa" and r.get("batch") == b["id"] for r in running):
-                pol = policy.track("client")
                 pseudo = {"slug": b["id"], "id": b["id"], "track": "client", "batch": b["id"], "branch": "master",
                           "commit": b.get("commit"), "title": f"release gate {b['id']}", "role": "client-qa"}
-                r = agents.spawn(pseudo, "client-qa", "gate", pol.get("qa_instances", []))
+                r = agents.spawn(pseudo, "client-qa", "gate")
                 b["step"] = "gating"
                 store.rec_save("batches", b["id"], b)
                 ctx.act(f"client-qa {r.get('name')} -> release {b['id']}")
@@ -345,7 +316,7 @@ def dispatch(ctx):
             if ctx.dry_run:
                 ctx.act(f"would spawn an integrator for {b['id']} [dry run]")
             else:
-                r = agents.spawn(b, "integrator", "train", [])
+                r = agents.spawn(b, "integrator", "train")
                 if r:
                     running.append(r)
                     ctx.act(f"integrator {r.get('name')} for {b['id']}")
@@ -354,16 +325,10 @@ def dispatch(ctx):
         if (cap and len(running) >= cap) or slots_free(role, running) <= 0:
             ctx.stalled.append(ch["slug"])
             continue
-        pol = policy.track(ch["track"])
-        need = pol.get("instances" if ex == "dev" else "qa_instances", []) or []
-        busy = [r for r in need if leases.status(r).get("holder") or leases.status(r).get("drain")]
-        if busy:
-            ctx.stalled.append(ch["slug"])
-            continue
         if ctx.dry_run:
             ctx.act(f"would dispatch {role} for {ch['slug']} ({ex}) [dry run]")
             continue
-        r = agents.spawn(ch, role, ex, need)
+        r = agents.spawn(ch, role, ex)
         running.append(r)
         ctx.refresh(ch["slug"])
         ctx.act(f"{role} {r.get('name')} -> {ch['slug']} ({ex})")

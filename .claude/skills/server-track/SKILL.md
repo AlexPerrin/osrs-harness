@@ -71,7 +71,7 @@ commit meanwhile. A push to a branch that backs an open upstream PR changes that
 Independent re-check at the exact commit, stopping at the first failure; the dev's runs are evidence, yours count.
 - **Accuracy**: `accuracy-check` against the spec and sources re-read through `osrs-mcp` (not the spec's quotes),
   including the RSProx comparison.
-- **In-game**: the branch's own server on spare ports, desktop RuneLite pointed at it under the desktop lock, driven
+- **In-game**: the branch's own server on spare ports, your own desktop RuneLite pointed at it, driven
   with `osrs-devtools-desktop`; every player-facing claim of the PR text; a blocker's repro passes. Stop and remove
   your containers after; never touch `osrs-openrune`, `osrs-openrune-http`, `osrs-openrune-http-desktop`.
 - **Build**: CI green at the exact commit (`qa.sh gate` on upstream `main` + the branch where CI does not apply),
@@ -113,5 +113,4 @@ Work in the build worktree `~/src/openrune-work/integration/build` and in `~/src
   `hd resolve <batch> --decision "<finding and options>"`; the train waits for the user.
 
 ## Live server
-Built from a pinned `integration` commit; the daemon deploys boot-checked images with a rollback tag when every
-instance is free. Live ids are the ids on the branches.
+Built from a pinned `integration` commit; the daemon deploys boot-checked images with a rollback tag once the daemon holds the live-server lock. Live ids are the ids on the branches.

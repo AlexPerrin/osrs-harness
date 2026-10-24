@@ -12,7 +12,7 @@ from . import HD_HOME, ROOT, events, policy
 AUTHOR = "Alex Perrin <44126061+AlexPerrin@users.noreply.github.com>"
 TRAILER = "Co-Authored-By: Claude <noreply@anthropic.com>"
 CODE_DIRS = ("host", "native", "tools", "server")
-HARNESS_DIRS = ("train", "docs", "hd", "hooks", "tests", "hd.py", "device-lock.sh", "harness/policy.yaml")
+HARNESS_DIRS = ("train", "docs", "hd", "hooks", "tests", "hd.py", "harness/policy.yaml")
 
 
 def _git(repo, *args):

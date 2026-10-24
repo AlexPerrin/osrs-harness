@@ -15,7 +15,7 @@ Agent tool, and upstream actions run only after the user's yes in this chat. `hd
    background, then `hd run-link <name> <agent-id>` with the id the tool returned. NEVER call EnterWorktree in the
    console session: it moves this session's cwd and breaks the subagents' Bash.
 3. **When an agent finishes** (its completion notification): `hd run-end <name> --tokens <n> --turns <n>` (add
-   `--exit error` if it failed). That frees its leases and owner; the next tick moves the change on.
+   `--exit error` if it failed). That frees its locks and owner; the next tick moves the change on.
 4. **Stop** (a run the daemon found lingering): TaskStop its `agent_id`, then `hd run-stopped <name>`.
 5. **Needs the user's OK** (upstream PR open/update/ready, client release): show the user, in chat, what the item
    says: the action, the PR title and body (or release notes), the gate record, the diff, the caveats, the exact
