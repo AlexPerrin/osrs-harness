@@ -15,7 +15,7 @@ tracks:
     branch_prefixes: [content/, fix/, local/]
     dev_role: server-dev
     qa_role: server-qa
-    dev_slots: 2
+    dev_slots: 0                     # new feature dispatch held (user 2026-10-24: settle open PRs first); `hd dispatch <slug>` books one run on demand
     instances: [desktop]
     qa_instances: [desktop]
   harness:
