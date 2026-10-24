@@ -11,9 +11,15 @@ branch: client/gpu-plugin-feasibility
 commit: null
 local_only: false
 owner: null
-instances: []
+instances:
+- device
+cost:
+  runs: 1
+  turns: 0
+  minutes: 0.0
+  usd: 0
 created: '2026-10-20T04:39:08Z'
-updated: '2026-10-22T02:16:31Z'
+updated: '2026-10-24T21:08:40Z'
 ---
 ## Change
 Stretch goal: RuneLite's GPU plugin on the Android app (feasibility)
@@ -27,3 +33,7 @@ Stretch goal: RuneLite's GPU plugin on the Android app (feasibility)
 - 2026-10-21T00:25:19Z migrated from v2 tasks: client-gpu-plugin-feasibility
 - 2026-10-22T02:08:34Z triage: stretch goal (user): its own spike; after the user's plugins' client work
 - 2026-10-22T02:16:31Z renamed from client-gpu-plugin-feasibility (grooming: slug = the branch slug, BR-C1)
+- 2026-10-24T20:09:15Z ready -> dev: dispatched to cd51
+- 2026-10-24T20:09:15Z run cd51 started (client-dev, stage dev, instances device)
+- 2026-10-24T21:08:22Z run cd51 ended: ? turns, 0.0 min, $0, exit cancelled
+- 2026-10-24T21:08:40Z dev -> ready: run cd51 ended without a hand-over

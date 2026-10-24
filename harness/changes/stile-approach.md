@@ -4,7 +4,7 @@ track: server
 title: 'Stile: approach from the outside tile'
 prio: P1
 role: server-dev
-stage: dev
+stage: checked
 hold: null
 deps: []
 branch: fix/stile-approach
@@ -21,13 +21,15 @@ summary: '68ddd1b6c drops StileScriptTest from 513144d3d (maintainer precedent o
 gated_commit: 513144d3dfcfcfd5613123bbe3457b952192c384
 live_commit: 513144d3dfcfcfd5613123bbe3457b952192c384
 published_commit: 513144d3dfcfcfd5613123bbe3457b952192c384
+batch: int-20261024-2
 cost:
-  runs: 2
+  runs: 5
   turns: 16
   minutes: 2.9
   usd: 11.77
+  tokens: 0
 created: '2026-10-20T01:42:40Z'
-updated: '2026-10-24T21:10:22Z'
+updated: '2026-10-24T22:36:06Z'
 ---
 ## Change
 fix/stile-approach 8a8c0ca7a failed the internal gate: the player walks onto the stile's own blocking tile, so it never climbs. Fix: start the climb from the tile outside the stile on the player's side, in line with it; check in game; update the PR text. Covers the #366 review item 'stile jump from too far away (player not always in the pen)'.
@@ -56,3 +58,20 @@ fix/stile-approach 8a8c0ca7a failed the internal gate: the player walks onto the
 - 2026-10-24T19:51:51Z published -> ready: branch moved to 68ddd1b6c past 513144d3d: hand over again (BR-C2)
 - 2026-10-24T21:10:22Z ready -> dev: hand-over recorded
 - 2026-10-24T21:10:22Z handover fix/stile-approach@68ddd1b6c: 68ddd1b6c drops StileScriptTest from 513144d3d (maintainer precedent on #366: these tests can be removed); no other change. #406 head; PR body updated. User OK 2026-10-24.
+- 2026-10-24T21:12:45Z dev -> ready: hand-over check FAIL (1): the next dev fixes exactly those items
+- 2026-10-24T21:57:22Z ready -> dev: dispatched to sd47
+- 2026-10-24T21:57:22Z run sd47 started (server-dev, stage dev, instances desktop)
+- 2026-10-24T21:58:28Z dev -> ready: hand-over check FAIL (1): the next dev fixes exactly those items
+- 2026-10-24T21:58:28Z run sd47 ended: ? turns, ? tokens, exit stopped:lingering: owner is None (change at ready)
+- 2026-10-24T21:59:32Z ready -> dev: dispatched to sd48
+- 2026-10-24T21:59:32Z run sd48 started (server-dev, stage dev, instances desktop)
+- 2026-10-24T22:00:40Z dev -> ready: hand-over check FAIL (1): the next dev fixes exactly those items
+- 2026-10-24T22:00:41Z run sd48 ended: ? turns, ? tokens, exit stopped:lingering: owner is None (change at ready)
+- 2026-10-24T22:01:47Z ready -> dev: dispatched to sd49
+- 2026-10-24T22:01:47Z run sd49 started (server-dev, stage dev, instances desktop)
+- 2026-10-24T22:05:06Z dev -> ready: hand-over check FAIL (1): the next dev fixes exactly those items
+- 2026-10-24T22:05:06Z run sd49 ended: ? turns, ? tokens, exit stopped:lingering: owner is None (change at ready)
+- 2026-10-24T22:24:37Z ready -> dev: dispatched to sd66
+- 2026-10-24T22:24:37Z run sd66 started (server-dev, stage dev, instances desktop)
+- 2026-10-24T22:25:05Z dev -> checked: hand-over check PASS
+- 2026-10-24T22:36:06Z in train int-20261024-2: integration 4cac9f4d7 pushed; gate, image and deploy pending

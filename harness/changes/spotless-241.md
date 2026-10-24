@@ -4,7 +4,7 @@ track: server
 title: Spotless formatting of PrayerRepository.kt after upstream 241 Latest Support (local-only)
 prio: P1
 role: server-dev
-stage: checked
+stage: live
 hold: null
 deps: []
 branch: local/spotless-241
@@ -14,9 +14,10 @@ owner: null
 instances: []
 evidence: re/evidence/spotless-241
 summary: one-space spotless fix of PrayerRepository.kt (upstream main f28349cd4 violates spotlessCheck; upstream CI does not run it); local-only until upstream reformats
-batch: int-20261022-5
+live_commit: e6afed4620d1bfecc2cf522a98e3ff00a3477d73
+batch: int-20261024-1
 created: '2026-10-22T00:16:41Z'
-updated: '2026-10-22T02:08:34Z'
+updated: '2026-10-24T21:05:45Z'
 ---
 ## Change
 Upstream main f28349cd4 leaves one line of content/interfaces/prayer-tab PrayerRepository.kt unformatted; our integration gate (spotlessCheck) fails on it while upstream CI does not run spotless on main. A one-space fix carried as a local-only branch until upstream reformats.
@@ -33,3 +34,5 @@ Upstream main f28349cd4 leaves one line of content/interfaces/prayer-tab PrayerR
 - 2026-10-22T00:41:46Z in train int-20261022-3: integration a5e4d23f4 pushed; gate, image and deploy pending
 - 2026-10-22T01:10:43Z in train int-20261022-4: integration 749d6dd58 pushed; gate, image and deploy pending
 - 2026-10-22T02:05:10Z in train int-20261022-5: integration 17c773333 pushed; gate, image and deploy pending
+- 2026-10-24T19:52:20Z in train int-20261024-1: integration ae947cff4 pushed; gate, image and deploy pending
+- 2026-10-24T21:05:45Z checked -> live: deployed by int-20261024-1 (integration ae947cff4)
