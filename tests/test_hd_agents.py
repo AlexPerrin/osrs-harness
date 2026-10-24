@@ -8,7 +8,7 @@ from hd_helpers import SHA
 
 from hd import agents, events, leases, store, util
 
-HD = "python3 tools/harness/hd.py"
+HD = agents.HD
 
 
 class AgentsTest(unittest.TestCase):

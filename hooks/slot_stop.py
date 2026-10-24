@@ -11,6 +11,8 @@ import os
 import re
 import sys
 
+HD_PY = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "hd.py")
+
 ROOT = os.environ.get("CLAUDE_PROJECT_DIR") or os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # the harness repo
 try:
@@ -68,7 +70,7 @@ def main():
     held = [r for r, st in leases.status_all().items() if st.get("holder") == name]
     if held:
         block("You still hold " + ", ".join(held) + ": restore the instance, then "
-              + "; ".join(f"`python3 tools/harness/hd.py lease release {r} {name}`" for r in held) + ".")
+              + "; ".join(f"`python3 {HD_PY} lease release {r} {name}`" for r in held) + ".")
 
 
 main()

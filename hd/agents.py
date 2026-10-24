@@ -30,12 +30,12 @@ import signal
 import subprocess
 import time
 
-from . import ROOT, events, fork_clone, evidence_dir, leases, policy, store
+from . import HD_HOME, ROOT, events, fork_clone, evidence_dir, leases, policy, store
 from .util import iso, minutes_since, pid_alive, read_json, write_json
 
 RUNS = "runs"
 SHARED = ("re", "openrune/src", "openrune/rsprot")   # git-ignored inputs a worktree shares with the main checkout
-HD = "python3 tools/harness/hd.py"
+HD = f"python3 {HD_HOME}/hd.py"   # absolute: agents run in the fork clone and in worktrees
 STOP_GRACE_S = 10
 
 

@@ -20,7 +20,7 @@ try:
 except Exception:   # no hd: never block
     store = None
 
-HD = "python3 tools/harness/hd.py"
+HD = "python3 " + os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "hd.py")
 
 
 def block(reason):
