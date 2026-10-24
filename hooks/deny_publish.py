@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """PreToolUse hook (Bash) for the dev and QA agents (.claude/agents/*.md): denies what only the orchestrator
-does (docs/workflow.md "Agents"): pushes, GitHub writes, tools/fork.sh, deploys and progress
+does (docs/ARCHITECTURE.md, Hooks): pushes, GitHub writes, tools/fork.sh, deploys and progress
 writes. The orchestrator's own session doesn't load this hook.
 
-Integration images and deploys (docs/integration-pipeline.md, phase 0) are the orchestrator's too, whatever the
+Integration images and deploys are the orchestrator's too, whatever the
 flags: tools/harness/deploy.sh, image.sh, ship.sh and integrate.py (phase 1), `orchestrate.py
 deploy|integrate|image`, `docker [image|container] tag|rm|rmi|stop|restart|kill` naming an osrs-openrune image or container, and `docker compose` / `docker-compose`
 naming osrs-openrune or the live stack's compose service `openrune` (or openrune/docker-compose.yml, or run from
 inside openrune/), except the read-only compose subcommands (ps, logs, config, ls, images, top, version).
 
-`--fork-writes` (server-dev, user 2026-10-19): the dev does its own GitHub work on our fork
+`--fork-writes` (server-dev): the dev does its own GitHub work on our fork
 (AlexPerrin/OpenRune-Server): pushes whose remote resolves to the fork, tools/fork.sh (fork only by
 construction), and gh writes that name `AlexPerrin/OpenRune-Server`. Contributions to OpenRune's own repo stay
 denied: a push whose remote URL is not the fork (in the fork clone `origin` IS OpenRune; in the agents' clones
@@ -220,7 +220,7 @@ def decide(data, argv, run=None):
     cmd = data.get("tool_input", {}).get("command", "")
     cwd = data.get("cwd") or os.getcwd()
     if integration_only(cmd, cwd):
-        return (f"Only the orchestrator does {INTEGRATION} (docs/integration-pipeline.md). "
+        return (f"Only the orchestrator does {INTEGRATION} (docs/ARCHITECTURE.md, Hooks). "
                 "Send the request to the orchestrator instead; don't work around this.")
     for pattern, what in RULES:
         if re.search(pattern, cmd) and not allowed(what, cmd, cwd, fork_ok, docs_ok, run):
@@ -228,7 +228,7 @@ def decide(data, argv, run=None):
             if what == "pushes" and (fork_ok or docs_ok):
                 probs = [push_problem(s, w, c, not fork_ok, run) for s, w, c in walk(cmd, cwd) if PUSH.search(s)]
                 detail = " (" + "; ".join(p for p in probs if p) + ")" if any(probs) else ""
-            return (f"Only the orchestrator does {what}{detail} (docs/workflow.md). "
+            return (f"Only the orchestrator does {what}{detail} (docs/ARCHITECTURE.md, Hooks). "
                     "Send the request to the orchestrator instead; don't work around this.")
     return None
 

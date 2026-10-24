@@ -1,6 +1,6 @@
 ---
 name: drive
-description: "The console loop of harness v4: run `hd drive`, spawn the agents it lists, link and end their runs, ask the user in chat before any upstream action or release, repeat. Use in the console session whenever the harness daemon is running or the user says to drive, continue or check the harness."
+description: "The console loop: run `hd drive`, spawn the agents it lists, link and end their runs, ask the user in chat before any upstream action or release, repeat. Use in the console session whenever the harness daemon is running or the user says to drive, continue or check the harness."
 ---
 # Drive the harness (console session only)
 
@@ -37,4 +37,6 @@ Agent tool, and upstream actions run only after the user's yes in this chat. `hd
 - Never push upstream, comment, ready, tag or release without the user's yes in this session. Agents cannot (the role
   hooks deny it); you can, and that is exactly why you ask first.
 - Deploys, trains and re-pins are the daemon's; never run them from here unless the user asks (`hd train --now`).
+- Keep this context small: delegate anything beyond a couple of quick commands to an agent and read verdicts from
+  `hd status`, not logs.
 - Times for the user are US Eastern.

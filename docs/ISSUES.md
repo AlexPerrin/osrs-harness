@@ -2,6 +2,37 @@
 
 One short entry per issue, newest first: symptom, root cause, evidence, fix, how to recognise it again.
 
+## 2026-10-24 The console's EnterWorktree broke the subagents' Bash
+
+- **Symptom.** Agents spawned while the console session sat in a worktree could not run Bash commands.
+- **Root cause.** EnterWorktree moves the whole session's working directory, subagents included.
+- **Fix.** The console never enters a worktree while agents run (CLAUDE.md, skill `drive`); the Agent tool's
+  `isolation: worktree` makes the agents' worktrees.
+- **Recognise.** Bash errors in every agent right after the console called EnterWorktree.
+
+## 2026-10-24 A fresh worktree was created from origin/main
+
+- **Symptom.** A harness-dev worktree lacked the commits already on local main.
+- **Root cause.** Worktrees are created from `origin/main`, not from the local `main`, which is never pushed.
+- **Fix.** The harness-dev role file starts with a hard reset of the worktree to `main`.
+- **Recognise.** The log of a fresh worktree is behind main; files the brief names are missing.
+
+## 2026-10-24 New change files were invisible to worktrees
+
+- **Symptom.** A harness-dev agent could not tick its definition of done: the change file was not in its worktree.
+- **Root cause.** New files in `harness/changes/` are untracked in the main checkout, so a worktree has no copy.
+- **Fix.** `hd dod <slug> <n>...` ticks items on the store (`HD_HARNESS_DIR=~/osrs-harness/harness` from a worktree).
+- **Recognise.** `harness/changes/<slug>.md` missing in a worktree.
+
+## 2026-10-24 Harness check failed once main already held the commit
+
+- **Symptom.** The harness-track check failed a `harness/<slug>` change after the console had merged it by hand,
+  before the daemon's check ran.
+- **Root cause.** The check required main not to contain the commit.
+- **Fix.** The change was handed over on `main`; a change handed over on main passes while main contains the commit
+  (`hd/check.py`, `tests/test_hd_harness_track.py`).
+- **Recognise.** A harness change failing the check with its commit already on main.
+
 ## 2026-10-24 Harness hand-over check read the client repo's master
 
 - **Symptom.** `hd check handover-upstream-ci` (handed over with `--repo ~/osrs-harness --branch main`) failed with
@@ -40,3 +71,26 @@ One short entry per issue, newest first: symptom, root cause, evidence, fix, how
   opens or the head moves"), which waits and never returns the change to ready. Tests: `tests/test_hd_ci_check.py`.
 - **Recognise it.** A `check` event FAIL whose items name CI, followed by a new `agent request` for the same slug; a fork
   run failing in the cs2/cache build while the upstream PR is green.
+
+## 2026-10-21 Cleanup changes could not merge: unrelated tests re-pinned
+
+- **Symptom.** Two cleanup changes (deleting refs, cleaning containers) failed to merge.
+- **Root cause.** Each commit also re-pinned tests that failed for reasons the change did not cause.
+- **Fix.** A harness commit holds only its change; an unrelated failing test is named in the hand-over summary and
+  left (role file `harness-dev`). A side-effect change hands over a note that records it.
+- **Recognise.** A harness commit touching tests outside its change.
+
+## 2026-10-21 A gated release build was lost with its worktree
+
+- **Symptom.** The release gate passed, but its build no longer existed when the release needed the APKs.
+- **Root cause.** The QA agent built in its own worktree, which is removed when the run ends.
+- **Fix.** `client-qa` copies `base.apk`, `split.apk`, `THIRD_PARTY_NOTICES.md` and the repack log into
+  `re/evidence/<batch-id>/` before it ends; the record lists those copies by sha256 (skill `client-track`).
+- **Recognise.** A release batch at `gated` whose evidence dir holds no APKs.
+
+## 2026-10-20 An agent drove another agent's client
+
+- **Symptom.** A helper script drove the wrong desktop client.
+- **Root cause.** Every agent of a session shares the scratchpad; two agents wrote the same file name at its top level.
+- **Fix.** Scripts and temp files go under `<scratchpad>/<your-name>/` (the brief's rules).
+- **Recognise.** A script at the scratchpad's top level that another agent also wrote.
