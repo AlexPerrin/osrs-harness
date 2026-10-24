@@ -306,15 +306,16 @@ def gates(ctx):
 # --- 7 approvals ---------------------------------------------------------------------------------------------------------------
 
 def approvals_step(ctx):
+    known = {a.get("id") for a in approvals.all_()}   # a pending approval is returned again each tick: not an action
     for slug, ch in list(ctx.idx.items()):
         if ch.stage == "gated" and not ctx.dry_run:
             a = approvals.ensure(ch, ctx.obs)
-            if a:
+            if a and a.get("id") not in known:
                 ctx.act(f"approval {a.get('id')} ({a.get('action')}) for {slug}")
     for b in batches.open_batches("release"):
         if b.get("step") == "gated" and not ctx.dry_run:
             a = approvals.ensure_release(b)
-            if a:
+            if a and a.get("id") not in known:
                 ctx.act(f"release approval {a.get('id')}")
     if ctx.dry_run:
         return

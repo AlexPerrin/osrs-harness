@@ -42,6 +42,21 @@ def stub_modules(test, **over):
     return calls
 
 
+class ApprovalNoiseTest(unittest.TestCase):
+    """A pending approval is handed back by ensure every tick; only a new one is an action of the tick."""
+    def setUp(self):
+        H.sandbox(self)
+        store.rec_save("batches", "rel-1", {"id": "rel-1", "kind": "release", "step": "gated", "includes": [], "steps": []})
+        stub_modules(self, **{"approvals.ensure_release": lambda b: {"id": "rel-1-tag"}})
+
+    def test_new_approval_is_an_action_then_quiet(self):
+        out = tick.tick(FakeObserver())
+        self.assertIn("release approval rel-1-tag", " ".join(out))
+        store.rec_save("approvals", "rel-1-tag", {"id": "rel-1-tag", "state": "pending"})
+        out = tick.tick(FakeObserver())
+        self.assertNotIn("rel-1-tag", " ".join(out))
+
+
 class ReconcileTest(unittest.TestCase):
     def setUp(self):
         H.sandbox(self)
