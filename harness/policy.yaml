@@ -7,7 +7,7 @@ tracks:
     branch_prefixes: [client/]
     dev_role: client-dev
     qa_role: client-qa
-    dev_slots: 1                     # = Android instances (BR-R5)
+    dev_slots: 0                     # = Android instances (BR-R5); 0 while BlueStacks is off and server-dev goes first (user 2026-10-24)
     instances: [device]              # granted to a dev at dispatch
     qa_instances: [device, desktop]
   server:
