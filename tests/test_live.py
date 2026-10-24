@@ -85,6 +85,14 @@ class IntegrationDenyTest(unittest.TestCase):
                     if denied:
                         self.assertIn("Only the orchestrator", reason)
 
+    def test_scripts_in_this_repos_train_dir_are_denied(self):
+        """The train scripts moved to <harness repo>/train/: the absolute path still resolves to ours (denied)."""
+        for name in ("deploy.sh", "image.sh", "integrate.py"):
+            with self.subTest(name=name):
+                cmd = os.path.join(ROOT, "train", name) + " int-1"
+                reason = deny_publish.decide({"tool_input": {"command": cmd}, "cwd": self.root}, [])
+                self.assertIsNotNone(reason)
+
     def test_hook_cli(self):
         import json
         data = json.dumps({"tool_name": "Bash", "tool_input": {"command": "tools/harness/deploy.sh x"}, "cwd": self.root})

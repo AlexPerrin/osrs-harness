@@ -15,7 +15,7 @@
 set -euo pipefail
 HERE=$(dirname "$(readlink -f "$0")")
 HD="python3 $HERE/hd.py"
-INSTANCES=$HERE/instances.tsv
+INSTANCES=$HERE/train/instances.tsv
 inst=${LOCK_NAME:-device}
 export HD_LOCK_DIR=${LOCK_DIR:-${HD_LOCK_DIR:-/tmp}}
 case "${1:-status}" in

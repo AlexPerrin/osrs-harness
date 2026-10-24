@@ -49,7 +49,7 @@ flowchart LR
 | `hd/store.py` | changes (front matter + body), records (`rec_save/rec_load`), holds, stages written by the daemon only |
 | `hd/leases.py` | resources (devices, desktops, integration lock, live server, Ghidra) as lease records; grants, take, drain, reclaim |
 | `hd/agents.py` | names, briefs, booking a run (record, leases, owner, `agent request` event), link, end, stop, lingering |
-| `hd/batches.py` + `integrate.py`, `image.sh`, `deploy.sh` | trains (queue, pins, rebuild, gate, image, deploy, re-pin) and release batches |
+| `hd/batches.py` + `train/` (`integrate.py`, `image.sh`, `deploy.sh`) | trains (queue, pins, rebuild, gate, image, deploy, re-pin) and release batches |
 | `hd/ship.py` | client and harness changes merge into master (`--no-ff`, pushed) |
 | `hd/heal.py` | idle leases, lingering runs, a dev run ended without hand-over, dead containers, dead batch processes, deadlocks |
 | `hd/actions.py` | what needs the user's OK, computed from observed state (section 8) |

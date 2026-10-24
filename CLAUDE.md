@@ -5,7 +5,7 @@ RuneLite plugins in the official OSRS Android app, APK releases) and the test se
 AlexPerrin/OpenRune-Server, contributed upstream to OpenRune/OpenRune-Server). It is neither product's code: the
 client repo holds client code and releases only; server code and server tooling belong to the fork.
 
-**New session: read HANDOFF.md first.** The design: docs/harness-v3-prd.md (the rules, BR-*), docs/ARCHITECTURE.md and
+**New session: read docs/HANDOFF.md first.** The design: docs/harness-v3-prd.md (the rules, BR-*), docs/ARCHITECTURE.md and
 docs/harness-v4.md (what is built: harness v4). Run from the client checkout (`HD_CLIENT_ROOT`, default `~/osrs-plugins-reverse`), where agents work,
 evidence lives (`re/evidence/<slug>/`) and the client builds; the client repo keeps thin shims at `tools/harness/hd.py`,
 `tools/hooks/*.py` and `tools/device-lock.sh` that exec this repo, so role files, skills and the committed hook wiring
@@ -20,10 +20,12 @@ hooks/           the Claude Code hooks the role files and the client repo's .cla
 harness/         policy.yaml and changes/ (committed); state/ (git-ignored: events.jsonl, leases, runs, batches,
                  actions, images, deploys, live.json, daemon.json)
 .claude/         agents/ (role files) and skills/ (drive = the console loop, accuracy-check, ...)
-docs/ARCHITECTURE.md components, data model, lifecycle, console loop, train, leases, hooks (Mermaid UML)
-docs/ISSUES.md   what went wrong and why: one dated entry per issue, newest first (symptom, root cause, evidence, fix, recognise)
-image.sh deploy.sh Dockerfile.integration   the train's image and deploy steps
-integrate.py   git helpers for the train (clones, integration.txt pins, the lease push); the v2 queue, task.py, ship.sh,
+device-lock.sh   instance leases (the client's tools/device-lock.sh shim execs it at this path)
+docs/            ARCHITECTURE.md (components, data model, lifecycle, console loop, train, leases, hooks; Mermaid UML),
+                 HANDOFF.md (current state), ISSUES.md (what went wrong and why: one dated entry per issue, newest
+                 first: symptom, root cause, evidence, fix, how to recognise), harness-v4.md, evidence/harness-v4/
+train/           image.sh deploy.sh Dockerfile.integration instances.tsv: the train's image and deploy steps, the lease rows;
+                 integrate.py: git helpers for the train (clones, integration.txt pins, the lease push); the v2 queue, task.py, ship.sh,
                  handover-check.sh and progress_report.py are removed (git history keeps them)
 tests/           python3 -m unittest discover -s tests
 ```

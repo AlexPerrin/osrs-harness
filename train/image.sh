@@ -21,7 +21,7 @@
 # HD_LIVE_CONTAINER (osrs-openrune).
 # Exit: 0 ok, 2 usage or precondition, 3 a key file is present, 4 key hash mismatch, 5 build or boot failed.
 set -euo pipefail
-HD_HOME=$(cd "$(dirname "$0")" && pwd)   # the harness repo
+HD_HOME=$(cd "$(dirname "$0")/.." && pwd)   # the harness repo
 ROOT=${HD_CLIENT_ROOT:-$HOME/osrs-plugins-reverse}   # the client checkout
 STATE=${HD_STATE_DIR:-$ROOT/harness/state}
 DOCKER=${DOCKER:-${HD_DOCKER:-docker}}

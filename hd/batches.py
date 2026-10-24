@@ -14,7 +14,7 @@ Release steps: queued -> gating -> gated -> published (the release is observed o
                                 rebuild (integrate.py's helpers:
                                 pins, the tools commit, build-integration.sh, the lease push) runs synchronously
                                 (seconds); gate (`qa.sh clone` + `qa.sh gate` through buildq), image
-                                (tools/harness/image.sh) and deploy (tools/harness/deploy.sh) run as background
+                                (train/image.sh) and deploy (train/deploy.sh) run as background
                                 processes recorded on the batch (pid, log) and are polled on later ticks; a
                                 deploy is tried whenever an image waits and the daemon holds the leases.
                                 Returns a list of actions taken (strings).
@@ -41,10 +41,10 @@ Release steps: queued -> gating -> gated -> published (the release is observed o
   new_release(slugs)            a release batch: gates master at HEAD with client-qa (the tick spawns it)
   status()                      open batches with their step and timings 
   wait_step(batch, timeout)     block until the batch's background step ends (tests, `hd batch wait`)
-Scripts: tools/harness/image.sh <gated-clone> <batch> (stages server/ + data/ without key files, cache fixes,
-template tools/harness/Dockerfile.integration with COPY --from the live image for the key and game.yml, key-hash
+Scripts: train/image.sh <gated-clone> <batch> (stages server/ + data/ without key files, cache fixes,
+template train/Dockerfile.integration with COPY --from the live image for the key and game.yml, key-hash
 compare printing only match/MISMATCH, private boot check, record harness/state/images/<sha7>.json);
-tools/harness/deploy.sh <batch> (image record ok, all instances held by harnessd, rollback tag, retag :241,
+train/deploy.sh <batch> (image record ok, all instances held by harnessd, rollback tag, retag :241,
 `docker compose --env-file switch.env up -d --no-deps openrune` in openrune/, wait for "Server ready in",
 auto-rollback on timeout; never --build; record harness/state/deploys/<batch>.json).
 Environment (tests): HD_QA_SH, HD_IMAGE_SH, HD_DEPLOY_SH, HD_FORK_SH, HD_DOCKER (passed to the scripts as DOCKER),
@@ -64,7 +64,7 @@ import sys
 from . import HD_HOME, ROOT, server_tools, server_work, events, evidence_dir, leases, policy, state_dir, store
 from .util import iso, minutes_since, now, parse, pid_alive, read_json, write_json
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "train"))
 import integrate  # noqa: E402  (the v2 train helpers: pins, lists, the tools commit, rebuild, the lease push)
 
 BATCHES = "batches"
@@ -88,11 +88,11 @@ def qa_sh():
 
 
 def image_sh():
-    return os.environ.get("HD_IMAGE_SH") or os.path.join(HD_HOME, "image.sh")
+    return os.environ.get("HD_IMAGE_SH") or os.path.join(HD_HOME, "train", "image.sh")
 
 
 def deploy_sh():
-    return os.environ.get("HD_DEPLOY_SH") or os.path.join(HD_HOME, "deploy.sh")
+    return os.environ.get("HD_DEPLOY_SH") or os.path.join(HD_HOME, "train", "deploy.sh")
 
 
 def fork_sh():

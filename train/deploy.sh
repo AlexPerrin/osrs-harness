@@ -15,12 +15,12 @@
 # HD_LIVE_TAG (osrs-openrune:241).
 # Exit: 0 deployed, 1 rolled back, 2 precondition, 75 the leases are not held.
 set -euo pipefail
-HD_HOME=$(cd "$(dirname "$0")" && pwd)   # the harness repo
+HD_HOME=$(cd "$(dirname "$0")/.." && pwd)   # the harness repo
 ROOT=${HD_CLIENT_ROOT:-$HOME/osrs-plugins-reverse}   # the client checkout
 STATE=${HD_STATE_DIR:-$ROOT/harness/state}
 DOCKER=${DOCKER:-${HD_DOCKER:-docker}}
 OPENRUNE=${HD_OPENRUNE_DIR:-${HD_SERVER_TOOLS:-${HD_SERVER_HOME:-$HOME/src}/openrune-work/server-tools}}   # the compose dir (project name osrs-openrune is set in the file)
-INSTANCES=${HD_INSTANCES:-$HD_HOME/instances.tsv}
+INSTANCES=${HD_INSTANCES:-$HD_HOME/train/instances.tsv}
 TIMEOUT=${HD_DEPLOY_TIMEOUT:-300}
 POLL=${HD_POLL_SECONDS:-5}
 LIVE=${HD_LIVE_CONTAINER:-osrs-openrune}

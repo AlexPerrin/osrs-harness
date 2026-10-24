@@ -102,7 +102,8 @@ def _ours(w, cwd):
     path = os.path.normpath(os.path.join(cwd or "", w[i]))
     home = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))   # the harness repo
     return (path.endswith(os.path.join("tools", "harness", os.path.basename(w[i])))   # the client repo's shims
-            or os.path.realpath(path) == os.path.realpath(os.path.join(home, os.path.basename(w[i]))))
+            or os.path.realpath(path) in (os.path.realpath(os.path.join(home, d, os.path.basename(w[i])))
+                                          for d in ("", "train")))   # this repo: train/ holds the scripts
 DOCKER_WRITES = {"tag", "rm", "rmi", "stop", "restart", "kill"}
 
 

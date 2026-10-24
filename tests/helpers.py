@@ -6,7 +6,7 @@ import tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)   # the harness repo these tests live in
 HOOKS = os.path.join(ROOT, "hooks")
-HARNESS_TOOLS = ROOT
+HARNESS_TOOLS = os.path.join(ROOT, "train")   # the train scripts: image.sh deploy.sh integrate.py
 
 GIT_ENV = dict(os.environ, GIT_AUTHOR_NAME="Test", GIT_AUTHOR_EMAIL="test@example.invalid",
                GIT_COMMITTER_NAME="Test", GIT_COMMITTER_EMAIL="test@example.invalid",
