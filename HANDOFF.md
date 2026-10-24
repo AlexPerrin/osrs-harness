@@ -1,7 +1,7 @@
 # HANDOFF: start here
 
 **Harness v4 (2026-10-24, built on branch worktree-agent-a0d68621b85fcc35e / merged by the console).** v4 is v3 minus the
-approval queue, the dashboard and headless agents: read ARCHITECTURE.md and docs/harness-v4.md. Start the next session
+approval queue, the dashboard and headless agents: read docs/ARCHITECTURE.md and docs/harness-v4.md. Start the next session
 in ~/osrs-harness so the role agent types load with the fixed hook paths.
 
 ## State
@@ -41,7 +41,7 @@ Not done: `.claude/settings.json` hook wiring in this repo (add it for the conso
 4. Prune timed mechanisms (user: "actions are atomic, not timed"): image/deploy/gate timeouts, train debounce, lease
    minutes/heartbeats, budget minutes. Replace with observed-fact checks. Also dead hook rules for ship.sh/integrate.py.
 5. Gate for ground-item-despawn-times and 11-dense-clientscript-ids; unstack Hunter; spec-missing holds on old branches.
-6. Stale text: docs/ (except harness-v4.md, ARCHITECTURE.md) and the older handoff below describe v2/v3; the v5 candidate list is in docs/harness-v4.md.
+6. Stale text: docs/ (except harness-v4.md, docs/ARCHITECTURE.md) and the older handoff below describe v2/v3; the v5 candidate list is in docs/harness-v4.md.
 
 ## Rules that bit this session
 - Guards matter: agents without the role hooks can push upstream; keep them on. Nothing goes to OpenRune without the user's OK.

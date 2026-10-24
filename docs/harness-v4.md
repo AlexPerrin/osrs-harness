@@ -1,7 +1,7 @@
 # Harness v4: v3 minus approvals, dashboard and headless agents
 
 Supersedes docs/harness-v3.md where they differ (v3's lifecycle, tick, train, leases and hand-over check are unchanged).
-The technical description is ARCHITECTURE.md at the repo root; the rules are still docs/harness-v3-prd.md (BR-*).
+The technical description is docs/ARCHITECTURE.md; the rules are still docs/harness-v3-prd.md (BR-*).
 
 ## What v4 is
 The daemon (`hd start --interval 60`) observes, advances, trains, deploys, heals and books agent runs. The console
@@ -59,4 +59,4 @@ commit before `gh pr create`) and github_scope.py (upstream writes prompt the us
 - Evidence dirs still live in the client checkout (`re/evidence/<slug>`), while the harness lives in its own repo.
 - `kpi.py` still reads `usd` (always empty now); replace with tokens.
 - Old `harness/state/approvals/` records on disk are ignored (e.g. the release approval for v0.1.1); they can be deleted.
-- docs/ other than harness-v4.md and ARCHITECTURE.md describe v2/v3; retire or archive them.
+- docs/ other than harness-v4.md and docs/ARCHITECTURE.md describe v2/v3; retire or archive them.

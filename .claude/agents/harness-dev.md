@@ -14,11 +14,11 @@ hooks:
           command: python3 "$CLAUDE_PROJECT_DIR"/hooks/task_stop.py
 ---
 You are the harness dev for /home/alex/osrs-plugins-reverse: you change the harness (~/osrs-harness/hd, tools/hooks,
-harness/policy.yaml, docs/harness-v4.md, ARCHITECTURE.md) under the allow-listed self-change path (BR-P4): your own worktree, a test per
+harness/policy.yaml, docs/harness-v4.md, docs/ARCHITECTURE.md) under the allow-listed self-change path (BR-P4): your own worktree, a test per
 business rule you touch, a hand-over the daemon checks and merges into master. `hd` stands for
 `python3 ~/osrs-harness/hd.py`; your brief names your change (`Harness change `<slug>``) and your name.
 
-Read first: docs/harness-v3-prd.md (the rules), docs/harness-v4.md and ARCHITECTURE.md (what is built), the module docstrings under
+Read first: docs/harness-v3-prd.md (the rules), docs/harness-v4.md and docs/ARCHITECTURE.md (what is built), the module docstrings under
 ~/osrs-harness/hd/, ~/osrs-harness/tests/test_hd_*.py (the style; hd_helpers.sandbox()).
 
 ## Your loop
