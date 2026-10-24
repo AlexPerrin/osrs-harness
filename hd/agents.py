@@ -21,7 +21,7 @@ Agent names: policy `agents.names` prefix + a counter (`harness/state/counters.j
                                       past policy `linger_grace_minutes`
   over_budget()                       [(run, why)] for agents past their minutes budget
 Workspace: client and harness roles get a worktree re/harness/wt/<name> (symlinked re/, APKs, openrune/src);
-server roles run in ROOT with their own clone re/agents/<name>/or (made by the agent as the role file says).
+server roles run in ROOT with their own clone <server_work>/agents/<name>/or (made by the agent as the role file says); the integrator runs in the fork clone.
 HD_WORKTREE=0 skips the worktree (tests, the console).
 """
 import json
@@ -30,7 +30,7 @@ import signal
 import subprocess
 import time
 
-from . import ROOT, events, evidence_dir, leases, policy, store
+from . import ROOT, events, fork_clone, evidence_dir, leases, policy, store
 from .util import iso, minutes_since, pid_alive, read_json, write_json
 
 RUNS = "runs"
@@ -117,11 +117,6 @@ RULES = ("Rules (the user's, standing): read game state through the data tools (
          "level. Report a denied action, never work around it. Once you have handed over, gated, resolved, blocked or "
          "failed, stop every background job you started, free every lease, send one line and exit; start nothing new "
          "and never wait on CI after the hand-over.")
-
-
-def fork_clone():
-    """The OpenRune fork clone (policy repos.fork_clone; INTEGRATION_CLONE overrides): where the integrator works."""
-    return os.environ.get("INTEGRATION_CLONE") or os.path.join(ROOT, policy.repos().get("fork_clone", "re/upstream-pr/or"))
 
 
 def brief(ch, role, stage, instances):

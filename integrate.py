@@ -3,13 +3,14 @@
 integration.lock pins, and the lease push of `integration`. The v2 queue and its command line are gone: hd's batches
 run the train.
 
-Environment (tests): INTEGRATION_DIR, INTEGRATION_CLONE, INTEGRATION_TOOLS_WT, INTEGRATION_REMOTE (fork)."""
+Environment (tests): HD_SERVER_HOME, INTEGRATION_DIR, INTEGRATION_CLONE, INTEGRATION_TOOLS_WT, INTEGRATION_REMOTE (fork)."""
 import os
 import re
 import subprocess
 import sys
 
-ROOT = os.environ.get("HD_CLIENT_ROOT") or os.path.expanduser("~/osrs-plugins-reverse")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from hd import fork_clone, server_work  # noqa: E402
 AUTHOR = "Alex Perrin <44126061+AlexPerrin@users.noreply.github.com>"
 TRAILER = "Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 TOOLS_BRANCH = "local/integration-tools"
@@ -17,15 +18,15 @@ SECTIONS = ("# Upstream fixes", "# Content", "# Local only")
 
 
 def state_dir():
-    return os.environ.get("INTEGRATION_DIR") or os.path.join(ROOT, "re", "harness", "integration")
+    return os.environ.get("INTEGRATION_DIR") or os.path.join(server_work(), "integration")
 
 
 def clone():
-    return os.environ.get("INTEGRATION_CLONE") or os.path.join(ROOT, "re", "upstream-pr", "or")
+    return fork_clone()
 
 
 def tools_wt():
-    return os.environ.get("INTEGRATION_TOOLS_WT") or os.path.join(ROOT, "re", "harness", "integration-tools")
+    return os.environ.get("INTEGRATION_TOOLS_WT") or os.path.join(server_work(), "integration-tools")
 
 
 def build_wt():

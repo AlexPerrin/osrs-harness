@@ -22,6 +22,8 @@ is an event; agents execute one stage with a budget; only two actions need the u
 
 Paths: HD_HOME is this repo (osrs-harness); ROOT is the client checkout (HD_CLIENT_ROOT, default
 ~/osrs-plugins-reverse; the main checkout also from a worktree), where evidence, worktrees and the client build live;
+the server side is isolated from it: SERVER_HOME (HD_SERVER_HOME, default ~/src) holds the fork clone OpenRune-Server
+and openrune-work/ (integration build, tools worktree, qa clones, images, the agents' clones);
 HARNESS = HD_HOME/harness (changes/ and policy.yaml are committed; state/ is git-ignored). HD_HARNESS_DIR overrides
 HARNESS (tests).
 """
@@ -43,6 +45,19 @@ def _main_checkout(root):
 
 
 ROOT = _main_checkout(_REPO)
+
+
+def server_home():
+    return os.path.expanduser(os.environ.get("HD_SERVER_HOME") or "~/src")
+
+
+def fork_clone():
+    """The push clone of the fork: remote `fork` = AlexPerrin/OpenRune-Server, `origin` = upstream."""
+    return os.environ.get("INTEGRATION_CLONE") or os.path.join(server_home(), "OpenRune-Server")
+
+
+def server_work():
+    return os.path.join(server_home(), "openrune-work")
 
 
 def harness_dir():

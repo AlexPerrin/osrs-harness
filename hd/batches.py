@@ -61,7 +61,7 @@ import signal
 import subprocess
 import sys
 
-from . import HD_HOME, ROOT, events, evidence_dir, leases, policy, state_dir, store
+from . import HD_HOME, ROOT, server_work, events, evidence_dir, leases, policy, state_dir, store
 from .util import iso, minutes_since, now, parse, pid_alive, read_json, write_json
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -100,7 +100,7 @@ def fork_sh():
 
 
 def qa_root():
-    return _tool("HD_QA_ROOT", "re", "harness", "qa")
+    return os.environ.get("HD_QA_ROOT") or os.path.join(server_work(), "qa")
 
 
 def ours():

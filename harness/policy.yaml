@@ -29,7 +29,6 @@ repos:
   ours: AlexPerrin/osrs-plugins-reverse
   fork: AlexPerrin/OpenRune-Server
   upstream: OpenRune/OpenRune-Server
-  fork_clone: re/upstream-pr/or      # the push clone: remote `fork` = the fork, `origin` = upstream
   fork_remote: fork
   upstream_remote: origin
   docs_branch: docs

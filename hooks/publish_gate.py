@@ -2,7 +2,7 @@
 """PreToolUse hook (Bash), every session: the upstream publish gate (docs/workflow.md "Gates").
 
 `gh pr create` against upstream (OpenRune/*, or --head AlexPerrin:<branch>) is denied unless a QA record for
-<branch> says PASS for the branch's commit on the fork (fork/<branch> in re/upstream-pr/or, else the local
+<branch> says PASS for the branch's commit on the fork (fork/<branch> in the fork clone, else the local
 branch). A new commit voids the record. Records (server QA, while they move to the fork): qa/*.md on the
 fork's `docs` branch (fork/docs, then the local docs), then openrune/upstream/qa/*.md here. Header lines read:
   - Branch: `content/<slug>`
@@ -19,8 +19,11 @@ import re
 import subprocess
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import hdpaths  # noqa: E402
+
 ROOT = os.environ.get("CLAUDE_PROJECT_DIR") or os.environ.get("HD_CLIENT_ROOT") or os.path.expanduser("~/osrs-plugins-reverse")
-CLONE = os.path.join(ROOT, "re/upstream-pr/or")
+CLONE = hdpaths.fork_clone()
 
 
 def deny(reason):
@@ -94,7 +97,7 @@ def main():
     sha = (git("rev-parse", "--verify", "-q", f"refs/remotes/fork/{branch}")
            or git("rev-parse", "--verify", "-q", f"refs/heads/{branch}") or "").strip()
     if not sha:
-        deny(f"no branch {branch} on the fork or in re/upstream-pr/or")
+        deny(f"no branch {branch} on the fork or in the fork clone")
     found = []
     for path, text in records():
         if not re.search(rf"^- Branch: `{re.escape(branch)}`", text, re.M):

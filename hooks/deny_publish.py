@@ -12,7 +12,7 @@ inside openrune/), except the read-only compose subcommands (ps, logs, config, l
 `--fork-writes` (server-dev, user 2026-10-19): the dev does its own GitHub work on our fork
 (AlexPerrin/OpenRune-Server): pushes whose remote resolves to the fork, tools/fork.sh (fork only by
 construction), and gh writes that name `AlexPerrin/OpenRune-Server`. Contributions to OpenRune's own repo stay
-denied: a push whose remote URL is not the fork (in re/upstream-pr/or `origin` IS OpenRune; in the agents' clones
+denied: a push whose remote URL is not the fork (in the fork clone `origin` IS OpenRune; in the agents' clones
 `origin` is the fork), a bare `git push` (target unknown), and any write segment naming OpenRune/OpenRune.
 github_scope.py still asks the user before a push to a fork branch that backs an open upstream PR.
 
@@ -30,6 +30,7 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import hdpaths  # noqa: E402
 import shellparse as sp  # noqa: E402
 
 RULES = [
@@ -155,12 +156,11 @@ def walk(cmd, cwd):
 
 
 def local_push_clone(url, d):
-    """The agent clones' `origin` is the local push clone re/upstream-pr/or (a folder on this machine): a push
+    """The agent clones' `origin` is the local push clone, the fork clone (a folder on this machine): a push
     there never leaves the machine, and only the orchestrator pushes from that clone to GitHub."""
     if not url or "://" in url or re.match(r"^[\w.-]+@[\w.-]+:", url):
         return False
-    clone = os.environ.get("HOOK_PUSH_CLONE") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..",
-                                                             "re", "upstream-pr", "or")
+    clone = os.environ.get("HOOK_PUSH_CLONE") or hdpaths.fork_clone()
     target = url if os.path.isabs(url) else os.path.join(d or ".", url)
     return os.path.realpath(target).rstrip("/") == os.path.realpath(clone).rstrip("/")
 

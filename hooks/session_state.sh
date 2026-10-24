@@ -8,5 +8,5 @@ echo "# State after compaction (tools/hooks/session_state.sh)"
 echo; echo "## Harness"; python3 tools/harness/orchestrate.py status 2>&1
 echo; echo "## This repo"; git log --oneline -5
 echo; echo "Read when needed: docs/orchestrator.md (decisions, waiting on the user), docs/client-state.md,"
-echo "the fork's STATE.md (git -C re/upstream-pr/or show fork/docs:STATE.md), harness/approvals/."
+echo "the fork's STATE.md (git -C ~/src/OpenRune-Server show fork/docs:STATE.md), harness/approvals/."
 exit 0

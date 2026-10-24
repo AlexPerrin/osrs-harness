@@ -11,7 +11,7 @@ import os
 import re
 import subprocess
 
-from . import ROOT, store
+from . import ROOT, fork_clone, store
 from . import policy
 from .util import pid_alive
 
@@ -27,7 +27,7 @@ class Observer:
     def __init__(self, ours=None, clone=None, gh=None):
         rp = policy.repos()
         self.ours = ours or ROOT
-        self.clone = clone or os.path.join(ROOT, rp.get("fork_clone", "re/upstream-pr/or"))
+        self.clone = clone or fork_clone()
         self.fork_remote = rp.get("fork_remote", "fork")
         self.upstream_remote = rp.get("upstream_remote", "origin")
         self.fork_repo = rp.get("fork", "AlexPerrin/OpenRune-Server")

@@ -4,7 +4,7 @@
 #   1. preconditions: <clone>.logs/summary ends rc=0; the batch record harness/state/batches/<batch>.json names
 #      the integration sha (= HEAD of the clone when it is a git checkout)
 #   2. exit 3 if <clone>/.data/rsa.properties exists (the live key never enters a clone); stage
-#      re/harness/image-<sha7>/: server/ = <clone>/server/app/build/install/app, data/ = <clone>/.data without
+#      <server work>/image-<sha7>/: server/ = <clone>/server/app/build/install/app, data/ = <clone>/.data without
 #      game.key (the gate's throwaway key) and postgres/; exit 3 if a key file survives the staging
 #   3. the cache fixes (openrune/scripts add_varcs, fix_long_varps, fix_reftable, check_cache, python3 -I) on the
 #      staged data/cache/LIVE, as openrune.sh build runs them on src/
@@ -17,7 +17,7 @@
 #   7. record harness/state/images/<sha7>.json {integration, image, image_id, live_image_id, key_hash, boot,
 #      seconds, ready_line, batch}
 # Env: HD_STATE_DIR (harness/state), DOCKER or HD_DOCKER (the docker command: tests), HD_CACHE_SCRIPTS (the fix
-# scripts' dir), HD_IMAGE_ROOT (the context dir's parent, re/harness), HD_IMAGE_TIMEOUT, HD_POLL_SECONDS,
+# scripts' dir), HD_IMAGE_ROOT (the context dir's parent, ~/src/openrune-work), HD_IMAGE_TIMEOUT, HD_POLL_SECONDS,
 # HD_LIVE_CONTAINER (osrs-openrune).
 # Exit: 0 ok, 2 usage or precondition, 3 a key file is present, 4 key hash mismatch, 5 build or boot failed.
 set -euo pipefail
@@ -26,7 +26,7 @@ ROOT=${HD_CLIENT_ROOT:-$HOME/osrs-plugins-reverse}   # the client checkout
 STATE=${HD_STATE_DIR:-$ROOT/harness/state}
 DOCKER=${DOCKER:-${HD_DOCKER:-docker}}
 SCRIPTS=${HD_CACHE_SCRIPTS:-$ROOT/openrune/scripts}
-CTX_ROOT=${HD_IMAGE_ROOT:-$ROOT/re/harness}
+CTX_ROOT=${HD_IMAGE_ROOT:-${HD_SERVER_HOME:-$HOME/src}/openrune-work}
 TIMEOUT=${HD_IMAGE_TIMEOUT:-1800}
 POLL=${HD_POLL_SECONDS:-5}
 LIVE=${HD_LIVE_CONTAINER:-osrs-openrune}

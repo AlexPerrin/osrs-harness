@@ -74,7 +74,7 @@ class ApprovalsTest(unittest.TestCase):
         self.assertEqual(a["action"], "update-pr")
         push, comment = a["commands"]
         self.assertEqual(push[0:2] + push[3:], ["git", "-C", "push", "fork", f"{SHA}:refs/heads/content/feat"])
-        self.assertTrue(push[2].endswith("re/upstream-pr/or"))
+        self.assertTrue(push[2].endswith("OpenRune-Server"))
         self.assertEqual(comment[:6], ["gh", "pr", "comment", "354", "-R", UPSTREAM])
         self.assertEqual(comment[6], "--body-file")
         with open(comment[7]) as f:

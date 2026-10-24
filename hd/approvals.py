@@ -29,7 +29,7 @@ import os
 import re
 import subprocess
 
-from . import ROOT, events, policy, stages, state_dir, store
+from . import ROOT, events, fork_clone, policy, stages, state_dir, store
 from .util import iso, local, read_json, short
 
 APPROVALS = "approvals"
@@ -119,7 +119,7 @@ def ensure(ch, obs):
         return have if have.get("state") == "pending" else None
     _stale(ch, keep=aid)
     rp = policy.repos()
-    upstream, clone = rp["upstream"], os.path.join(ROOT, rp.get("fork_clone", "re/upstream-pr/or"))
+    upstream, clone = rp["upstream"], fork_clone()
     slug = _pr_slug(ch)
     title = obs.docs_file(f"pr-texts/{slug}.title")
     body = obs.docs_file(f"pr-texts/{slug}.upstream.body")
