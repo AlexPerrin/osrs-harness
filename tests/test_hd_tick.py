@@ -1,5 +1,5 @@
 """The tick (problem 3f, invariants I1, I2, I9; BR-C2, BR-C4, BR-C5, BR-S5, BR-R4): each step with the agent,
-batch, approval and heal modules stubbed, FakeObserver for the world, a temp git repo for the client merge."""
+batch and heal modules stubbed, FakeObserver for the world, a temp git repo for the client merge."""
 import os
 import subprocess
 import unittest
@@ -16,14 +16,13 @@ def stub_modules(test, **over):
     """Stub the modules the tick calls that other tests cover; return the call log."""
     calls = []
     stubs = {
-        "agents.poll": lambda: [], "agents.running": lambda: [], "agents.spawn": None,
+        "agents.running": lambda: [], "agents.spawn": None,
         "batches.enqueue": lambda ch: calls.append(("enqueue", ch["slug"])) or True,
         "batches.advance": lambda obs: [], "batches.deploy_ready": lambda obs: None,
         "batches.deploy": lambda b, obs: (True, "deploying"), "batches.repin_due": lambda obs: None,
         "batches.repin": lambda obs: "repinned", "batches.release_due": lambda idx: None,
         "batches.new_release": lambda slugs: {"id": "rel-1"}, "batches.status": lambda: [],
-        "approvals.ensure": lambda ch, obs: None, "approvals.ensure_release": lambda b: None,
-        "approvals.execute": lambda obs: [], "heal.run": lambda obs, idx: [],
+        "heal.run": lambda obs, idx: [],
     }
 
     def spawn(ch, role, ex, need):
@@ -42,19 +41,20 @@ def stub_modules(test, **over):
     return calls
 
 
-class ApprovalNoiseTest(unittest.TestCase):
-    """A pending approval is handed back by ensure every tick; only a new one is an action of the tick."""
+class ReleasePublishedTest(unittest.TestCase):
+    """A gated release batch becomes `published` when its GitHub release is observed, and not before."""
     def setUp(self):
         H.sandbox(self)
-        store.rec_save("batches", "rel-1", {"id": "rel-1", "kind": "release", "step": "gated", "includes": [], "steps": []})
-        stub_modules(self, **{"approvals.ensure_release": lambda b: {"id": "rel-1-tag"}})
+        store.rec_save("batches", "rel-1", {"id": "rel-1", "kind": "release", "step": "gated", "includes": [],
+                                            "steps": [], "tag": "v1.2.3"})
+        stub_modules(self)
 
-    def test_new_approval_is_an_action_then_quiet(self):
-        out = tick.tick(FakeObserver())
-        self.assertIn("release approval rel-1-tag", " ".join(out))
-        store.rec_save("approvals", "rel-1-tag", {"id": "rel-1-tag", "state": "pending"})
-        out = tick.tick(FakeObserver())
-        self.assertNotIn("rel-1-tag", " ".join(out))
+    def test_published_only_when_the_release_exists(self):
+        tick.tick(FakeObserver())
+        self.assertEqual(store.rec_load("batches", "rel-1")["step"], "gated")
+        out = tick.tick(FakeObserver(releases={"v1.2.3": {"tag": "v1.2.3", "url": "u"}}))
+        self.assertEqual(store.rec_load("batches", "rel-1")["step"], "published")
+        self.assertIn("release rel-1: published (v1.2.3)", " ".join(out))
 
 
 class ReconcileTest(unittest.TestCase):

@@ -336,7 +336,6 @@ class PolicyTest(unittest.TestCase):
         self.assertEqual(policy.branch_track("fix/x"), "server")
         self.assertEqual(policy.branch_track("client/x"), "client")
         self.assertIsNone(policy.branch_track("acc/x"))
-        self.assertEqual(policy.budget("server-dev")["usd"], 25)
         self.assertIn("device", policy.instances())
 
 

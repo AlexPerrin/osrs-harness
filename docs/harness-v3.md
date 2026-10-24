@@ -1,3 +1,5 @@
+> **Superseded by harness v4 (docs/harness-v4.md, ARCHITECTURE.md):** approvals, the dashboard and headless agents are gone; read those first.
+
 # Harness v3 as built: harnessd
 
 Built 2026-10-20/21 against docs/harness-v3-prd.md (the rules, cited as BR-*) from the first principles in

@@ -3,7 +3,7 @@
   1 observe + reconcile   every change's stage re-derived from git, CI, GitHub, docker and the leases; a record
                           that disagrees is repaired and logged as `drift`; a branch that moved past its
                           hand-over re-enters at ready (BR-C2); deps set or clear `blocked` holds (BR-C4)
-  2 reap                  ended agent runs; a change at dev with a hand-over gets the check: PASS -> checked,
+  2 reap                  a change at dev with a hand-over gets the check: PASS -> checked,
                           FAIL -> ready with the failing items (BR-S5)
   3 ship / train          checked client and harness changes merge into master; checked server changes join the
                           queue; trains advance (rebuild, gate, image) one step, never blocking
@@ -11,17 +11,16 @@
                           BR-R4); included changes become live, dependents unblock
   5 re-pin                upstream main moved: fast-forward, drop merged branches, train (BR-B5)
   6 gates                 live server changes need the upstream gate; the release rule makes a release batch
-  7 approvals             gated changes get their one approval; approved ones are executed (BR-A2..A5)
-  8 dispatch              ready changes x free slots x free leases, by priority (BR-C5); one agent per stage
-  9 heal                  idle leases, lingering agents, dead containers, stuck batches, deadlocks (BR-H2, H3)
-  10 log                  the `tick` event with its actions and the stalled changes
+  7 dispatch              ready changes x free slots x free leases, by priority (BR-C5); one agent per stage
+  8 heal                  idle leases, lingering agents, dead containers, stuck batches, deadlocks (BR-H2, H3)
+  9 log                  the `tick` event with its actions and the stalled changes
 
 Every step runs in its own try/except: a failure is an `error` event, the others still run. `dry_run` observes,
 reconciles and reports what it would do without spawning, shipping, training or deploying."""
 import time
 import traceback
 
-from . import agents, approvals, batches, check, events, heal, leases, metrics, policy, ship, stages, store
+from . import actions, agents, batches, check, events, heal, leases, metrics, policy, ship, stages, store
 from .util import iso, minutes_since
 
 
@@ -112,7 +111,7 @@ def reconcile(ctx):
             ctx.act(f"{slug}: unblocked")
 
 
-# --- 2 reap --------------------------------------------------------------------------------------------------------
+# --- 2 reap (hand-over checks; a run's end is `hd run-end`) --------------------------------------------------------------------------------------------------------
 
 def run_check(ctx, ch):
     passed, items = check.run(ch, ctx.obs)
@@ -145,10 +144,6 @@ def run_check(ctx, ch):
 
 
 def reap(ctx):
-    ended = agents.poll()
-    for r in ended:
-        ctx.act(f"run {r.get('name')} ended ({r.get('exit')})")
-    ctx.refresh()
     for slug, ch in list(ctx.idx.items()):
         if ch.stage != "dev" or not ch.get("commit"):
             continue
@@ -258,7 +253,7 @@ def release_record(b):
     """The client release record qa/client-<version>.md in this repo with Verdict PASS at the batch's commit."""
     import os
     import re
-    tag = (store.read_json(os.path.join(__import__("hd").state_dir(), "release.request"), {}) or {}).get("tag") or b.get("tag") or ""
+    tag = actions.release_tag(b) or ""
     version = re.sub(r"^(client-)?v", "", tag)
     if not version:
         return None
@@ -284,6 +279,12 @@ def gates(ctx):
         ctx.act(f"release batch {b.get('id')} for {len(due)} live client changes")
     running = agents.running()
     for b in batches.open_batches("release"):
+        if b.get("step") == "gated" and actions.release_published(b, ctx.obs):
+            b["step"] = "published"
+            store.rec_save("batches", b["id"], b)
+            events.emit("batch", batch=b["id"], step="published", detail=actions.release_tag(b), batch_kind="release")
+            ctx.act(f"release {b['id']}: published ({actions.release_tag(b)})")
+            continue
         if b.get("step") in ("queued", "gating"):
             rec = release_record(b)
             if rec:
@@ -303,28 +304,7 @@ def gates(ctx):
                 ctx.act(f"client-qa {r.get('name')} -> release {b['id']}")
 
 
-# --- 7 approvals ---------------------------------------------------------------------------------------------------------------
-
-def approvals_step(ctx):
-    known = {a.get("id") for a in approvals.all_()}   # a pending approval is returned again each tick: not an action
-    for slug, ch in list(ctx.idx.items()):
-        if ch.stage == "gated" and not ctx.dry_run:
-            a = approvals.ensure(ch, ctx.obs)
-            if a and a.get("id") not in known:
-                ctx.act(f"approval {a.get('id')} ({a.get('action')}) for {slug}")
-    for b in batches.open_batches("release"):
-        if b.get("step") == "gated" and not ctx.dry_run:
-            a = approvals.ensure_release(b)
-            if a and a.get("id") not in known:
-                ctx.act(f"release approval {a.get('id')}")
-    if ctx.dry_run:
-        return
-    for a in approvals.execute(ctx.obs) or []:
-        ctx.act(f"approval {a.get('id')}: {a.get('state')}")
-    ctx.refresh()
-
-
-# --- 8 dispatch -----------------------------------------------------------------------------------------------------------------
+# --- 7 dispatch -----------------------------------------------------------------------------------------------------------------
 
 def slots_free(role, running):
     pol = policy.role(role)
@@ -420,7 +400,7 @@ def tick(obs=None, dry_run=False, interval=60):
     t0 = time.time()
     ctx = Ctx(obs, dry_run)
     for name, fn in (("reconcile", reconcile), ("reap", reap), ("ship", ship_and_train), ("deploy", deploy),
-                     ("repin", repin), ("gates", gates), ("approvals", approvals_step), ("dispatch", dispatch),
+                     ("repin", repin), ("gates", gates), ("dispatch", dispatch),
                      ("metrics", metrics_step), ("heal", heal_step)):
         _step(ctx, name, fn)
     secs = round(time.time() - t0, 1)

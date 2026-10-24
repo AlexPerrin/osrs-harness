@@ -4,7 +4,7 @@
    rollback, pid, log, evidence, commit (release: master HEAD), created, exception}
 Train steps: queued -> pinning -> rebuilding -> gating -> imaging -> imaged (waiting for the deploy) -> deploying
 -> live | exception | failed.
-Release steps: queued -> gating -> gated -> published (the user's approval) | failed.
+Release steps: queued -> gating -> gated -> published (the release is observed on GitHub) | failed.
 
   enqueue(ch)                   a checked server change joins the queue (`harness/state/queue.json`; a newer
                                 commit of the same branch replaces its entry); idempotent
@@ -39,7 +39,7 @@ Release steps: queued -> gating -> gated -> published (the user's approval) | fa
                                 policy `batches.release_after_live_changes`, or when `harness/state/release.request`
                                 exists; None when no release is due (or one is open)
   new_release(slugs)            a release batch: gates master at HEAD with client-qa (the tick spawns it)
-  status()                      open batches with their step and timings (the dashboard)
+  status()                      open batches with their step and timings 
   wait_step(batch, timeout)     block until the batch's background step ends (tests, `hd batch wait`)
 Scripts: tools/harness/image.sh <gated-clone> <batch> (stages server/ + data/ without key files, cache fixes,
 template tools/harness/Dockerfile.integration with COPY --from the live image for the key and game.yml, key-hash
@@ -868,7 +868,8 @@ def release_due(idx):
 
 def new_release(slugs):
     commit = integrate.rev(ours(), "refs/heads/master") or None
-    b = _new("release", slugs, commit=commit)
+    tag = (read_json(_request_path(), {}) or {}).get("tag")
+    b = _new("release", slugs, commit=commit, tag=tag)
     try:
         os.remove(_request_path())
     except OSError:

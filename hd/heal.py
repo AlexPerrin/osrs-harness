@@ -2,16 +2,15 @@
 
   run(obs, idx)   -> list of actions taken (strings), each also an event, in this order:
     1. idle leases past the policy window: reclaimed with the evidence (`lease reclaim`)
-    2. agents alive past their stage (agents.lingering) or budget: stopped (`agent end`, exit=stopped)
-    3. runs whose process died without a hand-over: the change goes back to `ready` with a note (BR-S5 style)
+    2. agents alive past their stage (agents.lingering): stopped (`agent end`, exit=stopped)
+    3. a dev run ended without a hand-over: the change goes back to `ready` with a note (BR-S5 style)
     4. dead branch servers / stale QA containers (`qa-or-*`, `hd-boot-*` not running): removed (HD_DOCKER
        overrides docker; tests record the command)
     5. a batch whose step process died while gating, imaging or deploying: step -> exception
     6. a deadlock (BR-H3): an image waits for a deploy while an instance is held by an agent whose change depends on
        a change in that batch: the instance drains (leases.drain); the deploy undrains after it
-  Stale approvals (the action already done on GitHub) are approvals.ensure's job. A step that raises is an `error`
-  event and never stops the next step. Pure checks are separated from actions so tests can inject (FakeObserver,
-  HD_SPAWN=fake).
+  A step that raises is an `error` event and never stops the next step. Pure checks are separated from actions so
+  tests can inject (FakeObserver).
 """
 import os
 import subprocess
@@ -48,7 +47,7 @@ def _idle_leases(obs, idx):
 
 def _agents(obs, idx):
     out = []
-    for r, why in agents.lingering(idx) + agents.over_budget():
+    for r, why in agents.lingering(idx):
         agents.stop(r["name"], why)
         out.append(f"agent {r['name']} stopped: {why}")
     return out
@@ -56,7 +55,7 @@ def _agents(obs, idx):
 
 def _dead_runs(obs, idx):
     """A change in dev with no hand-over and no live run owning it goes back to ready."""
-    live = {r["name"] for r in agents._open()}
+    live = {r["name"] for r in agents.running()}
     last = {}
     for r in store.rec_all(agents.RUNS):
         if r.get("ended") and r.get("stage") == "dev":

@@ -226,6 +226,21 @@ class Observer:
                     "title": p.get("title"), "branch": p.get("headRefName")}
         return self._m(("upstream_pr", str(number_or_branch)), f)
 
+    def release(self, tag):
+        """{tag, url} of the GitHub release for `tag` in our repo, {} when none, None when gh failed."""
+        def f():
+            r = _run([self.gh, "release", "view", tag, "-R", policy.repos()["ours"], "--json", "tagName,url"], timeout=40)
+            if not r:
+                return None
+            if r.returncode != 0:
+                return {} if "not found" in (r.stderr or "").lower() else None
+            try:
+                d = json.loads(r.stdout or "null") or {}
+            except ValueError:
+                return None
+            return {"tag": d.get("tagName"), "url": d.get("url")} if d else {}
+        return self._m(("release", tag), f)
+
     def upstream_pr_reviews(self, number):
         """Review comments and reviews on an upstream PR, newest last: [{author, body, at, kind}]."""
         def f():
@@ -369,6 +384,9 @@ class FakeObserver(Observer):
     def upstream_pr(self, key):
         u = self.f.get("upstream_prs", {})
         return u.get(key, u.get(str(key), {}))
+
+    def release(self, tag):
+        return self.f.get("releases", {}).get(tag, {})
 
     def upstream_pr_reviews(self, number):
         return self.f.get("reviews", {}).get(number, [])
