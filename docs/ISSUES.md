@@ -2,6 +2,17 @@
 
 One short entry per issue, newest first: symptom, root cause, evidence, fix, how to recognise it again.
 
+## 2026-10-24 Upstream PR lookup by branch found nothing
+
+- **Symptom.** With the CI fix in, `hd check stile-approach` still read "CI pending" although upstream #406 was green.
+- **Root cause.** `Observer.upstream_pr(branch)` ran `gh pr list --head owner:branch`; gh's `--head` takes a bare branch
+  name and returns nothing for `owner:branch`. The check also ignored the `upstream_pr` number recorded on the change.
+- **Evidence.** `gh pr view 406 -R OpenRune/OpenRune-Server` showed all checks green at 68ddd1b6c while the lookup gave `{}`.
+- **Fix.** The check uses the recorded number first; the branch lookup passes the bare branch and filters on
+  `headRepositoryOwner.login` == the fork owner. Advisory checks (spotless) are neither required nor failing.
+  Tests: `tests/test_hd_ci_check.py` (`LookupTest`, `RecordedNumberTest`, `RollupTest`).
+- **Recognise.** A change with a recorded `upstream_pr` whose check says "CI pending" while the PR is green.
+
 ## 2026-10-24 Hand-over check failed on fork CI and re-dispatched devs every tick
 
 - **Symptom.** `fix/stile-approach` and `genie-review-355` failed the hand-over check on "no CI run" / a red fork run;

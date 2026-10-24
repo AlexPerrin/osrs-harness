@@ -125,17 +125,17 @@ def items(ch, obs):
         text = obs.read_file(gate if os.path.isabs(gate) else os.path.join(ROOT, gate)) or ""
         (ok if "rc=0" in text else fail)(f"local gate log {gate}" + ("" if "rc=0" in text else " missing or not rc=0"))
     else:
-        _ci_item(branch, commit, obs, ok, fail, pending)
+        _ci_item(ch, branch, commit, obs, ok, fail, pending)
     return out
 
 
 CI_PENDING = "CI pending: runs when the PR opens or the head moves"
 
 
-def _ci_item(branch, commit, obs, ok, fail, pending):
+def _ci_item(ch, branch, commit, obs, ok, fail, pending):
     """The CI fact: the upstream PR's checks at exactly `commit`; a passing fork run is accepted, never required; no PR at
-    the commit is pending, never a fail (why: docs/ISSUES.md: Hand-over check failed on fork CI and re-dispatched devs every tick)."""
-    pr = obs.upstream_pr(branch)
+    the commit is pending, never a fail; the PR is the change's recorded `upstream_pr` number, else found by branch (why: docs/ISSUES.md: Hand-over check failed on fork CI and re-dispatched devs every tick)."""
+    pr = obs.upstream_pr(ch.get("upstream_pr") or branch)
     up = obs.upstream_ci(pr["number"], commit) if pr else "none"
     if up == "success":
         ok(f"upstream PR #{pr['number']} CI green at the commit")

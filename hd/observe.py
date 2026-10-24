@@ -30,6 +30,7 @@ def rollup_state(checks):
     """Fold a gh statusCheckRollup (check runs: status/conclusion/name; statuses: state/context) to
     'success' | 'failure' | 'pending' | 'none'."""
     seen, states = [], []
+    checks = [c for c in checks if "advisory" not in (c.get("name") or c.get("context") or "").lower()]
     for c in checks:
         name = (c.get("name") or c.get("context") or "").lower()
         concl = str(c.get("conclusion") or c.get("state") or "").upper()
@@ -249,11 +250,13 @@ class Observer:
                     return None
                 prs = [p]
             else:
-                # a fork PR's head is `owner:branch` for gh's filter; a plain branch name finds only same-repo PRs
+                # gh's --head takes a bare branch name (an `owner:branch` form finds nothing): filter on the fork owner here
                 owner = self.fork_repo.split("/")[0]
-                prs = self._gh_json(["pr", "list", "-R", self.upstream_repo, "--head", f"{owner}:{number_or_branch}",
-                                     "--state", "all", "--limit", "5", "--json",
-                                     "number,url,state,isDraft,headRefOid,mergedAt,title,headRefName"])
+                prs = self._gh_json(["pr", "list", "-R", self.upstream_repo, "--head", str(number_or_branch),
+                                     "--state", "all", "--limit", "10", "--json",
+                                     "number,url,state,isDraft,headRefOid,mergedAt,title,headRefName,headRepositoryOwner"])
+                if prs is not None:
+                    prs = [p for p in prs if (p.get("headRepositoryOwner") or {}).get("login") == owner]
                 if prs is None:
                     return None
                 prs = [p for p in prs if p.get("state") == "OPEN"] or [p for p in prs if p.get("mergedAt")] or prs
