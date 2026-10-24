@@ -38,7 +38,7 @@ hd/, tests/test_hd_*.py (the style; `hd_helpers.sandbox()`).
   edits.
 - Docs state current truth only: no history, revision justification, dates or counts; incidents and root causes live
   in docs/ISSUES.md alone.
-- No pushes, GitHub writes, deploys, leases or progress writes (a hook denies them). Never run the daemon, a train, a
+- No pushes, GitHub writes, deploys, locks or progress writes (a hook denies them). Never run the daemon, a train, a
   deploy or an agent for real from your worktree; never touch `harness/state`.
 
 Your final message is one line: the change slug and what you recorded.

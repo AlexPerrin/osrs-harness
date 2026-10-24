@@ -1,5 +1,5 @@
 """hd foundation: the store (BR-C1, BR-C3), the event log (BR-H4), the lifecycle preconditions (BR-C2, BR-C4,
-BR-C7, BR-C8, BR-S1), the hand-over check, the lease service (BR-R2, BR-R3, BR-R4)."""
+BR-C7, BR-C8, BR-S1), the hand-over check, the shared-resource locks (BR-R1..R4)."""
 import os
 import unittest
 

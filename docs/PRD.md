@@ -24,7 +24,7 @@ RULE      : a change advances to the next stage when that stage's precondition i
             the actor is a script, unless the step needs judgement (agent) or crosses the boundary (user)
 BATCH     = train   (server: every checked change -> one integration commit -> image -> live)
           | release (client: a set of live changes -> gate -> tag)
-LEASE     = resource + holder + purpose + attached process
+LOCK      = shared resource + holder + purpose + attached process
 EVENT     = every change to any of the above, appended once, UTC
 DRIVER    = loop { observe -> advance -> dispatch -> heal -> log }
 ```
@@ -38,7 +38,7 @@ DRIVER    = loop { observe -> advance -> dispatch -> heal -> log }
 4. **Only two actions need the user**: an upstream action on OpenRune (open, update, ready, comment) and a client
    release (tag, GitHub release). The user's yes is given in chat; nothing else prompts.
 5. **Agents are stage executors.** One change, one stage, an exit. Everything repeatable is a script.
-6. **Resources are leases**, and a tool that touches a resource checks the lease.
+6. **A shared resource is a lock**, and a tool that touches it checks the lock. A client instance is not shared: each agent starts its own.
 7. **The event log is the product's memory.** The KPIs and every post-mortem read it; nothing is rewritten.
 
 ## 3. Business rules: changes
@@ -95,7 +95,7 @@ The harness track's `live` is: this repo's `main` contains `commit`.
   pushes with a lease, runs the gate, builds the image (keys only by `COPY --from` the live image; key hash must
   match; private boot check), records the image.
 - **BR-B2 One train at a time.** One integration lock. Changes checked during a train join the next one.
-- **BR-B3 Deploy.** A gated image deploys when all instances are leased by the daemon (BR-R4 drain). Rollback tag
+- **BR-B3 Deploy.** A gated image deploys when the daemon holds the `live-server` lock (BR-R3). Rollback tag
   first; `compose up -d --no-deps`, never `--build`; wait for "Server ready in"; auto-rollback on timeout. On
   success every included change becomes `live`, dependents unblock, the metric recounts.
 - **BR-B4 Exceptions go to an agent.** An unrecorded conflict, a gameval clash, a gate failure or a boot failure
@@ -119,32 +119,31 @@ The harness track's `live` is: this repo's `main` contains `commit`.
 - **BR-A5 Stale detection.** If GitHub already shows the action done (PR open, ready, head = commit), it leaves the
   list; the user is not asked.
 - **BR-A6 Never blocks the loop.** Everything that does not depend on the user keeps moving.
-- **BR-A7 Notification.** A decision, a `failed` hold, a deadlock, a deploy and a rollback each notify once; many at
+- **BR-A7 Notification.** A decision, a `failed` hold, a deploy and a rollback each notify once; many at
   once are one digest.
 - **BR-A8 Append, never edit.** An existing OpenRune PR description is never replaced; updates are comments, except
   when the shown text says the description is replaced and the user said yes to that text.
 
 ## 7. Business rules: resources, agents, policy
 
-**Leases**
-- **BR-R1** Every instance (`device`, `desktop`, `desktop2`, more rows later), build slot, the integration lock,
-  the Ghidra writer and the live server are leases with: holder, purpose, attached process or container, heartbeat,
-  expiry, UTC times.
-- **BR-R2** A lease is granted at dispatch for the change's stage and taken only while in use; a lease whose attached
-  process or container is gone is reclaimed, with that evidence in the event.
-- **BR-R3** The tools that drive a resource (the devtools bridge, `desktop.sh`, `qa.sh`, deploy) refuse without
-  the lease; a branch server or client is named by its holder.
-- **BR-R4 Drain.** A pending deploy stops new grants on the instances, waits for current holders up to a cap,
-  reclaims past it, deploys, then re-grants. A waiter never starves the deploy it waits for.
-- **BR-R5 Capacity.** Client slots = Android instances; server slots = 2; one QA per track; build slots by class
-  (gate, dev, measure) with the memory guard.
+**Locks**
+- **BR-R1** Only a resource that exists once is a lock: the integration clone and its push (`integration`), the
+  live server (`live-server`) and the Ghidra project writer (`ghidra`). A lock has a holder, a purpose, an attached
+  process or container and a UTC time.
+- **BR-R2** A lock is taken only while in use; one whose holder's run ended or whose attached process or container
+  is gone is reclaimed, with that evidence in the event. Nothing is decided by elapsed time.
+- **BR-R3** The tools that drive a locked resource (deploy, the integration push) refuse without the lock.
+- **BR-R4 Own client.** A client instance (an emulator or a desktop RuneLite) is not locked or granted: every agent
+  starts its own, with its own profile, port and account state, and stops it when done. Dispatch never waits for one.
+- **BR-R5 Capacity.** Dev slots per track (policy `dev_slots`); one QA per track; at most `max_concurrent` agents;
+  build slots by class (gate, dev, measure) with the memory guard.
 
 **Agents**
 - **BR-G1** One change, one stage, a fresh context, a brief generated from the change; roles: `client-dev`,
   `client-qa`, `server-dev`, `server-qa`, `integrator`, `harness-dev`.
 - **BR-G2** An agent ends when its stage is reached or its hold is set; the daemon stops any agent still alive one
   tick later. Cost (tokens, turns, exit reason) is recorded on the change.
-- **BR-G3** Agents read game state through data tools, not screenshots; keep leases only while in use; use their
+- **BR-G3** Agents read game state through data tools, not screenshots; start their own client and stop it when done; use their
   own scratch dir; hand read-heavy lookups to read-only subtasks; report denials, never work around them.
 - **BR-G4** A rule change reaches running agents by a new run: the brief and role file are read at spawn.
 
@@ -167,20 +166,20 @@ The harness track's `live` is: this repo's `main` contains `commit`.
 ## 8. Business rules: reconciliation, healing, measurement
 
 - **BR-H1 Observe first.** Each tick reads: fork and OpenRune refs and PR states, CI conclusions, `live.json`,
-  docker images and containers, leases, running agents, upstream `main` tip. Any difference from the store is
+  docker images and containers, locks, running agents, upstream `main` tip. Any difference from the store is
   repaired in the store and logged as `drift`.
-- **BR-H2 Heal.** Idle leases: reclaimed. Agents alive past their stage: stopped. Dead branch servers and stale
+- **BR-H2 Heal.** Idle locks: reclaimed. Agents alive past their stage: stopped. Dead branch servers and stale
   containers: removed. A failed deploy: rolled back. Each is an event; the user is told only in the digest.
-- **BR-H3 Deadlock.** A cycle or an idle hold that stops a waiter is detected within one tick and resolved by
-  BR-R2/BR-R4; detect and recover times are events.
-- **BR-H4 Events.** `events.jsonl`, append-only, UTC: every stage change, hold, batch step, lease event, agent start
+- **BR-H3 Idle holds.** A lock held without use (BR-R2) is detected within one tick and reclaimed; detect and
+  recover times are events.
+- **BR-H4 Events.** `events.jsonl`, append-only, UTC: every stage change, hold, batch step, lock event, agent start
   and end (cost), denial, drift, deploy, re-pin, metric recount. The store can be rebuilt from the log.
 - **BR-H5 Metrics are derived, never typed.** Client metrics from `tools/progress.py` on each client `live`;
   server parity from the parity tool on each deploy and each re-pin (integration and upstream `main`).
 
 ## 9. Status
 
-`hd status` (changes with why each waits, batches, leases, runs, daemon), `hd drive` (the console's work list), `hd kpi`
+`hd status` (changes with why each waits, batches, locks, runs, daemon), `hd drive` (the console's work list), `hd kpi`
 and the digest read the store and `events.jsonl`; they keep no state of their own. Times shown in the user's zone
 (US Eastern), stored in UTC. Harness KPIs (from events): unattended hours, lead time ready -> live, first-pass check
 rate, gate first-pass rate, stall minutes, interventions per day, denials per hour, tokens per change by role.
@@ -191,16 +190,16 @@ rate, gate first-pass rate, stall minutes, interventions per day, denials per ho
   heal, log), trains, images, deploys and re-pins.
 - **The console session** (Claude Code, with the user in chat) spawns the agents the daemon books and runs the upstream
   actions after the user's yes; it does not run the loop.
-- **Store**: one file per change (YAML front matter + DoD + log), `batches/`, `leases/`, `runs/`, `events.jsonl`,
+- **Store**: one file per change (YAML front matter + DoD + log), `batches/`, `leases/` (the locks), `runs/`, `events.jsonl`,
   `policy.yaml`. Human-readable, git-ignored except `policy.yaml` and the changes.
 - **Tests**: a test per business rule above, run on every harness change; replay fixtures for a train, a deploy, a
-  reconcile, a deadlock.
+  reconcile.
 
 ## 11. Acceptance criteria
 
 1. A night (8 h) with no user message in which the daemon dispatched, checked, trained, deployed, unblocked and
    re-pinned, and the user returned to a digest and a list of upstream actions.
-2. Each of these is injected and repaired without the user: an idle lease, a lingering agent, a dead branch server,
+2. Each of these is injected and repaired without the user: an idle lock, a lingering agent, a dead branch server,
    a drifted stage, a failed deploy.
 3. No prompt reached the user for anything but an upstream action or a release.
 

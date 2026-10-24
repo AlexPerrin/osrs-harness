@@ -6,7 +6,7 @@ How it is built. The rules (BR-*) are in docs/PRD.md. Each module's docstring is
 Two products move to their live targets: the client (RuneLite plugins in the OSRS Android app; live = `master` contains
 the commit; releases are APKs) and the test server (OpenRune fork; live = the fork's `integration` branch runs in the
 live container; contributed upstream as PRs to OpenRune/OpenRune-Server). The unit of work is a **change**, a markdown
-file. A daemon (`hd start`) observes git, GitHub, CI, docker and leases every tick, derives each change's stage from
+file. A daemon (`hd start`) observes git, GitHub, CI, docker and locks every tick, derives each change's stage from
 those facts, merges, trains, deploys, heals and books agent runs. A **console session** (Claude Code, with the user in
 chat) is the daemon's hands: it spawns the agents the daemon books and performs upstream actions after the user's yes.
 Agents (client-dev, server-dev, client-qa, server-qa, integrator, harness-dev) each execute one stage of one change.
@@ -46,11 +46,11 @@ flowchart LR
 | `hd/observe.py` | external truth (`Observer`; `FakeObserver` for tests): git refs, fork CI, PRs, release, docs branch, docker, pids |
 | `hd/check.py` | the hand-over check: claims of a hand-over verified against evidence (the `checked` precondition); a server change's CI fact is the upstream PR's checks at the handed-over commit (a passing fork run is accepted too); no PR at that commit reads `CI pending` and waits, it neither fails nor re-dispatches a dev |
 | `hd/store.py` | changes (front matter + body), records (`rec_save/rec_load`), holds, stages written by the daemon only |
-| `hd/leases.py` | resources (devices, desktops, integration lock, live server, Ghidra) as lease records; grants, take, drain, reclaim |
-| `hd/agents.py` | names, briefs, booking a run (record, leases, owner, `agent request` event), link, end, stop, lingering |
+| `hd/leases.py` | locks on the shared resources (`integration`, `live-server`, `ghidra`): take, release, reclaim (section 10) |
+| `hd/agents.py` | names, briefs, booking a run (record, owner, `agent request` event), link, end, stop, lingering |
 | `hd/batches.py` + `train/` (`integrate.py`, `image.sh`, `deploy.sh`) | trains (queue, pins, rebuild, gate, image, deploy, re-pin) and release batches |
 | `hd/ship.py` | checked client and harness changes merge into their live target (`--no-ff`; the client push only) |
-| `hd/heal.py` | idle leases, lingering runs, a dev run ended without hand-over, dead containers, dead batch processes, deadlocks |
+| `hd/heal.py` | idle locks, lingering runs, a dev run ended without hand-over, dead containers, dead batch processes |
 | `hd/actions.py` | what needs the user's OK, computed from observed state (section 8) |
 | `hd/drive.py` | the console's work list (section 7) |
 | `hd/kpi.py`, `hd/metrics.py`, `hd/events.py` | the append-only event log, KPIs derived from it, derived progress metrics |
@@ -66,8 +66,7 @@ erDiagram
   CHANGE }o--o{ CHANGE : "deps"
   CHANGE }o--o| BATCH : "included in (batch)"
   BATCH ||--o{ RUN : "integrator / release gate"
-  RUN ||--o{ LEASE_GRANT : "holder name"
-  LEASE ||--o{ LEASE_GRANT : grants
+  RUN ||--o| LOCK : "holder name"
   CHANGE {
     string slug PK
     string track "client|server|harness"
@@ -98,13 +97,13 @@ erDiagram
     string tag "release"
     string commit
   }
-  LEASE {
-    string resource PK
+  LOCK {
+    string resource PK "integration|live-server|ghidra"
     string holder
-    json drain
+    string pid
   }
 ```
-State files: `events.jsonl` (append-only), `leases/<res>.json`, `runs/<name>.json` + `<name>.log` (the brief),
+State files: `events.jsonl` (append-only), `leases/<res>.json` (the locks), `runs/<name>.json` + `<name>.log` (the brief),
 `batches/<id>.json`, `queue.json` (train queue), `live.json` (what the live server runs), `images/`, `deploys/`,
 `checks/`, `view/` (last tick, waiting words), `actions/<id>.<part>.md` (text files for the commands of an action),
 `release.request` (`{tag}`), `counters.json` (agent names), `daemon.json`, `digest.json`, `digest.md`.
@@ -119,9 +118,9 @@ State files: `events.jsonl` (append-only), `leases/<res>.json`, `runs/<name>.jso
 | User's OK | the chat itself | nothing is stored; commands run only after it |
 | Release published | observed: `gh release view <tag>` | tick `gates` step sets the batch `published` |
 | Run spawned / stop done | recorded by the console's own commands (`run-link`, `run-stopped`) | they only remove items from the drive list |
-| Lease in use | the holder's pid or container is alive; no timeouts decide anything | `leases.idle` |
-No decision uses elapsed time, except the train debounce, gate and image timeouts, deploy-ready timeout and lease
-backstop minutes still in policy (open work: docs/HANDOFF.md).
+| Lock in use | the holder's run, pid or container is alive; no timeouts decide anything | `leases.idle` |
+No decision uses elapsed time, except the train debounce, gate and image timeouts and the deploy-ready timeout still
+in policy (open work: docs/HANDOFF.md).
 
 ## 5. The change lifecycle
 ```mermaid
@@ -153,26 +152,26 @@ definition-of-done items on the store.
 ## 6. The tick (tick.py)
 Order, each step in its own try/except (a failure is an `error` event): 1 reconcile (derive stages, deps to blocked holds)
 · 2 reap (a change at dev with a commit gets the check) · 3 ship/train (checked client/harness changes merge; checked
-server changes join the queue; `batches.advance`) · 4 deploy (drain, lease, `deploy.sh`) · 5 re-pin (upstream main
+server changes join the queue; `batches.advance`) · 4 deploy (`live-server` lock, `deploy.sh`) · 5 re-pin (upstream main
 moved) · 6 gates (release rule makes a release batch; release record sets `gated`; an observed release sets
-`published`; the release gate agent is booked) · 7 dispatch (ready changes x free slots x free leases, by priority;
+`published`; the release gate agent is booked) · 7 dispatch (ready changes x free slots, by priority;
 integrator per train exception) · 8 metrics · 9 heal · the `tick` event. `--dry-run` observes and reports only.
 
 ### Dispatch and hand-over
 ```mermaid
 sequenceDiagram
   participant D as harnessd (tick)
-  participant S as store / leases / events
+  participant S as store / events
   participant C as Console (drive skill)
   participant A as Agent (role)
-  D->>S: agents.spawn: grant leases, set owner, write brief (runs/<name>.log), run record, event "agent request"
+  D->>S: agents.spawn: set owner, write brief (runs/<name>.log), run record, event "agent request"
   C->>D: hd drive (spawn list: runs without agent_id)
   C->>A: Agent tool (subagent_type=role, prompt=brief, isolation worktree for client-dev/client-qa/harness-dev)
   C->>S: hd run-link <name> <agent-id>
   A->>S: hd handover <slug> --branch --commit --evidence (commit recorded on the change)
-  A->>A: stop hook task_stop: result on disk? slot_stop: no lease held?
+  A->>A: stop hook task_stop: result on disk? slot_stop: no lock held?
   A-->>C: completion notification
-  C->>S: hd run-end <name> --tokens --turns (cost on change, leases freed, owner cleared)
+  C->>S: hd run-end <name> --tokens --turns (cost on change, locks freed, owner cleared)
   D->>S: next tick, reap: check.run -> PASS: stage checked / FAIL: ready + items
 ```
 A run whose change no longer names it (owner cleared, batch step moved) is `lingering`; heal stops it (`agent
@@ -211,38 +210,43 @@ again because completion is the observation that removes it.
 ## 9. Integration train and deploy (batches.py)
 Train steps: `queued -> pinning -> rebuilding -> gating -> imaging -> imaged -> deploying -> live`, or `exception`
 (then an integrator agent is booked; `hd resolve` / `hd resume`) or `failed`. One train at a time (the `integration`
-lease). Release steps: `queued -> gating -> gated -> published | failed`.
+lock). Release steps: `queued -> gating -> gated -> published | failed`.
 ```mermaid
 sequenceDiagram
   participant T as tick
   participant B as batches
-  participant L as leases
+  participant L as locks
   participant X as image.sh / deploy.sh / qa.sh
   participant I as integrator agent
   T->>B: advance: checked server changes in queue.json
   B->>B: pin branches, rebuild integration (integrate.py), lease push
   B->>X: gate (qa.sh), image (image.sh, boot check)
-  T->>L: drain every instance, daemon takes instances + live-server
+  T->>L: daemon takes live-server
   B->>X: deploy.sh (rollback tag first, compose up --no-deps, wait "Server ready in")
   X-->>B: ready -> included changes live, live.json written; timeout -> auto-rollback -> exception
   B-->>I: on exception: brief with the stop output (booked, spawned by the console)
   I->>B: hd resolve <batch> "note" -> resume from the failed step
 ```
-Deadlock rule (heal): a pending deploy and an instance held by an agent whose change depends on a change in that batch
--> the instance drains. A re-pin fast-forwards the fork's main when upstream main moved and starts a train.
+A re-pin fast-forwards the fork's main when upstream main moved and starts a train.
 
-## 10. Leases (leases.py)
-Each resource is a record with a holder and grants. The daemon grants at dispatch (to the run's name); the agent
-takes only when it starts using it and releases right after; a held lease is idle when its attached pid or container
-is dead (heartbeat minutes only for holders with nothing attached); the daemon reclaims idle leases and drains
-instances for a deploy. `run-end` and `stop` free everything the run held. 
+## 10. Locks (leases.py)
+Mechanism only, for the three resources that exist once: `integration` (the integration clone and its lease push; the
+daemon holds it for one train), `live-server` (the daemon holds it for a deploy; `deploy.sh` refuses without it) and
+`ghidra` (the one project writer; an agent takes it while it writes). A lock is a record (holder, purpose, since, pid or
+container); a take by another holder is denied. It is idle when its holder's run ended or its attached pid or container
+is dead; heal reclaims it with that evidence. `run-end` and `stop` free what the run held.
+
+Client instances (emulator, desktop RuneLite) are not locks: dispatch waits on slots only (`dev_slots` per track,
+`max_concurrent` agents, one QA per track), and each agent starts its own client with its own profile, port and
+account state and stops it when done (skill `test-instances`). A deploy restarts the live server without waiting for
+any client.
 
 ## 11. Hooks and guards
 | Hook | Loaded by | Rule |
 |---|---|---|
-| `deny_publish.py` (`--fork-writes`, `--docs-writes`) | every agent role file | agents cannot push, write to GitHub, deploy, touch integration or grant devices; server-dev may write to the fork, server-qa to the fork's docs branch only; pushes to OpenRune stay denied; image builds, deploys and docker or compose writes on the live stack (`osrs-openrune*`) are denied to every role; every denial is an event |
+| `deny_publish.py` (`--fork-writes`, `--docs-writes`) | every agent role file | agents cannot push, write to GitHub, deploy or touch integration; server-dev may write to the fork, server-qa to the fork's docs branch only; pushes to OpenRune stay denied; image builds, deploys and docker or compose writes on the live stack (`osrs-openrune*`) are denied to every role; every denial is an event |
 | `task_stop.py` | harness-dev, integrator | cannot end without a hand-over / gate verdict / resolution on disk |
-| `slot_stop.py` | no role file | stops an agent ending while holding a lease or an unchecked device backup |
+| `slot_stop.py` | no role file | stops an agent ending while holding a lock |
 | `qa_write_scope.py` | client-qa, server-qa | QA writes only its records |
 | `publish_gate.py`, `github_scope.py` | every session, when wired in `.claude/settings.json` | no upstream PR without a QA PASS at the commit; upstream writes and pushes to a fork branch backing an open PR prompt the user |
 The console session does not load `deny_publish.py`: it can publish, which is why it asks the user in chat first.
