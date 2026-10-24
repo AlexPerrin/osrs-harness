@@ -153,8 +153,8 @@ def ensure_release(batch):
     commit = batch.get("commit") or ""
     aid = f"{batch['id']}-tag-release-{tag}"
     have = store.rec_load(APPROVALS, aid)
-    if have and have.get("state") == "pending":
-        return have
+    if have and have.get("state") in ("pending", "approved", "done"):
+        return have   # an approved one waits for `execute` in the same tick; a new record would reset the approval
     includes = batch.get("includes") or []
     notes = f"# {tag}\n\n" + "\n".join(f"- {s}" for s in includes) + "\n"
     cmd = ["gh", "release", "create", tag, "--repo", policy.repos()["ours"], "--title", tag, "--notes-file",

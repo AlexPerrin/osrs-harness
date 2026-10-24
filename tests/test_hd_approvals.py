@@ -173,6 +173,9 @@ class ApprovalsTest(unittest.TestCase):
         c = approvals.ensure_release(batch)
         self.assertEqual(c["commands"][0][3], "v0.9.0")
         self.assertIsNone(c["note"])
+        c.update(state="approved")
+        store.rec_save(approvals.APPROVALS, c["id"], c)
+        self.assertEqual(approvals.ensure_release(batch)["state"], "approved")   # not reset to pending before it runs
 
     def test_render(self):
         a = approvals.ensure(self.gated(), self.obs())
