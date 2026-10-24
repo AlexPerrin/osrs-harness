@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """SubagentStop / Stop hook for the stage executors (harness v3): the end-of-slot gate. An agent cannot finish
-while it holds a lease (BR-R2: leases only while in use), or while a device backup it made
-(`tools/device-restore-check.sh pre /tmp/osrs-slot/<name>`) has no later passing `check`.
+while it holds a shared-resource lock (BR-R2: locks only while in use).
 
   slot_stop.py <role>     the role is kept for the settings matcher; the agent's name comes from the transcript
                           ("Your name is `<name>`") or HD_AGENT.
@@ -26,13 +25,6 @@ def block(reason):
     sys.exit(0)
 
 
-def mtime(path):
-    try:
-        return os.path.getmtime(path)
-    except OSError:
-        return None
-
-
 def agent_name(data):
     path = data.get("agent_transcript_path") or data.get("transcript_path")
     try:
@@ -55,21 +47,11 @@ def main():
     name = agent_name(data)
     if not name:
         return
-    slot = f"/tmp/osrs-slot/{name}"
-    pre, result = mtime(f"{slot}/settings.properties"), mtime(f"{slot}/result")
-    if pre is not None:
-        if result is None or result < pre:
-            block(f"Your device slot has no restore check yet: run `tools/device-restore-check.sh check {slot}` while you "
-                  "still hold the device lease, fix every OFF line, then release the lease.")
-        with open(f"{slot}/result") as f:
-            if f.read().strip() != "0":
-                block(f"The last restore check reported OFF lines: fix them, rerun `tools/device-restore-check.sh check {slot}` "
-                      "until it is all OK, then release the lease.")
     if leases is None:
         return
     held = [r for r, st in leases.status_all().items() if st.get("holder") == name]
     if held:
-        block("You still hold " + ", ".join(held) + ": restore the instance, then "
+        block("You still hold " + ", ".join(held) + ": release "
               + "; ".join(f"`python3 {HD_PY} lease release {r} {name}`" for r in held) + ".")
 
 

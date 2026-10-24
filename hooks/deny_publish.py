@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """PreToolUse hook (Bash) for the dev and QA agents (.claude/agents/*.md): denies what only the orchestrator
-does (docs/workflow.md "Agents"): pushes, GitHub writes, tools/fork.sh, deploys, device grants and progress
+does (docs/workflow.md "Agents"): pushes, GitHub writes, tools/fork.sh, deploys and progress
 writes. The orchestrator's own session doesn't load this hook.
 
 Integration images and deploys (docs/integration-pipeline.md, phase 0) are the orchestrator's too, whatever the
@@ -41,7 +41,6 @@ RULES = [
      "GitHub writes"),
     (r"\btools/fork\.sh\b|(^|[\s/])fork\.sh\b", "fork pushes and PRs"),
     (r"\bopenrune\.sh\s+deploy\b|--env-file\s+switch\.env\s+up\b", "live server deploys and restarts"),
-    (r"\bdevice-lock\.sh\s+(grant|reclaim|revoke)\b", "device grants and lock reclaims"),
     (r"\bprogress\.py\b(?![^|;&]*--dry-run)", "progress writes (use --dry-run)"),
 ]
 PUSH = re.compile(RULES[0][0])

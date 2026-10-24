@@ -21,11 +21,10 @@ class AgentsTest(unittest.TestCase):
         ch["owner"] = "sd31"
         store.save(ch)
         ch = store.load("feat")
-        b = agents.brief(ch, "server-dev", "dev", ["desktop"])
+        b = agents.brief(ch, "server-dev", "dev")
         self.assertTrue(b.startswith("Harness change `feat`"), b.splitlines()[0])
         for want in ("Your name is `sd31`", f"Change file: {ch.path}",
-                     f'take with: {HD} lease take <instance> sd31 "<what>"',
-                     f"heartbeat: {HD} lease heartbeat <instance> sd31", f"free: {HD} lease release <instance> sd31",
+                     "Start your own client (its own port and account state)", "stop it when you are done",
                      f"{HD} handover feat --branch content/feat --commit <sha> --evidence "
                      f"{os.environ['HD_EVIDENCE_DIR']}/feat --summary",
                      f"{HD} block feat --by <other-slug>", f"{HD} new --track server --slug <x>", f"{HD} fail feat",
@@ -35,24 +34,25 @@ class AgentsTest(unittest.TestCase):
                      "## Definition of done", "- [x] done"):
             self.assertIn(want, b, want)
         self.assertNotIn("## Log", b)
+        self.assertNotIn("lease", b.lower())   # no instance grants or lock steps in a brief
+        self.assertNotIn("Instances granted", b)
 
     def test_brief_gate_and_train(self):
         ch = H.change("feat", "server", stage="live", commit=SHA, owner="sq31")
-        b = agents.brief(ch, "server-qa", "gate", ["desktop"])
+        b = agents.brief(ch, "server-qa", "gate")
         self.assertIn(f"{HD} gate feat PASS|FAIL", b)
         self.assertIn(f"`content/feat` at `{SHA}`", b)
         batch = {"id": "int-20261021-1", "kind": "train", "step": "exception", "exception": "CONFLICT in Foo.kt",
                  "owner": "ig1"}
-        b = agents.brief(batch, "integrator", "train", [])
+        b = agents.brief(batch, "integrator", "train")
         self.assertTrue(b.startswith("Harness change `int-20261021-1`"))
         self.assertIn(f"{HD} resolve int-20261021-1", b)
         self.assertIn("CONFLICT in Foo.kt", b)
-        self.assertIn("Instances granted to you: none.", b)
         self.assertIn(f"Work from the OpenRune fork clone {agents.fork_clone()}", b)
 
     def test_integrator_is_booked_for_its_batch(self):
         store.rec_save("batches", "int-2", {"id": "int-2", "kind": "train", "step": "exception", "exception": "x"})
-        rec = agents.spawn(store.rec_load("batches", "int-2"), "integrator", "train", [])
+        rec = agents.spawn(store.rec_load("batches", "int-2"), "integrator", "train")
         self.assertEqual((rec["stage"], rec["batch"], rec["role"]), ("train", "int-2", "integrator"))
         self.assertIn(f"Work from the OpenRune fork clone {agents.fork_clone()}", open(rec["log"]).read())
 
@@ -60,12 +60,12 @@ class AgentsTest(unittest.TestCase):
         ch = H.change("feat", "server")
         rec = agents.spawn(ch, "server-dev", "dev")
         self.assertEqual(rec["name"], "sd31")
-        self.assertEqual((rec["instances"], rec["console"], rec.get("agent_id")), (["desktop"], True, None))
+        self.assertEqual((rec["console"], rec.get("agent_id")), (True, None))
         self.assertNotIn("budget", rec)
-        self.assertIn("sd31", leases.status("desktop")["grants"])
-        self.assertEqual(leases.status("desktop")["grants"]["sd31"]["change"], "feat")
+        self.assertNotIn("instances", rec)   # dispatch books a slot only; the agent starts its own client
         back = store.load("feat")
-        self.assertEqual((back.stage, back["owner"], back["instances"]), ("dev", "sd31", ["desktop"]))
+        self.assertEqual((back.stage, back["owner"]), ("dev", "sd31"))
+        self.assertNotIn("instances", back)
         self.assertIn("ready -> dev: dispatched to sd31", back.body)
         self.assertEqual(store.rec_load(agents.RUNS, "sd31")["change"], "feat")
         with open(rec["log"]) as f:
@@ -76,23 +76,21 @@ class AgentsTest(unittest.TestCase):
         self.assertEqual((req["name"], req["role"], req["worktree"], req["log"]), ("sd31", "server-dev", False, rec["log"]))
         self.assertEqual([r["name"] for r in agents.running()], ["sd31"])   # counts against the cap and the slots
 
-    def test_spawn_gate_instances_and_failed_hold_kept(self):
+    def test_spawn_gate_and_failed_hold_kept(self):
         ch = H.change("feat", "server", stage="live", commit=SHA)
         store.set_hold(ch, "failed", "fix it")
         store.save(ch)
         rec = agents.spawn(store.load("feat"), "server-qa", "gate")
         self.assertEqual(rec["name"], "sq31")
-        self.assertEqual(rec["instances"], ["desktop"])
         back = store.load("feat")
         self.assertEqual((back.stage, back.hold), ("live", "failed"))
-        rec = agents.spawn(H.change("plug", "client"), "client-dev", "dev", ["device"])
+        rec = agents.spawn(H.change("plug", "client"), "client-dev", "dev")
         self.assertEqual(rec["name"], "cd48")
-        self.assertIn("cd48", leases.status("device")["grants"])
 
     def test_run_end_books_cost_and_frees(self):
         ch = H.change("feat", "server")
         rec = agents.spawn(ch, "server-dev", "dev")
-        leases.take("desktop", rec["name"], "ab test")
+        leases.take("ghidra", rec["name"], "write")
         agents.link(rec["name"], "agent-1")
         r = agents.end(rec["name"], "ok", turns=42, tokens=6200, minutes=25.0, result="handed over")
         self.assertEqual((r["exit"], r["turns"], r["tokens"], r["agent_id"]), ("ok", 42, 6200, "agent-1"))
@@ -102,8 +100,7 @@ class AgentsTest(unittest.TestCase):
         self.assertIn(f"run {rec['name']} ended: 42 turns, 6200 tokens, exit ok", back.body)
         ev = events.read(kinds=["agent"])[-1]
         self.assertEqual((ev["action"], ev["tokens"], ev["exit"]), ("end", 6200, "ok"))
-        self.assertIsNone(leases.status("desktop")["holder"])
-        self.assertNotIn(rec["name"], leases.status("desktop")["grants"])
+        self.assertIsNone(leases.status("ghidra")["holder"])   # a run's locks end with it
         self.assertEqual(agents.running(), [])
         again = agents.end(rec["name"], "error")   # ended once
         self.assertEqual(again["exit"], "ok")
@@ -149,7 +146,7 @@ class AgentsTest(unittest.TestCase):
         agents.spawn(ch, "server-qa", "gate")
         store.rec_save("batches", "int-1", {"id": "int-1", "kind": "train", "step": "exception", "exception": "x"})
         batch = store.rec_load("batches", "int-1")
-        agents.spawn(batch, "integrator", "train", [])
+        agents.spawn(batch, "integrator", "train")
         util.freeze("2026-10-21T01:30:00Z")
         self.assertEqual(agents.lingering(store.index()), [])
         ch = store.load("feat")

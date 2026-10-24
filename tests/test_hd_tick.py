@@ -25,7 +25,7 @@ def stub_modules(test, **over):
         "heal.run": lambda obs, idx: [],
     }
 
-    def spawn(ch, role, ex, need):
+    def spawn(ch, role, ex):
         calls.append(("spawn", ch["slug"], role, ex))
         ch["owner"] = f"{role}-x"
         store.set_stage(ch, "dev", "dispatched") if ex == "dev" else None
@@ -227,12 +227,13 @@ class DispatchTest(unittest.TestCase):
         t = events.read(kinds=["tick"])[-1]
         self.assertEqual(sorted(t["stalled"]), ["c-b", "s-p3"])
 
-    def test_held_instance_stalls_dispatch(self):
+    def test_dispatch_waits_only_on_slots(self):
+        """No instance lock exists: a held shared-resource lock never stalls a dispatch."""
         H.change("c-a", "client")
-        leases.grant("device", "other", 60); leases.take("device", "other", "busy")
+        leases.take("ghidra", "other", "busy"); leases.take("live-server", "other", "busy")
         tick.tick(FakeObserver())
-        self.assertEqual([c for c in self.calls if c[0] == "spawn"], [])
-        self.assertIn("c-a", events.read(kinds=["tick"])[-1]["stalled"])
+        self.assertIn(("spawn", "c-a", "client-dev", "dev"), self.calls)
+        self.assertNotIn("c-a", events.read(kinds=["tick"])[-1]["stalled"])
 
     def test_gate_executor_for_live_server_change(self):
         H.change("feat", "server", stage="live", commit=SHA)
@@ -251,38 +252,30 @@ class DeployTest(unittest.TestCase):
     def setUp(self):
         H.sandbox(self)
 
-    def test_drain_then_deploy(self):
-        """BR-R4 / I9: a pending deploy drains the instances, waits for holders, reclaims past the cap, deploys."""
+    def test_deploy_takes_the_live_server_lock(self):
+        """BR-B3: a pending deploy takes `live-server` for the daemon and deploys; nothing else is drained or awaited."""
         batch = {"id": "int-1", "step": "imaged"}
         deployed = []
         self.calls = stub_modules(self, **{"batches.deploy_ready": lambda obs: batch,
                                            "batches.deploy": lambda b, obs: deployed.append(b["id"]) or (True, "ok")})
-        leases.grant("device", "cd1", 600); leases.take("device", "cd1", "check", pid=os.getpid())
-        acts = tick.tick(FakeObserver())
-        self.assertTrue(leases.status("device")["drain"])
-        self.assertTrue(any("waits for: device by cd1" in a for a in acts), acts)
-        self.assertEqual(deployed, [])
-        # a new taker is refused while draining
-        leases.grant("desktop", "sd1", 60)
-        self.assertTrue(leases.take("desktop", "sd1", "x")[0])   # desktop not drained yet? it is: every resource drains
-        # the holder frees -> the daemon takes everything and deploys
-        leases.release("device", "cd1"); leases.release("desktop", "sd1")
+        leases.take("ghidra", "cd1", "write", pid=os.getpid())   # another resource's holder does not matter
         tick.tick(FakeObserver())
         self.assertEqual(deployed, ["int-1"])
-        for r in ("device", "desktop", "desktop2", "live-server"):
-            self.assertEqual(leases.status(r)["holder"], leases.DAEMON)
+        self.assertEqual(leases.status("live-server")["holder"], leases.DAEMON)
+        self.assertEqual(leases.status("ghidra")["holder"], "cd1")
 
-    def test_drain_cap_reclaims(self):
+    def test_deploy_waits_while_the_live_server_is_locked_by_another(self):
         batch = {"id": "int-2", "step": "imaged"}
-        self.calls = stub_modules(self, **{"batches.deploy_ready": lambda obs: batch, "batches.deploy": lambda b, obs: (True, "ok")})
-        leases.grant("device", "cd1", 6000); leases.take("device", "cd1", "check", pid=os.getpid())
-        tick.tick(FakeObserver())
-        from hd import util
-        util.freeze(util.now() + __import__("datetime").timedelta(hours=4))
-        self.addCleanup(util.freeze, None)
+        deployed = []
+        self.calls = stub_modules(self, **{"batches.deploy_ready": lambda obs: batch,
+                                           "batches.deploy": lambda b, obs: deployed.append(b["id"]) or (True, "ok")})
+        leases.take("live-server", "someone", "manual restart")
         acts = tick.tick(FakeObserver())
-        self.assertTrue(any("reclaimed for the deploy" in a for a in acts), acts)
-        self.assertEqual(leases.status("device")["holder"], leases.DAEMON)
+        self.assertEqual(deployed, [])
+        self.assertTrue(any("held by someone" in a for a in acts), acts)
+        leases.release("live-server", "someone")
+        tick.tick(FakeObserver())
+        self.assertEqual(deployed, ["int-2"])
 
 
 class IsolationTest(unittest.TestCase):

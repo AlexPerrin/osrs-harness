@@ -2,8 +2,8 @@
 # tools/harness/deploy.sh <batch>: deploy a train's image to the live test server (BR-B3), the daemon's step only.
 #   1. harness/state/batches/<batch>.json names the integration sha; harness/state/images/<sha7>.json must say
 #      key_hash match and boot ok (image.sh)
-#   2. refuses (exit 75) unless every instance in tools/instances.tsv and `live-server` are leased by harnessd
-#      (harness/state/leases/<resource>.json holder): the tick drains and takes them first (BR-R4)
+#   2. refuses (exit 75) unless `live-server` is locked by harnessd (harness/state/leases/live-server.json holder):
+#      the tick takes it first
 #   3. rollback tag first: osrs-openrune:241 -> osrs-openrune:rollback-<live sha7> (live.json's integration, else
 #      the live image id); then the new image -> osrs-openrune:241
 #   4. `docker compose --env-file switch.env up -d --no-deps openrune` in server-tools/, never --build
@@ -11,16 +11,15 @@
 #      on timeout the rollback tag goes back to :241 and compose up runs again: result rollback, exit 1
 #   6. record harness/state/deploys/<batch>.json {result: ok|rollback, image, rollback_tag, seconds, ready_line}
 # Never prints or copies a key file. Env: HD_STATE_DIR, DOCKER or HD_DOCKER (tests), HD_OPENRUNE_DIR (openrune/),
-# HD_INSTANCES (tools/instances.tsv), HD_DEPLOY_TIMEOUT, HD_POLL_SECONDS, HD_LIVE_CONTAINER (osrs-openrune),
+# HD_DEPLOY_TIMEOUT, HD_POLL_SECONDS, HD_LIVE_CONTAINER (osrs-openrune),
 # HD_LIVE_TAG (osrs-openrune:241).
-# Exit: 0 deployed, 1 rolled back, 2 precondition, 75 the leases are not held.
+# Exit: 0 deployed, 1 rolled back, 2 precondition, 75 the live-server lock is not held.
 set -euo pipefail
 HD_HOME=$(cd "$(dirname "$0")/.." && pwd)   # the harness repo
 ROOT=${HD_CLIENT_ROOT:-$HOME/osrs-plugins-reverse}   # the client checkout
 STATE=${HD_STATE_DIR:-$ROOT/harness/state}
 DOCKER=${DOCKER:-${HD_DOCKER:-docker}}
 OPENRUNE=${HD_OPENRUNE_DIR:-${HD_SERVER_TOOLS:-${HD_SERVER_HOME:-$HOME/src}/openrune-work/server-tools}}   # the compose dir (project name osrs-openrune is set in the file)
-INSTANCES=${HD_INSTANCES:-$HD_HOME/train/instances.tsv}
 TIMEOUT=${HD_DEPLOY_TIMEOUT:-300}
 POLL=${HD_POLL_SECONDS:-5}
 LIVE=${HD_LIVE_CONTAINER:-osrs-openrune}
@@ -43,32 +42,13 @@ img=$STATE/images/$sha7.json
 tag=$(jget "$img" image)
 [ -n "$tag" ] || die "image record $img names no image"
 
-# 2. the leases: every instance and the live server, held by harnessd
-missing=$(python3 -I - "$STATE/leases" "$INSTANCES" <<'EOF'
-import json, os, sys
-leases, instances = sys.argv[1:3]
-names = []
+# 2. the live-server lock, held by harnessd
+holder=$(python3 -I -c 'import json,sys
 try:
-    with open(instances) as f:
-        for line in f:
-            if line.strip() and not line.startswith("#"):
-                names.append(line.split("\t")[0].strip())
-except OSError:
-    pass
-names.append("live-server")
-missing = []
-for n in names:
-    try:
-        with open(os.path.join(leases, n + ".json")) as f:
-            holder = json.load(f).get("holder")
-    except (OSError, ValueError):
-        holder = None
-    if holder != "harnessd":
-        missing.append(n)
-print(" ".join(missing))
-EOF
-)
-[ -z "$missing" ] || die "not leased by harnessd: $missing (the tick drains and takes them first)" 75
+    print(json.load(open(sys.argv[1])).get("holder") or "")
+except (OSError, ValueError):
+    print("")' "$STATE/leases/live-server.json")
+[ "$holder" = harnessd ] || die "live-server is not locked by harnessd (the tick takes it first)" 75
 
 # 3. rollback tag first
 live_sha=$(jget "$STATE/live.json" integration 2>/dev/null || true)

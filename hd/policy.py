@@ -1,6 +1,5 @@
 """Policy as data (BR-P*): harness/policy.yaml, read by the daemon, the hooks and the briefs. `get()` caches the
 file per process; tests point HD_POLICY at their own copy."""
-import functools
 import os
 
 import yaml
@@ -72,22 +71,3 @@ def branch_track(branch):
         if any(str(branch or "").startswith(p) for p in t.get("branch_prefixes", [])):
             return name
     return None
-
-
-@functools.lru_cache(maxsize=None)
-def instances():
-    """Instance rows from tools/instances.tsv: {name: {kind, env, mcp}}."""
-    from . import ROOT
-    out = {}
-    p = os.path.join(ROOT, "tools", "instances.tsv")
-    try:
-        with open(p) as f:
-            for line in f:
-                if line.startswith("#") or not line.strip():
-                    continue
-                w = line.rstrip("\n").split("\t")
-                if len(w) >= 2:
-                    out[w[0]] = {"kind": w[1], "env": w[2] if len(w) > 2 else "", "mcp": w[3] if len(w) > 3 else ""}
-    except OSError:
-        pass
-    return out

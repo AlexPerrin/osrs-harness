@@ -154,7 +154,7 @@ def derive(ch, obs, idx):
         if not ok:
             return rec, "waiting for " + ", ".join(f"{d} ({idx[d].stage if d in idx else 'missing'})" for d in open_), moved
         if rec == "ready":
-            return "ready", "a free slot and lease", moved
+            return "ready", "a free slot", moved
         if ch.get("commit"):
             return "dev", "the hand-over check", moved
         return "dev", f"agent {ch.get('owner') or '?'}", moved

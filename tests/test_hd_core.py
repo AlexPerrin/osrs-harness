@@ -60,7 +60,7 @@ class EventsTest(unittest.TestCase):
         self.addCleanup(util.freeze, None)
         events.emit("stage", change="a", **{"from": "ready", "to": "dev"})
         util.freeze("2026-10-21T02:00:00Z")
-        events.emit("lease", action="take", resource="device", holder="cd1")
+        events.emit("lease", action="take", resource="ghidra", holder="cd1")
         evs = events.read()
         self.assertEqual([e["kind"] for e in evs], ["stage", "lease"])
         self.assertEqual(evs[0]["ts"], "2026-10-21T01:00:00Z")
@@ -89,7 +89,7 @@ class StagesTest(unittest.TestCase):
         dep["stage"] = "live"
         store.save(dep)
         st, why, _ = stages.derive(cli, self.obs(), store.index())
-        self.assertEqual(why, "a free slot and lease")
+        self.assertEqual(why, "a free slot")
 
     def test_server_live_needs_pin_and_live_integration(self):
         ch = H.change("feat", "server", stage="checked", commit=SHA)
@@ -236,93 +236,79 @@ class CheckTest(unittest.TestCase):
 
 
 class LeaseTest(unittest.TestCase):
+    """The locks on shared resources (integration, live-server, ghidra); client instances are not resources."""
+
     def setUp(self):
         H.sandbox(self)
 
-    def test_take_needs_grant_and_free(self):
-        ok, msg = leases.take("device", "cd1", "check")
-        self.assertFalse(ok)
-        self.assertIn("no unexpired grant", msg)
-        leases.grant("device", "cd1", 60, change="plug")
-        ok, _ = leases.take("device", "cd1", "check", pid=os.getpid())
+    def test_take_and_release(self):
+        ok, _ = leases.take("ghidra", "cd1", "write", pid=os.getpid(), change="plug")
         self.assertTrue(ok)
-        ok, msg = leases.take("device", "cd2", "other")
+        ok, msg = leases.take("ghidra", "cd2", "other")
         self.assertFalse(ok)
         self.assertIn("held by cd1", msg)
-        self.assertTrue(leases.holds("device", "cd1"))
-        self.assertEqual(leases.status("device")["change"], "plug")
-        # the v2 mirror
-        with open(os.path.join(os.environ["HD_LOCK_DIR"], "osrs-device.lock", "owner")) as f:
-            self.assertIn("taking device (cd1 dev, check)", f.read())
-        ok, _ = leases.release("device", "cd2")
+        self.assertTrue(leases.holds("ghidra", "cd1"))
+        self.assertEqual(leases.status("ghidra")["change"], "plug")
+        ok, _ = leases.release("ghidra", "cd2")
         self.assertFalse(ok)
-        ok, _ = leases.release("device", "cd1")
+        ok, _ = leases.release("ghidra", "cd1")
         self.assertTrue(ok)
-        self.assertFalse(os.path.exists(os.path.join(os.environ["HD_LOCK_DIR"], "osrs-device.lock")))
+        self.assertIsNone(leases.status("ghidra")["holder"])
         kinds = [e["action"] for e in events.read(kinds=["lease"])]
-        self.assertEqual(kinds, ["deny", "grant", "take", "deny", "release"])
+        self.assertEqual(kinds, ["take", "deny", "release"])
+
+    def test_the_daemon_releases_any_holder(self):
+        leases.take("integration", "ig1", "train")
+        ok, _ = leases.release("integration", leases.DAEMON)
+        self.assertTrue(ok)
+
+    def test_client_instances_are_not_resources(self):
+        """Dispatch waits on slots only: no device or desktop lock, grant, drain or instance list exists."""
+        self.assertEqual(sorted(policy.resources()), ["ghidra", "integration", "live-server"])
+        for name in ("device", "desktop", "desktop2"):
+            ok, msg = leases.take(name, "cd1", "x")
+            self.assertFalse(ok)
+            self.assertIn("unknown resource", msg)
+        for gone in ("grant", "revoke", "drain", "undrain", "heartbeat"):
+            self.assertFalse(hasattr(leases, gone), gone)
+        for t in policy.get()["tracks"].values():
+            self.assertNotIn("instances", t)
+            self.assertNotIn("qa_instances", t)
+        self.assertFalse(hasattr(policy, "instances"))
 
     def test_bound_to_the_run_process(self):
-        """feedback-atomic-not-time: a lease of a daemon-spawned agent is in use while its process lives, idle the
+        """feedback-atomic-not-time: a lock of a daemon-spawned agent is in use while its process lives, idle the
         moment the run ended or its process died, whatever the clock says."""
         store.rec_save("runs", "sd9", {"name": "sd9", "pid": os.getpid(), "ended": None})
-        leases.grant("desktop", "sd9", 600)
-        leases.take("desktop", "sd9", "ab")
-        self.assertEqual(leases.status("desktop")["pid"], os.getpid())
+        leases.take("ghidra", "sd9", "ab")
+        self.assertEqual(leases.status("ghidra")["pid"], os.getpid())
         util.freeze(util.now() + __import__("datetime").timedelta(hours=9))
         self.addCleanup(util.freeze, None)
-        self.assertEqual(leases.idle("desktop"), (False, f"pid {os.getpid()} alive"))
+        self.assertEqual(leases.idle("ghidra"), (False, f"pid {os.getpid()} alive"))
         store.rec_save("runs", "sd9", {"name": "sd9", "pid": os.getpid(), "ended": "2026-10-21T00:00:00Z", "exit": "ok"})
-        idle, why = leases.idle("desktop")
+        idle, why = leases.idle("ghidra")
         self.assertTrue(idle)
         self.assertIn("run sd9 ended", why)
-
-    def test_idle_and_reclaim(self):
-        leases.grant("desktop", "sq1", 600)
-        leases.take("desktop", "sq1", "gate")
-        self.assertEqual(leases.idle("desktop")[0], False)   # nothing attached: the heartbeat backstop, just now
-        util.freeze(util.now() + __import__("datetime").timedelta(hours=4))
-        self.addCleanup(util.freeze, None)
-        idle, why = leases.idle("desktop")
-        self.assertTrue(idle)
-        self.assertIn("no heartbeat", why)
-        leases.reclaim("desktop", why)
-        self.assertIsNone(leases.status("desktop")["holder"])
+        leases.reclaim("ghidra", why)
+        self.assertIsNone(leases.status("ghidra")["holder"])
         ev = events.read(kinds=["lease"])[-1]
-        self.assertEqual((ev["action"], ev["holder"]), ("reclaim", "sq1"))
-        self.assertIn("heartbeat", ev)
+        self.assertEqual((ev["action"], ev["holder"]), ("reclaim", "sd9"))
 
-    def test_attached_pid_is_not_idle(self):
-        leases.grant("desktop", "sd1", 600)
-        leases.take("desktop", "sd1", "ab", pid=os.getpid())
-        util.freeze(util.now() + __import__("datetime").timedelta(hours=4))
+    def test_nothing_attached_is_never_idle_by_the_clock(self):
+        leases.take("ghidra", "sq1", "gate")
+        util.freeze(util.now() + __import__("datetime").timedelta(hours=40))
         self.addCleanup(util.freeze, None)
-        self.assertEqual(leases.idle("desktop")[0], False)
+        self.assertEqual(leases.idle("ghidra"), (False, "nothing attached"))
 
-    def test_drain_blocks_agents_not_daemon(self):
-        """BR-R4: a pending deploy stops new grants from being taken; the daemon still takes."""
-        leases.grant("device", "cd1", 60)
-        leases.drain("device")
-        ok, msg = leases.take("device", "cd1", "check")
-        self.assertFalse(ok)
-        self.assertIn("draining", msg)
-        ok, _ = leases.take("device", leases.DAEMON, "deploy")
-        self.assertTrue(ok)
-        leases.release("device", leases.DAEMON)
-        leases.undrain("device")
-        ok, _ = leases.take("device", "cd1", "check")
-        self.assertTrue(ok)
-
-    def test_grant_expires(self):
-        leases.grant("device", "cd1", 1)
-        util.freeze(util.now() + __import__("datetime").timedelta(hours=4))
-        self.addCleanup(util.freeze, None)
-        ok, msg = leases.take("device", "cd1", "late")
-        self.assertFalse(ok)
+    def test_dead_attached_pid_is_idle(self):
+        leases.take("ghidra", "sd1", "ab", pid=2 ** 22 + 12345)
+        idle, why = leases.idle("ghidra")
+        self.assertTrue(idle)
+        self.assertIn("is dead", why)
 
     def test_unknown_resource(self):
-        with self.assertRaises(ValueError):
-            leases.grant("toaster", "x", 1)
+        ok, msg = leases.take("toaster", "x")
+        self.assertFalse(ok)
 
 
 class PolicyTest(unittest.TestCase):
@@ -336,7 +322,6 @@ class PolicyTest(unittest.TestCase):
         self.assertEqual(policy.branch_track("fix/x"), "server")
         self.assertEqual(policy.branch_track("client/x"), "client")
         self.assertIsNone(policy.branch_track("acc/x"))
-        self.assertIn("device", policy.instances())
 
 
 class UtilTest(unittest.TestCase):

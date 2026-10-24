@@ -7,23 +7,18 @@ tracks:
     branch_prefixes: [client/]
     dev_role: client-dev
     qa_role: client-qa
-    dev_slots: 0                     # = Android instances (BR-R5); 0 while BlueStacks is off and server-dev goes first (user 2026-10-24)
-    instances: [device]              # granted to a dev at dispatch
-    qa_instances: [device, desktop]
+    dev_slots: 0                     # concurrent client devs; 0 while BlueStacks is off and server-dev goes first (user 2026-10-24)
   server:
     live_target: integration         # pin = commit and the live server runs that integration (live.json)
     branch_prefixes: [content/, fix/, local/]
     dev_role: server-dev
     qa_role: server-qa
     dev_slots: 0                     # new feature dispatch held (user 2026-10-24: settle open PRs first); `hd dispatch <slug>` books one run on demand
-    instances: [desktop]
-    qa_instances: [desktop]
   harness:
     live_target: main                # this repo's main (not the client's master): a harness change is live when it contains the commit
     branch_prefixes: [harness/]
     dev_role: harness-dev
     dev_slots: 1
-    instances: []
 
 repos:
   ours: AlexPerrin/osrs-plugins-reverse
@@ -33,17 +28,10 @@ repos:
   upstream_remote: origin
   docs_branch: docs
 
-resources:                           # every lease (BR-R1); instances come from tools/instances.tsv too
-  device:      {kind: android, default_minutes: 300}
-  desktop:     {kind: desktop, default_minutes: 300}
-  desktop2:    {kind: desktop, default_minutes: 300}
-  integration: {kind: lock, default_minutes: 90}      # one train at a time (BR-B2)
-  live-server: {kind: lock, default_minutes: 30}      # a deploy
-  ghidra:      {kind: lock, default_minutes: 120}     # the one Ghidra writer
-
-leases:                              # in use = the holder's process is alive (bound at take); the minutes below are backstops
-  heartbeat_minutes: 20              # only for a holder with nothing attached (not spawned by the daemon)
-  drain_cap_minutes: 30              # a pending deploy reclaims idle holders at once; busy ones only past this backstop
+resources:                           # locks on shared resources only (BR-R1); client instances are per agent, not locked
+  integration: {kind: lock}          # the integration clone and its lease push: one train at a time (BR-B2)
+  live-server: {kind: lock}          # a deploy
+  ghidra:      {kind: lock}          # the one Ghidra project writer
 
 batches:
   train_debounce_minutes: 10         # BR-B1

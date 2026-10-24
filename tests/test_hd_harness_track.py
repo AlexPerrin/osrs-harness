@@ -124,7 +124,7 @@ class ShipTest(unittest.TestCase):
         self.assertNotIn("Fable", log)
 
     def test_guard_watches_the_current_layout(self):
-        for p in ("train", "docs", "hd", "hooks", "tests", "hd.py", "device-lock.sh", "harness/policy.yaml"):
+        for p in ("train", "docs", "hd", "hooks", "tests", "hd.py", "harness/policy.yaml"):
             self.assertIn(p, ship.HARNESS_DIRS)
         for stale in ("image.sh", "deploy.sh", "integrate.py"):
             self.assertNotIn(stale, ship.HARNESS_DIRS)

@@ -71,7 +71,7 @@ class DriveTest(unittest.TestCase):
         store.rec_save("batches", "int-1", {"id": "int-1", "kind": "train", "step": "exception", "exception": "CONFLICT",
                                             "steps": [{"step": "exception", "started": "2026-10-24T00:00:00Z"}]})
         self.assertEqual(drive.work(OBS)["exceptions"], [])
-        rec = agents.spawn(store.rec_load("batches", "int-1"), "integrator", "train", [])
+        rec = agents.spawn(store.rec_load("batches", "int-1"), "integrator", "train")
         self.assertEqual(drive.work(OBS)["exceptions"], [])   # the integrator is running (and listed under spawn)
         agents.end(rec["name"], "ok")
         (e,) = drive.work(OBS)["exceptions"]

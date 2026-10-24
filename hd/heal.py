@@ -1,27 +1,25 @@
-"""Self-healing (BR-H2, BR-H3): each tick, repair what drifted and log it; the user hears of it only in the digest.
+"""Self-healing (BR-H2): each tick, repair what drifted and log it; the user hears of it only in the digest.
 
   run(obs, idx)   -> list of actions taken (strings), each also an event, in this order:
-    1. idle leases past the policy window: reclaimed with the evidence (`lease reclaim`)
+    1. idle locks (the holder's run ended, its process or container is dead): reclaimed with the evidence
     2. agents alive past their stage (agents.lingering): stopped (`agent end`, exit=stopped)
     3. a dev run ended without a hand-over: the change goes back to `ready` with a note (BR-S5 style)
     4. dead branch servers / stale QA containers (`qa-or-*`, `hd-boot-*` not running): removed (HD_DOCKER
        overrides docker; tests record the command)
     5. a batch whose step process died while gating, imaging or deploying: step -> exception
-    6. a deadlock (BR-H3): an image waits for a deploy while an instance is held by an agent whose change depends on
-       a change in that batch: the instance drains (leases.drain); the deploy undrains after it
   A step that raises is an `error` event and never stops the next step. Pure checks are separated from actions so
   tests can inject (FakeObserver).
 """
 import os
 import subprocess
 
-from . import agents, events, leases, policy, store
+from . import agents, events, leases, store
 from .util import iso
 
 
 def run(obs, idx):
     actions = []
-    for step in (_idle_leases, _agents, _dead_runs, _containers, _dead_batches, _deadlock):
+    for step in (_idle_locks, _agents, _dead_runs, _containers, _dead_batches):
         try:
             actions += step(obs, idx)
         except NotImplementedError:
@@ -31,7 +29,7 @@ def run(obs, idx):
     return actions
 
 
-def _idle_leases(obs, idx):
+def _idle_locks(obs, idx):
     def alive(name):
         return (obs.container(name) or {}).get("status") == "running"
     out = []
@@ -41,7 +39,7 @@ def _idle_leases(obs, idx):
         idle, why = leases.idle(res, container_alive=alive)
         if idle:
             leases.reclaim(res, why)
-            out.append(f"lease {res} reclaimed from {r['holder']}: {why}")
+            out.append(f"lock {res} reclaimed from {r['holder']}: {why}")
     return out
 
 
@@ -113,29 +111,4 @@ def _dead_batches(obs, idx):
         store.rec_save(batches.BATCHES, b["id"], b)
         events.emit("batch", batch=b["id"], step="exception", detail=why)
         out.append(f"batch {b['id']} exception: {why}")
-    return out
-
-
-def _deadlock(obs, idx):
-    """BR-H3: a pending deploy waits for instances held by agents whose changes wait for that deploy."""
-    from . import batches
-    b = batches.deploy_ready(obs)
-    if not b:
-        return []
-    included = set(b.get("includes") or [])
-    out = []
-    for inst in policy.instances():
-        r = leases.status(inst)
-        if not r.get("holder") or r.get("drain"):
-            continue
-        ch = idx.get(r.get("change") or "")
-        if ch is None:
-            ch = next((c for c in idx.values() if c.get("owner") == r["holder"]), None)
-        if ch is None or not included.intersection(ch.get("deps") or []):
-            continue
-        leases.drain(inst)
-        detail = f"{inst} held by {r['holder']} for {ch['slug']}, which waits for {b['id']} (deps in the batch)"
-        events.emit("heal", action="deadlock", detected=iso(), resource=inst, holder=r["holder"], change=ch["slug"],
-                    batch=b["id"], detail=detail)
-        out.append(f"deadlock: {detail}; draining {inst}")
     return out

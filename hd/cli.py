@@ -25,10 +25,9 @@ Console
 Daemon
   status [--json]   tick [--dry-run]   run [--interval 60] [--once]   start [--interval]   stop   (the tick loop)
   daemon-status     digest
-Resources
-  lease grant <res> <who> [--minutes n] [--once]   lease take <res> <who> "what" [--pid n] [--container c]
-  lease heartbeat <res> <who>   lease release <res> <who>   lease reclaim <res> "why"   lease revoke <res> <who>
-  lease status [<res>]   lease holds <res> <who>   lease drain <res>   lease undrain <res>
+Shared-resource locks (integration, live-server, ghidra)
+  lease take <res> <who> "what" [--pid n] [--container c]   lease release <res> <who>   lease reclaim <res> "why"
+  lease status [<res>]   lease holds <res> <who>
 Batches, events
   batches   train [--now]   resume <batch>
   release-request <tag>   events [--kind k] [--change s] [--limit n]   kpi
@@ -259,8 +258,7 @@ def cmd_brief(a):
     from . import agents
     ch = _load(a.slug)
     role = policy.role_for(ch["track"], a.stage)
-    inst = policy.track(ch["track"]).get("instances" if a.stage == "dev" else "qa_instances", [])
-    print(agents.brief(ch, role, a.stage, inst))
+    print(agents.brief(ch, role, a.stage))
 
 
 def cmd_dispatch(a):
@@ -268,8 +266,7 @@ def cmd_dispatch(a):
     ch = _load(a.slug)
     ex = a.stage or stages.next_executor(ch) or "dev"
     role = policy.role_for(ch["track"], ex)
-    inst = policy.track(ch["track"]).get("instances" if ex == "dev" else "qa_instances", [])
-    r = agents.spawn(ch, role, ex, inst)
+    r = agents.spawn(ch, role, ex)
     print(f"{r.get('name')} ({role}) -> {ch['slug']} ({ex}); booked, `hd drive` lists it for the console; brief {r.get('log')}")
 
 
@@ -359,14 +356,14 @@ def cmd_lint(a):
 
 
 def status_view():
-    """The status as a dict: changes with why they wait, open batches, leases, agent runs, daemon."""
+    """The status as a dict: changes with why they wait, open batches, locks, agent runs, daemon."""
     from . import batches, daemon
     waiting = (store.rec_load("view", "waiting") or {}).get("waiting", {})
     return {"changes": [{"slug": c["slug"], "track": c["track"], "stage": c.stage, "hold": c.hold, "owner": c.get("owner"),
                          "prio": c.get("prio"), "waiting": waiting.get(c["slug"]), "title": c.get("title")}
                         for c in store.all_changes()],
             "batches": [{k: b.get(k) for k in ("id", "kind", "step", "includes", "exception")} for b in batches.open_batches()],
-            "leases": {r: {"holder": st.get("holder"), "purpose": st.get("purpose"), "drain": bool(st.get("drain"))}
+            "leases": {r: {"holder": st.get("holder"), "purpose": st.get("purpose"), "since": st.get("since")}
                        for r, st in leases.status_all().items()},
             "runs": [{k: r.get(k) for k in ("name", "role", "change", "stage", "agent_id")} for r in agents_running()],
             "daemon": daemon.status()}
@@ -388,7 +385,7 @@ def cmd_status(a):
         print(f"batch {b['id']:18} {b['kind']:8} {b['step']:10} {', '.join(b.get('includes') or []) or '-'}"
               + (f"  exception: {str(b['exception'])[:80]}" if b.get("exception") else ""))
     for r, st in v["leases"].items():
-        print(f"lease {r:12} {st.get('holder') or ('draining' if st['drain'] else 'free'):10} {st.get('purpose') or ''}")
+        print(f"lease {r:12} {st.get('holder') or 'free':10} {st.get('purpose') or ''}")
     for r in v["runs"]:
         print(f"run {r['name']:5} {r['role']:11} {r['change']} ({r['stage']})" + ("" if r.get("agent_id") else "  [not spawned: hd drive]"))
 
@@ -429,32 +426,19 @@ def cmd_lease(a):
     if act == "status":
         rows = leases.status_all() if not a.res else {a.res: leases.status(a.res)}
         for r, st in rows.items():
-            g = ", ".join(f"{w} until {local(v.get('until'))}" for w, v in (st.get("grants") or {}).items())
-            d = " DRAINING" if st.get("drain") else ""
             if st.get("holder"):
-                print(f"{r:12} held by {st['holder']} ({st.get('purpose') or ''}) since {local(st.get('since'))}, "
-                      f"heartbeat {local(st.get('heartbeat'))}, until {local(st.get('expiry'))}{d}" + (f"; grants: {g}" if g else ""))
+                print(f"{r:12} held by {st['holder']} ({st.get('purpose') or ''}) since {local(st.get('since'))}")
             else:
-                print(f"{r:12} free{d}" + (f"; grants: {g}" if g else ""))
+                print(f"{r:12} free")
         return 0
-    if act == "grant":
-        leases.grant(a.res, a.who, a.minutes, reuse=not a.once); print(f"{a.res} granted to {a.who}"); return 0
     if act == "take":
         ok, msg = leases.take(a.res, a.who, a.what or "", pid=a.pid, container=a.container); print(msg); return 0 if ok else 1
-    if act == "heartbeat":
-        ok, msg = leases.heartbeat(a.res, a.who, pid=a.pid, container=a.container); print(msg); return 0 if ok else 1
     if act == "release":
         ok, msg = leases.release(a.res, a.who); print(msg); return 0 if ok else 1
     if act == "reclaim":
         ok, msg = leases.reclaim(a.res, a.what or "reclaimed by hand"); print(msg); return 0
-    if act == "revoke":
-        ok, msg = leases.revoke(a.res, a.who); print(msg); return 0
     if act == "holds":
         ok = leases.holds(a.res, a.who); print("yes" if ok else "no"); return 0 if ok else 1
-    if act == "drain":
-        leases.drain(a.res, a.who or leases.DAEMON); print(f"{a.res} draining"); return 0
-    if act == "undrain":
-        leases.undrain(a.res); print(f"{a.res} open"); return 0
     sys.exit(f"hd lease: unknown action {act}")
 
 
@@ -539,9 +523,9 @@ def main(argv=None):
     sp.add_parser("stop").set_defaults(f=cmd_stop)
     sp.add_parser("daemon-status").set_defaults(f=cmd_daemon_status)
     sp.add_parser("digest").set_defaults(f=cmd_digest)
-    s = sp.add_parser("lease"); s.add_argument("action", choices=["grant", "take", "heartbeat", "release", "reclaim", "revoke", "status", "holds", "drain", "undrain"])
+    s = sp.add_parser("lease"); s.add_argument("action", choices=["take", "release", "reclaim", "status", "holds"])
     s.add_argument("res", nargs="?"); s.add_argument("who", nargs="?"); s.add_argument("what", nargs="?")
-    s.add_argument("--minutes", type=int); s.add_argument("--once", action="store_true"); s.add_argument("--pid", type=int); s.add_argument("--container")
+    s.add_argument("--pid", type=int); s.add_argument("--container")
     s.set_defaults(f=cmd_lease)
     s = sp.add_parser("batches"); s.add_argument("--all", action="store_true"); s.set_defaults(f=cmd_batches)
     s = sp.add_parser("train"); s.add_argument("--now", action="store_true"); s.set_defaults(f=cmd_train)

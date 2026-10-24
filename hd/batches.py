@@ -16,15 +16,15 @@ Release steps: queued -> gating -> gated -> published (the release is observed o
                                 (seconds); gate (`qa.sh clone` + `qa.sh gate` through buildq), image
                                 (train/image.sh) and deploy (train/deploy.sh) run as background
                                 processes recorded on the batch (pid, log) and are polled on later ticks; a
-                                deploy is tried whenever an image waits and the daemon holds the leases.
+                                deploy is tried whenever an image waits and the daemon holds `live-server`.
                                 Returns a list of actions taken (strings).
   deploy_ready(obs)             the newest imaged train waiting for a deploy, or None
-  deploy(batch, obs)            BR-B3: needs every instance and `live-server` leased by the daemon (the tick drains
-                                and takes them first; this only checks); runs deploy.sh in the background;
+  deploy(batch, obs)            BR-B3: needs `live-server` locked by the daemon (the tick takes it first; this only
+                                checks); runs deploy.sh in the background;
                                 (started, message). On "Server ready in" the next advance() marks the included
                                 changes live (and older imaged trains this integration carries), writes live.json
-                                (integration, image, image_id, rollback, since, upstream_main), releases and
-                                undrains the leases and emits `deploy`; on timeout deploy.sh rolled back: `exception`
+                                (integration, image, image_id, rollback, since, upstream_main), releases
+                                `live-server` and emits `deploy`; on timeout deploy.sh rolled back: `exception`
   on_exception(batch, text)     records the stop output, frees the integration lease; the tick spawns an
                                 `integrator` with it (BR-B4)
   resume(batch_id)              after the integrator recorded a resolution (or dropped a branch from
@@ -44,7 +44,7 @@ Release steps: queued -> gating -> gated -> published (the release is observed o
 Scripts: train/image.sh <gated-clone> <batch> (stages server/ + data/ without key files, cache fixes,
 template train/Dockerfile.integration with COPY --from the live image for the key and game.yml, key-hash
 compare printing only match/MISMATCH, private boot check, record harness/state/images/<sha7>.json);
-train/deploy.sh <batch> (image record ok, all instances held by harnessd, rollback tag, retag :241,
+train/deploy.sh <batch> (image record ok, `live-server` held by harnessd, rollback tag, retag :241,
 `docker compose --env-file switch.env up -d --no-deps openrune` in openrune/, wait for "Server ready in",
 auto-rollback on timeout; never --build; record harness/state/deploys/<batch>.json).
 Environment (tests): HD_QA_SH, HD_IMAGE_SH, HD_DEPLOY_SH, HD_FORK_SH, HD_DOCKER (passed to the scripts as DOCKER),
@@ -113,10 +113,6 @@ def build_wt():
 
 def _cfg(key, default):
     return policy.get().get("batches", {}).get(key, default)
-
-
-def _deploy_resources():
-    return list(policy.instances()) + ["live-server"]
 
 
 # --- locks and the queue ---------------------------------------------------------------------------------------------
@@ -288,10 +284,8 @@ def _release_train(b):
 
 
 def _release_deploy():
-    for r in _deploy_resources():
-        if leases.holds(r, leases.DAEMON):
-            leases.release(r, leases.DAEMON)
-        leases.undrain(r)
+    if leases.holds("live-server", leases.DAEMON):
+        leases.release("live-server", leases.DAEMON)
 
 
 def _fail(b, text):
@@ -456,7 +450,7 @@ def _poll(b, obs):
             on_exception(b, f"image failed: {why}\n{_tail(b['log'])}")
             return f"{b['id']}: image failed -> exception"
         b.update(image=rec.get("image"), image_id=rec.get("image_id"))
-        _step(b, "imaged", detail=f"{rec.get('image')} ready in {rec.get('seconds')} s; waiting for the leases", rc=0)
+        _step(b, "imaged", detail=f"{rec.get('image')} ready in {rec.get('seconds')} s; waiting for the live-server lock", rc=0)
         return f"{b['id']}: imaged {rec.get('image')}"
     if step == "deploying":
         rec = store.rec_load("deploys", b["id"])
@@ -638,9 +632,8 @@ def deploy(batch, obs):
     b = batch if isinstance(batch, dict) else load(batch)
     if b.get("step") != "imaged":
         return False, f"{b['id']} is {b.get('step')}, not imaged"
-    missing = [r for r in _deploy_resources() if not leases.holds(r, leases.DAEMON)]
-    if missing:
-        return False, f"{b['id']}: waiting for the leases of {', '.join(missing)}"
+    if not leases.holds("live-server", leases.DAEMON):
+        return False, f"{b['id']}: waiting for the live-server lock"
     _spawn(b, "deploying", shlex.quote(deploy_sh()) + " " + shlex.quote(b["id"]), os.path.join(b["evidence"], "deploy.log"))
     return True, f"{b['id']}: deploy of {b.get('image')} started (pid {b['pid']})"
 

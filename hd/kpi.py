@@ -7,7 +7,7 @@
     lead_time_h           ready -> live, median and p90 (stage events per change)
     check_first_pass      share of changes whose first `check` event was PASS
     gate_first_pass       share of changes whose first gate verdict (stage to=gated vs hold failed from a gate) was PASS
-    stall_minutes         minutes ready changes waited while a slot and lease were free (tick events carry
+    stall_minutes         minutes ready changes waited while a slot was free (tick events carry
                           `stalled: [slugs]`)
     interventions_per_day `note kind=user` events per day
     denials_per_hour      `denial` events per hour, by source
