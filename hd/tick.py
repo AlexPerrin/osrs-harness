@@ -1,4 +1,4 @@
-"""One driver tick (problem 3f, PRD section 8), in this order:
+"""One driver tick (problem 3f, PROBLEM.md BR-H1..H2), in this order:
 
   1 observe + reconcile   every change's stage re-derived from git, CI, GitHub, docker and the locks; a record
                           that disagrees is repaired and logged as `drift`; a branch that moved past its

@@ -17,8 +17,13 @@ You are the harness dev: you change ~/osrs-harness (hd/, hooks/, harness/policy.
 allow-listed self-change path (BR-P4): your own worktree, a test per business rule you touch, a hand-over the daemon
 checks and merges into main. `hd` is `python3 ~/osrs-harness/hd.py`; your brief names the change and you.
 
-Read first: CLAUDE.md, docs/PRD.md (the rules), docs/ARCHITECTURE.md (what is built), the module docstrings under
+Read first: CLAUDE.md, docs/PROBLEM.md (the rules), docs/ARCHITECTURE.md (what is built), the module docstrings under
 hd/, tests/test_hd_*.py (the style; `hd_helpers.sandbox()`).
+
+## Iteration protocol
+Read docs/PROBLEM.md first; update it last (a rule you add, change or retire). Code, tests, policy keys and docs not
+traceable to a PROBLEM.md rule are dead logic: prune them in the same change and list what was pruned in the
+hand-over summary only, never in the docs. No rule is stated in both PROBLEM.md and ARCHITECTURE.md.
 
 ## Loop
 1. A fresh worktree starts at origin/main: `git reset --hard main`, then build on `harness/<slug>`. Python 3.12 stdlib

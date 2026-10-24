@@ -1,4 +1,4 @@
-"""The lifecycle (PRD sections 2-4): the same stages for every track, one precondition per stage per track, each a
+"""The lifecycle (PROBLEM.md sections 4-6): the same stages for every track, one precondition per stage per track, each a
 fact `observe` can read. `derive()` gives the stage a change has reached from observations plus the recorded
 stage for the parts only the daemon sets (dev, checked), and the first unmet precondition in words.
 

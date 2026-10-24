@@ -5,7 +5,8 @@ RuneLite plugins in the official OSRS Android app, APK releases) and the test se
 AlexPerrin/OpenRune-Server, contributed upstream to OpenRune/OpenRune-Server). It is neither product's code: the
 client repo holds client code and releases only; server code and server tooling belong to the fork.
 
-**New session: read docs/HANDOFF.md first.** The rules: docs/PRD.md (BR-*). How it is built: docs/ARCHITECTURE.md.
+**New session: read docs/PROBLEM.md (the problem, constraints, workflow and rules, BR-*), then docs/ARCHITECTURE.md (how it is
+built), docs/HANDOFF.md (current state) and, before repeating anything, docs/ISSUES.md (incidents).**
 Run from the client checkout (`HD_CLIENT_ROOT`, default `~/osrs-plugins-reverse`), where agents work, evidence lives
 (`re/evidence/<slug>/`) and the client builds; the client repo keeps thin shims at `tools/harness/hd.py`
 and `tools/hooks/*.py` that exec this repo.
@@ -17,13 +18,18 @@ hd/              the daemon (store, events, policy, stages, observe, check, lock
 hooks/           the Claude Code hooks the role files and the client repo's .claude wiring exec
 harness/         policy.yaml and changes/ (committed); state/ (git-ignored)
 .claude/         agents/ (role files) and skills/ (drive = the console loop; the track rules; the QA procedures)
-docs/            ARCHITECTURE.md, PRD.md, HANDOFF.md (current state), ISSUES.md (incidents and root causes)
+docs/            PROBLEM.md (rules), ARCHITECTURE.md (mechanism), HANDOFF.md (current state), ISSUES.md (incidents)
 train/           image.sh deploy.sh Dockerfile.integration integrate.py: the train's steps
 tests/           python3 -m unittest discover -s tests
 ```
 
 Agents are spawned from the console session only (`hd drive`, skill `drive`); the user's OK for OpenRune upstream
 actions and client releases is given in chat, and the commands run only after it.
+
+## Iteration protocol
+Every iteration starts by reading docs/PROBLEM.md and ends by updating it. Code, tests, policy keys and docs that trace
+to no PROBLEM.md rule are dead logic: prune them in the same iteration and list what was pruned in the hand-over
+report, never in the docs. docs/ARCHITECTURE.md states the mechanism only; no rule lives in both files.
 
 ## Rules
 - The user's OK only for OpenRune upstream actions and client releases.

@@ -1,6 +1,6 @@
 # Architecture of the harness (hd)
 
-How it is built. The rules (BR-*) are in docs/PRD.md. Each module's docstring is its spec; this file is the map.
+How it is built. The problem, workflow and rules (BR-*) are in docs/PROBLEM.md; this file is the mechanism that implements them. Each module's docstring is its spec; this file is the map.
 
 ## 1. What it does, in one paragraph
 Two products move to their live targets: the client (RuneLite plugins in the OSRS Android app; live = `master` contains
@@ -204,8 +204,7 @@ sequenceDiagram
   C->>G: gh pr create ... (publish_gate: QA PASS at the commit; github_scope: prompts for upstream)
   D->>G: next tick observes PR open at the commit -> stage published; the action leaves the list
 ```
-A no, or silence, changes nothing: the action stays listed until the world moves. A completed action cannot be listed
-again because completion is the observation that removes it.
+A completed action cannot be listed again because completion is the observation that removes it.
 
 ## 9. Integration train and deploy (batches.py)
 Train steps: `queued -> pinning -> rebuilding -> gating -> imaging -> imaged -> deploying -> live`, or `exception`
@@ -236,10 +235,8 @@ daemon holds it for one train), `live-server` (the daemon holds it for a deploy;
 container); a take by another holder is denied. It is idle when its holder's run ended or its attached pid or container
 is dead; heal reclaims it with that evidence. `run-end` and `stop` free what the run held.
 
-Client instances (emulator, desktop RuneLite) are not locks: dispatch waits on slots only (`dev_slots` per track,
-`max_concurrent` agents, one QA per track), and each agent starts its own client with its own profile, port and
-account state and stops it when done (skill `test-instances`). A deploy restarts the live server without waiting for
-any client.
+Dispatch waits on slots only (`dev_slots` per track, `max_concurrent` agents, one QA per track); client instances are
+not locks (skill `test-instances`). A deploy restarts the live server without waiting for any client.
 
 ## 11. Hooks and guards
 | Hook | Loaded by | Rule |

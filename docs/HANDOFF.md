@@ -1,6 +1,6 @@
 # HANDOFF
 
-Start the session in ~/osrs-harness so the role agent types load with their hook paths. Read CLAUDE.md, docs/PRD.md,
+Start the session in ~/osrs-harness so the role agent types load with their hook paths. Read CLAUDE.md, docs/PROBLEM.md,
 docs/ARCHITECTURE.md. Live state is what `hd status`, `hd drive` and `hd actions` print; none of it is kept here.
 
 ## Run

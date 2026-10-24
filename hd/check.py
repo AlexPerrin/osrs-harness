@@ -1,4 +1,4 @@
-"""The hand-over check: the `checked` precondition (PRD section 4), deterministic, on evidence that exists. It
+"""The hand-over check: the `checked` precondition (PROBLEM.md section 6), deterministic, on evidence that exists. It
 checks the claims a hand-over makes, not the feature. Every item is (ok, text); the change is checked when all
 are ok. Rules are those of v2's handover-check.sh (reused because they are right), read through `observe`.
 
