@@ -65,7 +65,7 @@ class IntegrationDenyTest(unittest.TestCase):
         ("docker compose -f openrune/docker-compose.yml ps", ".", False),
         ("docker compose logs --tail 20 openrune", "openrune", False),
         ("docker compose -f openrune/docker-compose.yml config", ".", False),
-        ("grep -n deploy docs/integration-pipeline.md", ".", False),
+        ("grep -n deploy docs/ARCHITECTURE.md", ".", False),
         ("ls tools/harness", ".", False),
         ("./deploy.sh", "elsewhere", False),
     ]
