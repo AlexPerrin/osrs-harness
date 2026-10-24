@@ -1,7 +1,6 @@
-# Architecture of harness v4 (hd)
+# Architecture of the harness (hd)
 
-What is built, as of this commit. The rules (BR-*) are in docs/harness-v3-prd.md; the change log of v4 is
-docs/harness-v4.md. Each module's docstring is its spec; this file is the map.
+How it is built. The rules (BR-*) are in docs/PRD.md. Each module's docstring is its spec; this file is the map.
 
 ## 1. What it does, in one paragraph
 Two products move to their live targets: the client (RuneLite plugins in the OSRS Android app; live = `master` contains
@@ -122,7 +121,7 @@ State files: `events.jsonl` (append-only), `leases/<res>.json`, `runs/<name>.jso
 | Run spawned / stop done | recorded by the console's own commands (`run-link`, `run-stopped`) | they only remove items from the drive list |
 | Lease in use | the holder's pid or container is alive; no timeouts decide anything | `leases.idle` |
 No decision uses elapsed time, except the train debounce, gate and image timeouts, deploy-ready timeout and lease
-backstop minutes still in policy (the v5 list in docs/harness-v4.md).
+backstop minutes still in policy (open work: docs/HANDOFF.md).
 
 ## 5. The change lifecycle
 ```mermaid
@@ -236,19 +235,24 @@ Deadlock rule (heal): a pending deploy and an instance held by an agent whose ch
 Each resource is a record with a holder and grants. The daemon grants at dispatch (to the run's name); the agent
 takes only when it starts using it and releases right after; a held lease is idle when its attached pid or container
 is dead (heartbeat minutes only for holders with nothing attached); the daemon reclaims idle leases and drains
-instances for a deploy. `run-end` and `stop` free everything the run held. Instance locks mirror v2's lock files.
+instances for a deploy. `run-end` and `stop` free everything the run held. 
 
 ## 11. Hooks and guards
 | Hook | Loaded by | Rule |
 |---|---|---|
-| `deny_publish.py` (`--fork-writes`, `--docs-writes`) | every agent role file | agents cannot push, write to GitHub, deploy, touch integration or grant devices; server-dev may write to the fork, server-qa to the fork's docs branch only; pushes to OpenRune stay denied; every denial is an event |
-| `task_stop.py` | harness-dev, integrator (the dev, QA roles do not wire it today) | cannot end without a hand-over / gate verdict / resolution on disk |
-| `slot_stop.py` | no role file wires it today (v5 list) | would stop an agent ending while holding a lease or an unchecked device backup |
+| `deny_publish.py` (`--fork-writes`, `--docs-writes`) | every agent role file | agents cannot push, write to GitHub, deploy, touch integration or grant devices; server-dev may write to the fork, server-qa to the fork's docs branch only; pushes to OpenRune stay denied; image builds, deploys and docker or compose writes on the live stack (`osrs-openrune*`) are denied to every role; every denial is an event |
+| `task_stop.py` | harness-dev, integrator | cannot end without a hand-over / gate verdict / resolution on disk |
+| `slot_stop.py` | no role file | stops an agent ending while holding a lease or an unchecked device backup |
 | `qa_write_scope.py` | client-qa, server-qa | QA writes only its records |
-| `publish_gate.py`, `github_scope.py` | every session, when wired in `.claude/settings.json` (not in this repo yet) | no upstream PR without a QA PASS at the commit; upstream writes and pushes to a fork branch backing an open PR prompt the user |
+| `publish_gate.py`, `github_scope.py` | every session, when wired in `.claude/settings.json` | no upstream PR without a QA PASS at the commit; upstream writes and pushes to a fork branch backing an open PR prompt the user |
 The console session does not load `deny_publish.py`: it can publish, which is why it asks the user in chat first.
 
-## 12. Tests
+## 12. Run and test
+```
+python3 ~/osrs-harness/hd.py start --interval 60     # the tick loop; hd stop && hd start after a code change
+python3 ~/osrs-harness/hd.py drive                   # the console's list
+python3 ~/osrs-harness/hd.py status | actions | agents | events | digest | lease status | batches | tick --dry-run
+```
 `python3 -m unittest discover -s tests`: a test per rule (`test_hd_*.py`, `test_hooks.py`, ...). `hd_helpers.sandbox`
 points the store, state, events and policy at a temp dir; its policy is the live structure with the numeric knobs the
 tests rely on pinned (`write_test_policy`). `FakeObserver` stands in for git, GitHub and docker.

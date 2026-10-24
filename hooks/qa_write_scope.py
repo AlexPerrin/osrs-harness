@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """PreToolUse hook (Edit|Write) for the QA companions (client-qa, server-qa): a companion writes its QA records,
-its checklist and its scratch files, never the code it checks (docs/workflow.md "Agents").
+its checklist and its scratch files, never the code it checks (docs/ARCHITECTURE.md, Hooks).
 
 Records live in qa/ of this repo (client), qa/ of a fork `docs` checkout (server), or openrune/upstream/qa/
 (server, until they move to the fork), so the check is on the path's tail, not on one root.

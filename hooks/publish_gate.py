@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PreToolUse hook (Bash), every session: the upstream publish gate (docs/workflow.md "Gates").
+"""PreToolUse hook (Bash), every session: the upstream publish gate (skill server-track, the QA record).
 
 `gh pr create` against upstream (OpenRune/*, or --head AlexPerrin:<branch>) is denied unless a QA record for
 <branch> says PASS for the branch's commit on the fork (fork/<branch> in the fork clone, else the local
@@ -30,7 +30,7 @@ def deny(reason):
     print(json.dumps({"hookSpecificOutput": {
         "hookEventName": "PreToolUse",
         "permissionDecision": "deny",
-        "permissionDecisionReason": f"Publish gate: {reason} (docs/workflow.md \"Gates\").",
+        "permissionDecisionReason": f"Publish gate: {reason} (skill server-track, the QA record).",
     }}))
     sys.exit(0)
 

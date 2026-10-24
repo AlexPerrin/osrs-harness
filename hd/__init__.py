@@ -1,4 +1,4 @@
-"""harnessd (hd): harness v4 (v3 minus approvals, dashboard and headless agents), built against docs/harness-v3-prd.md.
+"""harnessd (hd): built against docs/PRD.md.
 
 A change is the only unit of work; stages are observed, never set by hand; resources are leases; every state change
 is an event; agents execute one stage and are spawned by the console session; two kinds of action need the user's OK in chat. The package:

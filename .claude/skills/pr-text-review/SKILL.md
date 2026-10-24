@@ -4,7 +4,7 @@ description: "Check a PR or release text against its commit: every claim true, u
 ---
 # PR text review
 
-Upstream's rules: `.github/CONTRIBUTING.md` and the PR template `.github/pull_request_template.md` (since #369, 2026-10-19: Summary, Type of change, How it was tested, Checklist, Screenshots / notes) on upstream `main`, plus AGENTS.md; our checklist: QA.md section 4.
+Upstream's rules: `.github/CONTRIBUTING.md` and the PR template `.github/pull_request_template.md` (Summary, Type of change, How it was tested, Checklist, Screenshots / notes) on upstream `main`, plus AGENTS.md; our checklist: QA.md; rules: skill `server-track`.
 
 1. **Scope.** The diff is one quest, feature or fix, with nothing unrelated in it. Dependencies are stated as
    `Depends:`. There is no open upstream PR for the same content.
@@ -18,4 +18,4 @@ Each false or missing item, with what it should say. No list of the items that p
 
 **Tests (hard check).** List every test file and test method the diff adds against upstream `main`. Each one must be justified in
 the PR text as a rule with several cases or a regression a reviewer asked for; otherwise the check FAILS and the test is removed from the PR.
-The maintainer declines tests for simple content, and we keep sending too many.
+The maintainer declines tests for simple content.
