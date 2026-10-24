@@ -45,7 +45,7 @@ flowchart LR
 | `hd/tick.py` | one tick: reconcile, reap, ship/train, deploy, re-pin, gates, dispatch, metrics, heal, log; each step isolated |
 | `hd/stages.py` | the lifecycle and one observable precondition per stage per track; `derive()`, `next_executor()` |
 | `hd/observe.py` | external truth (`Observer`; `FakeObserver` for tests): git refs, fork CI, PRs, release, docs branch, docker, pids |
-| `hd/check.py` | the hand-over check: claims of a hand-over verified against evidence (the `checked` precondition) |
+| `hd/check.py` | the hand-over check: claims of a hand-over verified against evidence (the `checked` precondition); a server change's CI fact is the upstream PR's checks at the handed-over commit (a passing fork run is accepted too); no PR at that commit reads `CI pending` and waits, it neither fails nor re-dispatches a dev |
 | `hd/store.py` | changes (front matter + body), records (`rec_save/rec_load`), holds, stages written by the daemon only |
 | `hd/leases.py` | resources (devices, desktops, integration lock, live server, Ghidra) as lease records; grants, take, drain, reclaim |
 | `hd/agents.py` | names, briefs, booking a run (record, leases, owner, `agent request` event), link, end, stop, lingering |

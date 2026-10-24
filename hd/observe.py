@@ -23,6 +23,32 @@ def _run(args, cwd=None, timeout=60):
         return None
 
 
+REQUIRED_UPSTREAM_CHECKS = ("build", "gameval")
+
+
+def rollup_state(checks):
+    """Fold a gh statusCheckRollup (check runs: status/conclusion/name; statuses: state/context) to
+    'success' | 'failure' | 'pending' | 'none'."""
+    seen, states = [], []
+    for c in checks:
+        name = (c.get("name") or c.get("context") or "").lower()
+        concl = str(c.get("conclusion") or c.get("state") or "").upper()
+        if c.get("status") not in (None, "COMPLETED") or concl in ("", "PENDING", "EXPECTED"):
+            states.append("pending")
+        elif concl in ("SUCCESS", "NEUTRAL", "SKIPPED"):
+            states.append("success")
+        else:
+            states.append("failure")
+        seen.append(name)
+    if not checks:
+        return "none"
+    if "failure" in states:
+        return "failure"
+    if "pending" in states or not all(any(r in n for n in seen) for r in REQUIRED_UPSTREAM_CHECKS):
+        return "pending"
+    return "success"
+
+
 class Observer:
     def __init__(self, ours=None, clone=None, gh=None):
         rp = policy.repos()
@@ -185,6 +211,19 @@ class Observer:
                 return "failure"
             return "pending"
         return self._m(("ci", branch, sha), f)
+
+    def upstream_ci(self, number, sha):
+        """The upstream PR's checks at its head `sha`: 'success' | 'failure' | 'pending' | 'none' (PR head is not `sha`,
+        or no checks yet) | None (gh failed). Success needs every check green, with build & boot and gameval-conflicts
+        among them (REQUIRED_UPSTREAM_CHECKS)."""
+        def f():
+            p = self._gh_json(["pr", "view", str(number), "-R", self.upstream_repo, "--json", "headRefOid,statusCheckRollup"])
+            if p is None:
+                return None
+            if p.get("headRefOid") != sha:
+                return "none"
+            return rollup_state(p.get("statusCheckRollup") or [])
+        return self._m(("upstream_ci", str(number), sha), f)
 
     def fork_pr(self, branch):
         def f():
@@ -377,6 +416,9 @@ class FakeObserver(Observer):
 
     def fork_ci(self, branch, sha):
         return self.f.get("ci", {}).get((branch, sha), "none")
+
+    def upstream_ci(self, number, sha):
+        return self.f.get("upstream_ci", {}).get((number, sha), "none")
 
     def fork_pr(self, branch):
         return self.f.get("fork_prs", {}).get(branch, {})

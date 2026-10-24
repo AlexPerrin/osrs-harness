@@ -21,6 +21,7 @@ harness/         policy.yaml and changes/ (committed); state/ (git-ignored: even
                  actions, images, deploys, live.json, daemon.json)
 .claude/         agents/ (role files) and skills/ (drive = the console loop, accuracy-check, ...)
 ARCHITECTURE.md  components, data model, lifecycle, console loop, train, leases, hooks (Mermaid UML)
+docs/ISSUES.md   what went wrong and why: one dated entry per issue, newest first (symptom, root cause, evidence, fix, recognise)
 image.sh deploy.sh Dockerfile.integration   the train's image and deploy steps
 integrate.py   git helpers for the train (clones, integration.txt pins, the lease push); the v2 queue, task.py, ship.sh,
                  handover-check.sh and progress_report.py are removed (git history keeps them)

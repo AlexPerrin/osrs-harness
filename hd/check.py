@@ -8,8 +8,9 @@ Client / harness: the branch exists at the commit in this repo; the commit is no
 the policy's 7 `telemetry:` lines and device evidence (a logcat extract or a data-tool dump); `netqa*.md` when
 `network: true`. A docs-only change (every file since merge-base(master) is *.md) needs none of the build evidence.
 Server: the commit is on the fork at the branch tip; off upstream main; accuracy/<spec>.md on the fork's docs
-branch (spec: key, the branch slug, then the change slug); a fork PR recorded (not for local/*); fork CI `success`
-at exactly the commit (or `gate:` a local gate log with rc=0)."""
+branch (spec: key, the branch slug, then the change slug); a fork PR recorded (not for local/*); CI green at exactly the commit
+on the upstream PR (a passing fork run is accepted too; no PR yet = pending, never a fail), or `gate:` a local gate log
+with rc=0."""
 import os
 import re
 
@@ -124,18 +125,30 @@ def items(ch, obs):
         text = obs.read_file(gate if os.path.isabs(gate) else os.path.join(ROOT, gate)) or ""
         (ok if "rc=0" in text else fail)(f"local gate log {gate}" + ("" if "rc=0" in text else " missing or not rc=0"))
     else:
-        ci = obs.fork_ci(branch, commit)
-        if ci == "success":
-            ok("fork CI success at the commit")
-        elif ci is None:
-            pending("fork CI could not be read (gh); retried next tick")
-        elif ci == "none":
-            fail(f"no CI run at {commit[:9]} on the fork (gh workflow run ci.yml --ref {branch})")
-        elif ci == "pending":
-            pending("fork CI still running at the commit")
-        else:
-            fail(f"fork CI at the commit: {ci}")
+        _ci_item(branch, commit, obs, ok, fail, pending)
     return out
+
+
+CI_PENDING = "CI pending: runs when the PR opens or the head moves"
+
+
+def _ci_item(branch, commit, obs, ok, fail, pending):
+    """The CI fact: the upstream PR's checks at exactly `commit`; a passing fork run is accepted, never required; no PR at
+    the commit is pending, never a fail (why: docs/ISSUES.md: Hand-over check failed on fork CI and re-dispatched devs every tick)."""
+    pr = obs.upstream_pr(branch)
+    up = obs.upstream_ci(pr["number"], commit) if pr else "none"
+    if up == "success":
+        ok(f"upstream PR #{pr['number']} CI green at the commit")
+    elif up == "failure":
+        fail(f"upstream PR #{pr['number']} CI failed at the commit")
+    elif up == "pending":
+        pending(f"upstream PR #{pr['number']} CI still running at the commit")
+    elif up is None:
+        pending("upstream PR CI could not be read (gh); retried next tick")
+    elif obs.fork_ci(branch, commit) == "success":
+        ok("fork CI success at the commit")
+    else:
+        pending(CI_PENDING)
 
 
 def _match(name, pattern):
