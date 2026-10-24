@@ -119,6 +119,21 @@ class DenyPublishTest(unittest.TestCase):
         ("git push origin x:docs", "upr", DOCS, DENY),
         ("git push", "docs", DOCS, DENY),
         ("gh pr comment 21 -R AlexPerrin/OpenRune-Server -b x", "docs", DOCS, DENY),
+        # --- BR-P1: server-qa pushes the fork's gate scratch branches (forced allowed) and docs, nothing else
+        ("git -C {upr} push --force fork HEAD:refs/heads/gate/feat", "ours", DOCS, ALLOW),
+        ("git push origin abc123:refs/heads/gate/feat", "docs", DOCS, ALLOW),
+        ("git push origin +abc123:gate/feat", "local", DOCS, ALLOW),
+        ("git push origin :gate/feat", "docs", DOCS, DENY),
+        ("git push origin --delete gate/feat", "docs", DOCS, DENY),
+        ("git push origin x:gate/a y:gate/b", "docs", DOCS, DENY),
+        ("git push origin x:gate/feat", "upr", DOCS, DENY),
+        ("git push origin x:gate/feat", "docs", NONE, DENY),
+        ("git push --force origin x:content/feat", "docs", DOCS, DENY),
+        # --- the console runs the contribution after the user's yes: denied to every role
+        ("python3 ~/osrs-harness/hd.py contribute feat --approved abc1234", "ours", FORK, DENY),
+        ("python3 ~/osrs-harness/hd.py contribute feat --approved abc1234", "docs", DOCS, DENY),
+        ("python3 ~/osrs-harness/hd.py gate-ci feat", "docs", DOCS, ALLOW),
+        ("python3 ~/osrs-harness/hd.py gate feat PASS", "docs", DOCS, ALLOW),
         # --- client roles (no flags): no pushes or GitHub writes at all
         ("git push origin x", "agent", NONE, DENY),
         ("git -C {upr} push fork fix/x", "ours", NONE, DENY),
@@ -240,6 +255,19 @@ class GithubScopeTest(unittest.TestCase):
                                                 "/w4 && git push fork y"}, "cwd": t}, ["--fork-writes"])
         self.assertIsNone(d)
 
+    def test_contribution_and_fork_actions(self):
+        """`hd contribute` is the user's yes bound to a commit (publish_gate checks it): no second prompt; fork CI and
+        gate scratch pushes never prompt; any other upstream write does."""
+        t = tempdir(self)
+        upr = init_repo(os.path.join(t, "or"), remotes={"origin": UPSTREAM_URL, "fork": FORK_SSH})
+        self.assertEqual(self.run_scope("python3 /home/alex/osrs-harness/hd.py contribute feat --approved abc1234", t), "allow")
+        self.assertEqual(self.run_scope("gh workflow run ci.yml -R AlexPerrin/OpenRune-Server --ref gate/feat", t), "allow")
+        self.assertEqual(self.run_scope("gh workflow run ci.yml -R OpenRune/OpenRune-Server --ref main", t), "ask")
+        self.assertEqual(self.run_scope("git -C " + upr + " push --force fork abc:refs/heads/gate/feat", t), "allow")
+        self.assertEqual(self.run_scope("gh pr ready 7 -R OpenRune/OpenRune-Server", t), "ask")
+        self.assertEqual(self.run_scope("gh pr ready 7 --undo -R OpenRune/OpenRune-Server", t), "ask")
+        self.assertEqual(self.run_scope("gh pr comment 7 -R OpenRune/OpenRune-Server -b x", t), "ask")
+
     def test_help_is_read_only(self):
         t = tempdir(self)
         self.assertNotEqual(self.run_scope("gh pr edit 367 -R OpenRune/OpenRune-Server --help", t), "ask")
@@ -258,11 +286,15 @@ class PublishGateHeredocTest(unittest.TestCase):
 
 
 class PublishGateTest(unittest.TestCase):
-    def run_gate(self, cmd):
+    def setUp(self):
+        import hd_helpers as H
+        self.d = H.sandbox(self)
+
+    def run_gate(self, cmd, **env):
         t = tempdir(self)
         data = json.dumps({"tool_name": "Bash", "tool_input": {"command": cmd}})
         return subprocess.run([sys.executable, os.path.join(HOOKS, "publish_gate.py")], input=data, capture_output=True,
-                              text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=t)).stdout
+                              text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=t, **env)).stdout
 
     def test_fork_pr_not_gated(self):
         self.assertEqual(self.run_gate("gh pr create -R AlexPerrin/OpenRune-Server --head AlexPerrin:fix/x --title t"), "")
@@ -271,6 +303,54 @@ class PublishGateTest(unittest.TestCase):
     def test_upstream_pr_gated(self):
         self.assertIn('"deny"', self.run_gate("gh pr create -R OpenRune/OpenRune-Server --head AlexPerrin:fix/x"))
         self.assertIn('"deny"', self.run_gate("gh pr create --head AlexPerrin:fix/x --title t"))
+
+    def test_direct_upstream_pr_needs_qa_record_at_the_branch_commit(self):
+        import hd_helpers as H
+        clone = init_repo(os.path.join(self.d, "clone"))
+        from helpers import commit_file, git
+        sha = commit_file(clone, "a.txt", "a\n")
+        git(clone, "branch", "content/feat")
+        cmd = "gh pr create -R OpenRune/OpenRune-Server --head AlexPerrin:content/feat --title t"
+        env = {"INTEGRATION_CLONE": clone}
+        H.change("feat", "server", stage="gate", commit=sha)
+        self.assertIn("QA record missing", self.run_gate(cmd, **env))
+        H.write_gate("feat", sha)
+        self.assertEqual(self.run_gate(cmd, **env), "")
+        H.write_gate("feat", "f" * 40)
+        self.assertIn('"deny"', self.run_gate(cmd, **env))
+
+    def test_contribute_is_bound_to_the_approved_commit_and_a_qa_record(self):
+        import hd_helpers as H
+        sha = "a" * 40
+        H.change("feat", "server", stage="contribute", commit=sha)
+        cmd = "python3 /h/hd.py contribute feat --approved "
+        self.assertIn("no QA record", self.run_gate(cmd + sha))
+        H.write_gate("feat", sha, "FAIL", findings=["x"])   # findings are on the card; they do not block the user's yes
+        self.assertEqual(self.run_gate(cmd + sha[:12]), "")
+        self.assertIn("approval is for bbbbbbbbb", self.run_gate(cmd + "b" * 40))
+        self.assertIn("bound to the commit", self.run_gate("python3 /h/hd.py contribute feat"))
+        self.assertIn("no change nope", self.run_gate("python3 /h/hd.py contribute nope --approved " + sha))
+        H.write_gate("feat", "c" * 40)   # a record for another commit voids the approval
+        self.assertIn("no QA record", self.run_gate(cmd + sha))
+
+    def test_a_note_mentioning_contribute_is_not_a_command(self):
+        cmd = "cat > /tmp/x.md <<'EOF'\npython3 hd.py contribute feat --approved abc1234\nEOF"
+        self.assertEqual(self.run_gate(cmd), "")
+
+
+class QaWriteScopeTest(unittest.TestCase):
+    def run_scope(self, path):
+        import qa_write_scope  # noqa: F401
+        data = json.dumps({"tool_input": {"file_path": path}})
+        return subprocess.run([sys.executable, os.path.join(HOOKS, "qa_write_scope.py")], input=data, capture_output=True,
+                              text=True).stdout
+
+    def test_qa_writes_its_record_in_the_evidence_dir_and_never_code(self):
+        self.assertEqual(self.run_scope("/home/x/osrs-plugins-reverse/re/evidence/feat/gate.md"), "")
+        self.assertEqual(self.run_scope("/home/x/osrs-plugins-reverse/re/evidence/feat/gate-ci.json"), "")
+        self.assertEqual(self.run_scope("/home/x/osrs-plugins-reverse/qa/client-1.2.3.md"), "")
+        self.assertIn('"deny"', self.run_scope("/home/x/src/OpenRune-Server/server/Foo.kt"))
+        self.assertIn('"deny"', self.run_scope("/home/x/osrs-harness/hd/stages.py"))
 
 
 if __name__ == "__main__":

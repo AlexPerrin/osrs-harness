@@ -1,6 +1,6 @@
 ---
 name: pr-text-review
-description: "Check a PR or release text against its commit: every claim true, upstream CONTRIBUTING's sections present, scope one change. Use before handing over a server branch, and in the upstream and release gates."
+description: "Check a PR or release text against its commit: every claim true, upstream CONTRIBUTING's sections present, scope one change. Use before handing over a server branch, and in QA's aggregate and the release gate."
 ---
 # PR text review
 

@@ -3,11 +3,12 @@
 Changes: `harness/changes/<slug>.md`, YAML front matter + body (`## Change`, `## Definition of done` with
 checkboxes, `## Log` with dated lines). Front matter keys (the order they are written in):
   slug, track (client|server|harness), title, prio (P0-P3), role (the dev role that executes `dev`),
-  stage (backlog|ready|dev|checked|live|gated|published|merged), hold ({kind, reason, since} or null),
-  deps (slugs), branch, commit (the handed-over commit), local_only (server: local/* branch, ends at live),
-  owner (the agent in dev), evidence (dir), pr (fork PR url), ci (run url),
-  upstream_pr (number), spec (accuracy/<spec>.md), network (client: touches networking), summary,
-  gated_commit, live_commit, published_commit, batch, cost ({runs, turns, tokens, minutes}), created, updated.
+  stage (a stage of the track's chain, hd/tracks), hold ({kind, reason, since} or null),
+  deps (slugs), branch, commit (the handed-over commit), repo (the clone the commit is in), local_only (ends at the
+  test server: chain ending at live), owner (the agent in dev), evidence (dir), spec, network (client: touches
+  networking), summary, live_commit (the live target carries the commit), booked ({dev|gate: key} of the last booked
+  run: BR-S9), batch, cost ({runs, turns, tokens, minutes}), created, updated; then the keys each track adds
+  (`tracks.extra_keys()`).
 
 State records (git-ignored, `harness/state/<kind>/<id>.json`): leases, runs, batches, actions (text files), images;
 `live.json` (what the live server runs) and `daemon.json` (the daemon's pid and last tick).
@@ -22,15 +23,14 @@ from . import changes_dir, state_dir
 from .util import atomic_write, iso, read_json, slug_ok, write_json
 
 TRACKS = ("client", "server", "harness")
-STAGES = ("backlog", "ready", "dev", "checked", "live", "gated", "published", "merged")
 HOLDS = ("blocked", "decision", "failed", "exception")
 PRIOS = ("P0", "P1", "P2", "P3")
 ROLES = {"client": "client-dev", "server": "server-dev", "harness": "harness-dev"}
 QA_ROLES = {"client": "client-qa", "server": "server-qa"}
-KEYS = ("slug", "track", "title", "prio", "role", "stage", "hold", "deps", "branch", "commit", "local_only",
-        "owner", "evidence", "pr", "ci", "upstream_pr", "spec", "network", "summary", "gated_commit",
-        "live_commit", "published_commit", "batch", "cost", "created", "updated")
+KEYS = ("slug", "track", "title", "prio", "role", "stage", "hold", "deps", "branch", "commit", "repo", "local_only",
+        "owner", "evidence", "spec", "network", "summary", "live_commit", "booked", "batch", "cost", "created", "updated")
 LIST_KEYS = ("deps",)
+RETIRED_KEYS = ("instances", "gated_commit", "published_commit", "pr", "ci", "check")
 FRONT = re.compile(r"---\n(.*?)\n---\n?(.*)", re.S)
 
 
@@ -61,11 +61,22 @@ class Change(dict):
     def path(self):
         return path(self["slug"])
 
-    def stage_index(self):
-        return STAGES.index(self.stage)
+    def chain(self):
+        """The stages this change moves through, from its track."""
+        from . import tracks
+        return tracks.of(self).chain(self)
+
+    @property
+    def terminal(self):
+        return self.chain()[-1]
 
     def reached(self, stage):
-        return self.stage_index() >= STAGES.index(stage)
+        """The change is at or past `stage` of its chain. `live` on a chain that does not contain it is the live target's
+        own fact (`live_commit`, set by the tick), independent of the chain's stages."""
+        chain = self.chain()
+        if stage not in chain:
+            return stage == "live" and (bool(self.get("live_commit")) or self.stage == chain[-1])
+        return chain.index(self.stage) >= chain.index(stage) if self.stage in chain else False
 
     def dod_unticked(self):
         return re.findall(r"^- \[ \] .*", self.body, re.M)
@@ -91,6 +102,13 @@ class Change(dict):
         return re.findall(r"^- (\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ) (.*)$", self.body, re.M)
 
 
+def _migrate_stage(meta):
+    """A stage of a retired chain maps onto the track's current one (`track.migrate_stage`); the tick re-derives the
+    rest from facts."""
+    from . import tracks
+    return tracks.get(meta.get("track")).migrate_stage(meta)
+
+
 def path(slug):
     return os.path.join(changes_dir(), f"{slug}.md")
 
@@ -107,7 +125,9 @@ def load(slug):
     if not m:
         raise ValueError(f"{p}: no front matter")
     meta = yaml.safe_load(m.group(1)) or {}
-    meta.pop("instances", None)   # retired key: dropped on the next save
+    for k in RETIRED_KEYS:
+        meta.pop(k, None)   # dropped on the next save
+    meta["stage"] = _migrate_stage(meta)
     for k in LIST_KEYS:
         if meta.get(k) is None:
             meta[k] = []
@@ -121,7 +141,8 @@ def save(ch):
     for k in LIST_KEYS:
         if ch.get(k) is None:
             ch[k] = []
-    ordered = {k: ch[k] for k in KEYS if k in ch}
+    from . import tracks
+    ordered = {k: ch[k] for k in KEYS + tracks.extra_keys() if k in ch}
     ordered.update({k: v for k, v in ch.items() if k not in ordered})
     front = yaml.safe_dump(ordered, sort_keys=False, allow_unicode=True, width=200).rstrip("\n")
     atomic_write(ch.path, f"---\n{front}\n---\n{ch.body.rstrip()}\n")
@@ -179,7 +200,7 @@ def new(slug, track, title, prio="P2", role=None, deps=(), dod=(), text="", bran
 
 def set_stage(ch, stage, why="", commit=None):
     """Record an observed stage (the daemon's, never an operator's: BR-S2). Returns the previous stage."""
-    if stage not in STAGES:
+    if stage not in ch.chain():
         raise ValueError(stage)
     before = ch.stage
     ch["stage"] = stage

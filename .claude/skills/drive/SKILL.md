@@ -17,14 +17,23 @@ Agent tool, and upstream actions run only after the user's yes in this chat. `hd
 3. **When an agent finishes** (its completion notification): `hd run-end <name> --tokens <n> --turns <n>` (add
    `--exit error` if it failed). That frees its locks and owner; the next tick moves the change on.
 4. **Stop** (a run the daemon found lingering): TaskStop its `agent_id`, then `hd run-stopped <name>`.
-5. **Needs the user's OK** (upstream PR open/update/ready, client release): show the user, in chat, what the item
-   says: the action, the PR title and body (or release notes), the gate record, the diff, the caveats, the exact
-   commands. Ask with AskUserQuestion (Yes / No / Change). Only after a yes, run the listed commands yourself, one by
-   one, stopping at the first failure. No yes, no commands. A "no" or "change" needs no record: the item stays in the
-   list until the world changes, so say what you did not do and move on (`hd fail <slug> "why"` puts a decision hold on
-   the change if the user wants it parked). A release without a tag (`choose-tag`): ask the user for the version, then
-   `hd release-request vX.Y.Z`.
-6. **Decisions** (a change on a `decision` hold): ask the user the question with AskUserQuestion, then
+5. **Needs the user's OK** (a server change's contribution, a draft-pr card, a client release): show the user, in chat,
+   the card: the change, the commit, the diff range, the QA verdict with every check line and every finding, the
+   evidence links, the PR title, body and comment text, the caveats, the exact command, with a risk note and your
+   recommendation. Ask with AskUserQuestion (Approve this commit / Fix first / No). The user's approval is bound to the
+   commit sha.
+   - **Approve**: run the card's one command, `hd contribute <slug> --approved <sha>`, and report what it printed
+     (push, PR, CI, comment, ready, review). It waits for upstream CI itself, resumes at the first unobserved step when
+     re-run, and stops before the comment when CI is not green; run it again for the same sha without a new ask, never
+     for another commit.
+   - **Fix first**: `hd hold <slug> failed "<what the user wants fixed, with the findings>"`; the next tick books a dev
+     with the findings, and the new commit gets a new QA record and a new card.
+   - **No**, or silence: nothing is recorded; the card stays in the list. `hd fail <slug> "why"` parks the change.
+   - A `draft-pr` card (a maintainer finding is open on a ready PR): moving the PR to draft is the user's call each
+     time; run its command only after a yes.
+   - A release without a tag (`choose-tag`): ask the user for the version, then `hd release-request vX.Y.Z`.
+6. **Needs you** (a change on a `decision` hold: a question from an agent, or the no-loop hold when a run would repeat
+   exactly what was already booked): ask the user the question with AskUserQuestion, then
    `hd unhold <slug> "<answer>"` (and `hd note "<answer>" --kind user`). Do the change's follow-up yourself or leave it
    to the next dev run.
 7. **Exceptions** (an integrator ended without clearing a train, an `exception` hold, a `failed` hold no dev picks up):

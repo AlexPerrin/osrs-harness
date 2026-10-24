@@ -16,7 +16,7 @@ from hd_helpers import SHA, SHB
 from helpers import GIT_ENV, HARNESS_TOOLS, commit_file, git, init_repo, tempdir
 
 from hd import batches, events, leases, store, util
-from hd.observe import FakeObserver
+from hd.tracks import FakeObserver
 
 sys.path.insert(0, HARNESS_TOOLS)
 import integrate  # noqa: E402
@@ -123,7 +123,7 @@ class QueueTest(unittest.TestCase):
         self.addCleanup(close_fds)
 
     def test_newer_commit_replaces_entry(self):
-        ch = H.change("ta", stage="checked", branch="fix/a", commit=SHA)
+        ch = H.change("ta", stage="gate", branch="fix/a", commit=SHA)
         e1 = batches.enqueue(ch)
         self.assertEqual(batches.enqueue(ch), e1)
         ch["commit"] = SHB
@@ -135,7 +135,7 @@ class QueueTest(unittest.TestCase):
         self.assertEqual(ev[-1]["step"], "queued")
         self.assertIn("replaces ta@" + SHA[:9], ev[-1]["detail"])
         with self.assertRaises(ValueError):
-            batches.enqueue(H.change("c1", track="client", stage="checked", commit=SHA))
+            batches.enqueue(H.change("c1", track="client", stage="gate", commit=SHA))
 
     def test_deploy_needs_the_daemons_live_server_lock(self):
         b = store.rec_save("batches", "int-20261021-1", {"id": "int-20261021-1", "kind": "train", "step": "imaged",
@@ -245,8 +245,8 @@ class TrainTest(unittest.TestCase):
         git(self.seed, "checkout", "-q", "main")
         return sha
 
-    def checked(self, slug, branch):
-        return H.change(slug, stage="checked", branch=branch, commit=self.sha[branch])
+    def handed(self, slug, branch):
+        return H.change(slug, stage="gate", branch=branch, commit=self.sha[branch])
 
     def fork_rev(self, ref):
         return git(self.fork, "rev-parse", ref)
@@ -279,11 +279,11 @@ class TrainTest(unittest.TestCase):
             batches.advance(self.obs)
         self.fail(f"never reached {step}: {self.only_batch()['step']}")
 
-    # --- BR-B1: two checked changes, one train, to live ----------------------------------------------------------
+    # --- BR-B1: two handed-over changes, one train, to live ----------------------------------------------------------
 
     def test_train_to_live(self):
-        batches.enqueue(self.checked("ta", "fix/a"))
-        batches.enqueue(self.checked("tb", "content/b"))
+        batches.enqueue(self.handed("ta", "fix/a"))
+        batches.enqueue(self.handed("tb", "content/b"))
         self.assertEqual(batches.advance(self.obs), [], "debounce: the oldest entry is 0 min old")
         self.assertEqual(store.rec_all("batches"), [])
         util.freeze(T1)
@@ -326,7 +326,7 @@ class TrainTest(unittest.TestCase):
         self.assertEqual(b["step"], "live", acts)
         for slug, branch in (("ta", "fix/a"), ("tb", "content/b")):
             ch = store.load(slug)
-            self.assertEqual((ch.stage, ch["live_commit"], ch["batch"]), ("live", self.sha[branch], b["id"]))
+            self.assertEqual((ch.stage, ch["live_commit"], ch["batch"]), ("gate", self.sha[branch], b["id"]))
         live = store.live()
         self.assertEqual((live["integration"], live["image"], live["upstream_main"], live["rollback"]),
                          (b["integration"], "osrs-openrune:integration-stub", self.main0, "osrs-openrune:rollback-0000000"))
@@ -343,11 +343,11 @@ class TrainTest(unittest.TestCase):
     # --- BR-B2: one train at a time -------------------------------------------------------------------------------
 
     def test_one_train_at_a_time(self):
-        batches.enqueue(self.checked("ta", "fix/a"))
+        batches.enqueue(self.handed("ta", "fix/a"))
         batches.advance(self.obs, now=True)
         b = self.only_batch()
         self.assertEqual(b["step"], "gating")
-        batches.enqueue(self.checked("tb", "content/b"))
+        batches.enqueue(self.handed("tb", "content/b"))
         acts = batches.advance(self.obs, now=True)
         self.assertEqual(len(store.rec_all("batches")), 1, acts)
         self.assertEqual([e["slug"] for e in batches.read_queue()["entries"]], ["tb"], "joins the next train")
@@ -356,8 +356,8 @@ class TrainTest(unittest.TestCase):
     # --- BR-B4: an unrecorded conflict -> exception; resume after the integrator dropped a branch -----------------
 
     def test_conflict_exception_and_resume(self):
-        batches.enqueue(self.checked("tc", "fix/c"))
-        batches.enqueue(self.checked("td", "content/d"))
+        batches.enqueue(self.handed("tc", "fix/c"))
+        batches.enqueue(self.handed("td", "content/d"))
         integration0 = self.fork_rev("integration")
         acts = batches.advance(self.obs, now=True)
         b = self.only_batch()
@@ -397,7 +397,7 @@ class TrainTest(unittest.TestCase):
             self.assertTrue(os.path.isfile(batches.deploy_sh()), batches.deploy_sh())
 
     def test_gate_failure_with_docker_down_waits_and_restarts(self):
-        batches.enqueue(self.checked("ta", "fix/a"))
+        batches.enqueue(self.handed("ta", "fix/a"))
         os.environ["STUB_GATE_RC"] = "1"
         os.environ["STUB_DOCKER_DOWN"] = "1"
         batches.advance(self.obs, now=True)
@@ -414,7 +414,7 @@ class TrainTest(unittest.TestCase):
         self.assertEqual(self.run_to("imaged")["step"], "imaged")
 
     def test_gate_failure_is_an_exception(self):
-        batches.enqueue(self.checked("ta", "fix/a"))
+        batches.enqueue(self.handed("ta", "fix/a"))
         os.environ["STUB_GATE_RC"] = "1"
         batches.advance(self.obs, now=True)
         b = self.run_to("exception")
@@ -428,7 +428,7 @@ class TrainTest(unittest.TestCase):
     # --- deploy rollback -----------------------------------------------------------------------------------------
 
     def test_deploy_rollback(self):
-        batches.enqueue(self.checked("ta", "fix/a"))
+        batches.enqueue(self.handed("ta", "fix/a"))
         batches.advance(self.obs, now=True)
         self.run_to("imaged")
         take_deploy_leases()
@@ -436,7 +436,7 @@ class TrainTest(unittest.TestCase):
         b = self.run_to("exception")
         self.assertIn("deploy rollback", b["exception"])
         self.assertEqual(store.live(), {})
-        self.assertEqual(store.load("ta").stage, "checked")
+        self.assertEqual(store.load("ta").stage, "gate")
         self.assertEqual(events.read(kinds=["deploy"])[-1]["result"], "rollback")
         for r in DEPLOY_RESOURCES + ("integration",):
             self.assertIsNone(leases.status(r)["holder"], r)
@@ -653,6 +653,31 @@ class ScriptTest(unittest.TestCase):
         self.assertFalse(any("--build" in l for l in calls))
         rec = store.rec_load("deploys", "int-t-1")
         self.assertEqual((rec["result"], rec["rollback_tag"]), ("rollback", "osrs-openrune:rollback-5cc4733"))
+
+
+class MarkLiveTest(unittest.TestCase):
+    """A deploy makes `live_commit` true for a change; only a local/* change also reaches the stage `live`: the
+    test server and the upstream flow are independent."""
+
+    def setUp(self):
+        H.sandbox(self)
+
+    def test_deploy_sets_live_commit_and_keeps_the_upstream_stage(self):
+        H.change("srv", "server", stage="contribute", commit=SHA)
+        H.change("loc", "server", stage="gate", commit=SHA, branch="local/loc", local_only=True)
+        b = {"id": "int-1", "entries": [{"slug": "srv", "commit": SHA}, {"slug": "loc", "commit": SHA}]}
+        self.assertEqual(batches._mark_live(b, "c" * 40, store.index()), ["srv", "loc"])
+        srv, loc = store.load("srv"), store.load("loc")
+        self.assertEqual((srv.stage, srv["live_commit"], srv["batch"]), ("contribute", SHA, "int-1"))
+        self.assertEqual((loc.stage, loc["live_commit"]), ("live", SHA))
+        self.assertTrue(srv.reached("live"))
+        self.assertEqual(batches._mark_live(b, "c" * 40, store.index()), [])   # once
+
+    def test_a_commit_that_moved_since_the_train_is_not_live(self):
+        H.change("srv", "server", stage="gate", commit=SHB)
+        b = {"id": "int-1", "entries": [{"slug": "srv", "commit": SHA}]}
+        self.assertEqual(batches._mark_live(b, "c" * 40, store.index()), [])
+        self.assertFalse(store.load("srv").reached("live"))
 
 
 if __name__ == "__main__":

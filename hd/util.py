@@ -101,6 +101,12 @@ def slugify(text):
     return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")[:60]
 
 
+def same_commit(a, b):
+    """Two shas (full or at least 7 characters) name the same commit."""
+    a, b = str(a or ""), str(b or "")
+    return len(a) >= 7 and len(b) >= 7 and (a.startswith(b) or b.startswith(a))
+
+
 def short(sha, n=9):
     return (sha or "")[:n]
 

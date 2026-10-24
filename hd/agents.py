@@ -21,7 +21,7 @@ Isolation: roles with policy `worktree: true` are spawned with isolation worktre
 """
 import os
 
-from . import HD_HOME, events, fork_clone, evidence_dir, leases, policy, store
+from . import HD_HOME, events, fork_clone, evidence_dir, leases, policy, stages, store, tracks
 from .util import iso, read_json, write_json
 
 RUNS = "runs"
@@ -56,32 +56,34 @@ def _slug(ch):
 def _stage_text(ch, stage, name):
     slug, branch = _slug(ch), ch.get("branch") or "<branch>"
     if stage == "dev":
-        lines = [f"Stage `dev`: build the change on branch `{branch}` until its definition of done is ticked, then hand",
-                 "it over on disk, not in chat:",
-                 f"  {HD} handover {slug} --branch {branch} --commit <sha> --evidence {_evidence(ch)} --summary \"...\"",
-                 "  (server: add --pr <fork PR url> --ci <CI run url>; --repo <clone> when the commit is in your clone)",
-                 "The hand-over check runs from there without you; a FAIL returns the change to ready with the items.",
+        track = tracks.of(ch)
+        lines = [f"Stage `dev`: build the change on branch `{branch}` until its definition of done is ticked, commit it",
+                 "locally, then hand it over on disk, not in chat:",
+                 f"  {HD} handover {slug} --branch {branch} --commit <sha> --evidence {_evidence(ch)} --summary \"...\""
+                 + (" --repo <your clone>" if track.records_repo else ""),
+                 "The hand-over runs its check at once and refuses an incomplete one (nothing is recorded): fix the items it",
+                 "prints and run it again.",
                  f"Blocked by the other track: file the blocker, then `{HD} block {slug} --by <other-slug> \"why\"`:",
                  f"  {HD} new --track server --slug <x> --title \"...\" --dod \"repro on the test server\" --dod \"...\"",
                  f"Cannot finish: `{HD} fail {slug} \"why\"`."]
-        if ch.get("track") == "server":
-            lines.append("Definition of done, always (BR-C3): accuracy/<slug>.md on the fork's docs branch; a fork PR with "
-                         "green CI at the commit; one change only; off current upstream main.")
+        lines += track.brief(ch, "dev")
     elif stage == "gate":
-        what = f"batch `{ch.get('batch')}`" if ch.get("batch") else f"`{branch}` at `{ch.get('commit')}`"
-        lines = [f"Stage `gate`: run the gate on {what} (the role file says which gate and how). A release gate copies its build",
-                 "(base.apk, split.apk, THIRD_PARTY_NOTICES.md, the repack log) into the evidence dir before it ends: the worktree is",
-                 "removed with the run and the release attaches those copies. Push the record to the",
-                 f"fork's docs branch, then `{HD} gate {slug} PASS|FAIL \"note\"`. You never write the code you check."]
+        if ch.get("batch") and ch.get("batch") == ch.get("id"):
+            lines = [f"Stage `gate`: run the gate on batch `{ch.get('batch')}` (the role file says which gate and how). A release "
+                     "gate copies its build (base.apk, split.apk, THIRD_PARTY_NOTICES.md, the repack log) into the evidence dir "
+                     "before it ends: the worktree is removed with the run and the release attaches those copies.",
+                     f"End with `{HD} gate {slug} PASS|FAIL \"note\"`. You never write the code you check."]
+        else:
+            lines = tracks.of(ch).brief(ch, "gate")
     else:
         lines = [f"Stage `train`: batch `{slug}` stopped on an exception. Record a resolution (or drop one change with a",
                  f"note) and end with `{HD} resolve {slug} \"note\"`. You never push integration or deploy.",
                  "Exception:", (ch.get("exception") or "(see the batch log)").rstrip()]
     hold = ch.get("hold") or {}
-    if hold.get("kind") == "failed":
+    if hold.get("kind") == "failed" and stage == "dev":
         lines.append(f"Hold `failed`: {hold.get('reason')}")
-        lines.append(f"What must change is above. The fix is a new commit on the SAME branch `{branch}` (BR-C2, BR-S3): no "
-                     "second branch, no suffix; hand over again and the hold clears.")
+        lines.append(f"The fix is a new commit on the SAME branch `{branch}` (BR-C2, BR-S3): no second branch, no suffix; hand "
+                     "over again and the hold clears.")
     return lines
 
 
@@ -138,6 +140,9 @@ def spawn(ch, role, stage):
     log = _log_path(name)
     rec = {"name": name, "role": role, "change": slug, "stage": stage, "console": True, "started": iso(), "log": log,
            "ended": None, "exit": None}
+    if isinstance(ch, store.Change) and stage in ("dev", "gate"):
+        rec["commit"] = ch.get("commit")
+        ch["booked"] = dict(ch.get("booked") or {}, **{stage: stages.booking_key(ch, stage)})   # BR-S9
     # A batch gate (the release pseudo-change: its id is the batch) follows the batch's step; a change's own gate does
     # not, though a live change carries the `batch` it went live in (its step `live` would stop the run at once).
     if stage == "train" or (ch.get("batch") and ch.get("batch") == ch.get("id")):
@@ -237,16 +242,14 @@ def _left_stage(r, idx):
         return "change missing", None
     if stage == "dev":
         # A dev run executes on a change at dev, or at a later stage under a `failed` hold (BR-S3: the fix is a new
-        # commit); it lingers once the change no longer names it as owner (a hand-over, a check or a re-entry
-        # cleared it), not merely because the stage is not `dev`.
+        # commit); it lingers once the change no longer names it as owner (a run-end or a re-entry cleared it), not
+        # merely because the stage is not `dev`.
         if ch.get("owner") != name:
             return f"owner is {ch.get('owner')} (change at {ch.stage})", ch.get("updated")
         return None
-    if ch.stage != "live":
-        return f"change at {ch.stage}", ch.get("updated")
-    if ch.get("gated_commit") or ch.hold == "failed":
-        return "gate recorded", ch.get("updated")
-    return None
+    # a verifier run is valid while the track says so (the server's: at `gate`, the booked commit, no record yet)
+    why = tracks.of(ch).run_valid(r, ch)
+    return (why, ch.get("updated")) if why else None
 
 
 def lingering(idx):

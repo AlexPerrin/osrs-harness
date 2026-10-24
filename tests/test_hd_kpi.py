@@ -35,10 +35,10 @@ class KpiTest(unittest.TestCase):
         at("2026-10-20T01:00:00Z", "check", change="a", result="PASS")
         at("2026-10-20T01:00:00Z", "check", change="b", result="FAIL")
         at("2026-10-20T01:30:00Z", "check", change="b", result="PASS")
-        # gates: a gated first; b failed from the gate, then gated
-        at("2026-10-20T03:00:00Z", "stage", change="a", **{"from": "live", "to": "gated"})
-        at("2026-10-20T09:00:00Z", "hold", change="b", hold="failed", source="gate", reason="accuracy")
-        at("2026-10-20T10:00:00Z", "stage", change="b", **{"from": "live", "to": "gated"})
+        # QA aggregates: a PASS first; b FAIL first, then PASS
+        at("2026-10-20T03:00:00Z", "gate", change="a", commit="a", result="PASS", findings=0)
+        at("2026-10-20T09:00:00Z", "gate", change="b", commit="b", result="FAIL", findings=2)
+        at("2026-10-20T10:00:00Z", "gate", change="b", commit="b", result="PASS", findings=0)
         # denials, agents, deadlocks, builds
         at("2026-10-20T04:00:00Z", "denial", source="hook", rule="no-push")
         at("2026-10-20T04:30:00Z", "denial", source="hook", rule="no-push")

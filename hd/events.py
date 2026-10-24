@@ -9,7 +9,11 @@ recount is one line. The KPIs and every post-mortem read it; nothing rewrites it
 Kinds (the `kind` field; `data` holds the rest):
   stage      change moved: from, to, commit, why
   hold       change held or released: hold (blocked|decision|failed|exception|none), reason
-  check      hand-over check: result (PASS|FAIL), items
+  check      hand-over check, run by `hd handover`: result (PASS|FAIL), items
+  handover   a hand-over recorded: change, branch, commit
+  gate       a track verifier's verdict (`hd gate`): change, commit, result (PASS|FAIL), findings (count)
+  contribute server track: a contribution ended: change, commit, result (done|ci-failed|stopped)
+  finding    server track: a maintainer finding filed as a review-fix change: change, parent, finding, pr
   batch      a train or release step: batch, step (queued|pinning|rebuilding|gating|imaging|deploying|live|
              exception|failed|rolled-back|published), detail
   lease      resource lock: action (take|release|reclaim|deny), resource,

@@ -1,4 +1,4 @@
-"""The client and harness ship step: a checked change's commit merged into its live target (client: master of the
+"""The client and harness ship step: a handed-over change's commit merged into its live target (client: master of the
 client repo; harness: main of this repo, never pushed) with `--no-ff` and the standard
 message, (client: pushed to origin main); the target containing the commit is what `live` observes. Server changes are not
 shipped here: a train carries them (batches.py).
@@ -35,7 +35,7 @@ def merge_to_master(ch):
         return True, f"already on {target}"
     tip = _git(repo, "rev-parse", "-q", "--verify", f"refs/heads/{branch}").stdout.strip()
     if tip != commit:
-        return False, f"{branch} is at {tip[:9] or 'nothing'}, not the checked {commit[:9]}"
+        return False, f"{branch} is at {tip[:9] or 'nothing'}, not the handed-over {commit[:9]}"
     msg = f"Merge {branch}: {ch.get('title')} (dev's check: built, tried on the device)"
     if ch.get("summary"):
         msg += f"\n\n{ch['summary']}"

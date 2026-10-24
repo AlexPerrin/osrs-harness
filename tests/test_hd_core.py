@@ -1,5 +1,4 @@
-"""hd foundation: the store (BR-C1, BR-C3), the event log (BR-H4), the lifecycle preconditions (BR-C2, BR-C4,
-BR-C7, BR-C8, BR-S1), the hand-over check, the shared-resource locks (BR-R1..R4)."""
+"""hd foundation: the store (BR-C1, BR-C3), the event log (BR-H4), the generic lifecycle (BR-C4, BR-S9), the hand-over check, the shared-resource locks (BR-R1..R4)."""
 import os
 import unittest
 
@@ -72,107 +71,66 @@ class EventsTest(unittest.TestCase):
 
 
 class StagesTest(unittest.TestCase):
+    """The generic climb (the chains and facts come from the tracks, hd/tracks/)."""
+
     def setUp(self):
         H.sandbox(self)
 
     def obs(self, **facts):
-        from hd.observe import FakeObserver
+        from hd.tracks import FakeObserver
         return FakeObserver(**facts)
 
     def test_deps_block_ready(self):
-        dep = H.change("srv", "server", stage="checked", commit=SHA)
+        dep = H.change("srv", "server", stage="gate", commit=SHA)
         cli = H.change("cli", "client", deps=["srv"])
         idx = store.index()
         st, why, _ = stages.derive(cli, self.obs(), idx)
         self.assertEqual(st, "ready")
-        self.assertIn("waiting for srv (checked)", why)
-        dep["stage"] = "live"
+        self.assertIn("waiting for srv (gate)", why)
+        dep["live_commit"] = SHA   # the test server runs it: live, whatever the server's own chain says
         store.save(dep)
         st, why, _ = stages.derive(cli, self.obs(), store.index())
         self.assertEqual(why, "a free slot")
 
-    def test_server_live_needs_pin_and_live_integration(self):
-        ch = H.change("feat", "server", stage="checked", commit=SHA)
-        live = {"integration": "c" * 40}
-        o = self.obs(tips={("fork", "content/feat"): SHA}, pins={}, live=live)
-        st, why, _ = stages.derive(ch, o, {})
-        self.assertEqual((st, why), ("checked", "integration pin is absent, not aaaaaaaaa (next train)"))
-        o = self.obs(tips={("fork", "content/feat"): SHA}, pins={"content/feat": SHA}, live=live,
-                     contains={("fork", "c" * 40, SHA): True}, records=[])
-        st, why, _ = stages.derive(ch, o, {})
-        self.assertEqual(st, "live")
-        self.assertIn("the upstream gate (no upstream gate record", why)
-
-    def test_gate_only_what_is_live(self):
-        """BR-S1: a PASS record at a commit that is not live does not reach gated."""
-        rec = [("qa/feat.md", "# QA: content/feat\n- Branch: `content/feat`\n- Commit: `" + SHA + "`\n## Upstream gate: **PASS**\n")]
-        ch = H.change("feat", "server", stage="checked", commit=SHA)
-        o = self.obs(tips={("fork", "content/feat"): SHA}, pins={"content/feat": SHB}, live={"integration": "c" * 40},
-                     records=rec)
-        st, _, _ = stages.derive(ch, o, {})
-        self.assertEqual(st, "checked")
-        o = self.obs(tips={("fork", "content/feat"): SHA}, pins={"content/feat": SHA}, live={"integration": "c" * 40},
-                     contains={("fork", "c" * 40, SHA): True}, records=rec)
-        st, why, _ = stages.derive(ch, o, {})
-        self.assertEqual(st, "gated")
-        self.assertTrue(why.startswith("the user's approval"), why)
-
-    def test_published_and_merged(self):
-        rec = [("qa/feat.md", "- Branch: `content/feat`\n- Commit: `" + SHA[:9] + "`\n## Upstream gate: **PASS**\n")]
-        ch = H.change("feat", "server", stage="gated", commit=SHA, upstream_pr=354)
-        base = dict(tips={("fork", "content/feat"): SHA}, pins={"content/feat": SHA}, live={"integration": "c" * 40},
-                    contains={("fork", "c" * 40, SHA): True}, records=rec)
-        o = self.obs(upstream_prs={354: {"number": 354, "state": "open", "draft": True, "head": SHA}}, **base)
-        st, why, _ = stages.derive(ch, o, {})
-        self.assertEqual(st, "gated")
-        self.assertIn("draft", why)
-        o = self.obs(upstream_prs={354: {"number": 354, "state": "open", "draft": False, "head": SHA}}, **base)
-        self.assertEqual(stages.derive(ch, o, {})[0], "published")
-        base["contains"][("upstream", "main", SHA)] = True
-        o = self.obs(upstream_prs={354: {"number": 354, "state": "closed", "merged": True, "head": SHA}}, **base)
-        self.assertEqual(stages.derive(ch, o, {})[0], "merged")
-
-    def test_local_only_ends_at_live(self):
-        ch = H.change("loc", "server", stage="checked", commit=SHA, branch="local/loc", local_only=True)
-        o = self.obs(tips={("fork", "local/loc"): SHA}, pins={"local/loc": SHA}, live={"integration": "c" * 40},
-                     contains={("fork", "c" * 40, SHA): True})
-        st, why, _ = stages.derive(ch, o, {})
-        self.assertEqual((st, why), ("live", ""))
-        self.assertEqual(stages.terminal(ch), "live")
-
     def test_client_live_is_master(self):
-        ch = H.change("plug", "client", stage="checked", commit=SHA)
+        ch = H.change("plug", "client", stage="gate", commit=SHA)
         o = self.obs(tips={("ours", "client/plug"): SHA}, contains={("ours", "master", SHA): False})
-        self.assertEqual(stages.derive(ch, o, {})[0], "checked")
+        st, why, _ = stages.derive(ch, o, {})
+        self.assertEqual(st, "gate")
+        self.assertIn("the merge into master", why)
         o = self.obs(tips={("ours", "client/plug"): SHA}, contains={("ours", "master", SHA): True})
         self.assertEqual(stages.derive(ch, o, {})[:2], ("live", ""))
 
-    def test_new_commit_reenters(self):
-        """BR-C2: the branch tip moved past the handed-over commit."""
-        ch = H.change("feat", "server", stage="live", commit=SHA)
-        o = self.obs(tips={("fork", "content/feat"): SHB}, pins={"content/feat": SHA}, live={"integration": "c" * 40},
-                     contains={("fork", "c" * 40, SHA): True}, records=[])
-        _, _, moved = stages.derive(ch, o, {})
-        self.assertEqual(moved, SHB)
-
     def test_unknown_never_regresses(self):
-        ch = H.change("feat", "server", stage="live", commit=SHA)
-        o = self.obs(tips={("fork", "content/feat"): SHA}, pins={"content/feat": SHA}, live={"integration": "c" * 40},
-                     contains={}, records=None)   # contains unknown, docs unreadable
-        st, _, _ = stages.derive(ch, o, {})
-        self.assertEqual(st, "live")
+        ch = H.change("plug", "client", stage="live", commit=SHA)
+        o = self.obs(tips={("ours", "client/plug"): SHA}, contains={})
+        self.assertEqual(stages.derive(ch, o, {})[0], "live")
 
-    def test_next_executor(self):
-        self.assertEqual(stages.next_executor(H.change("ch-a", "server")), "dev")
-        self.assertEqual(stages.next_executor(H.change("ch-b", "server", stage="live", commit=SHA)), "gate")
-        self.assertIsNone(stages.next_executor(H.change("ch-c", "server", stage="live", commit=SHA, local_only=True)))
-        self.assertIsNone(stages.next_executor(H.change("ch-d", "client", stage="live", commit=SHA)))
-        ch = H.change("ch-e", "server", stage="live", commit=SHA)
-        store.set_hold(ch, "failed", "gate FAIL"); store.save(ch)
+    def test_reached_is_relative_to_the_chain(self):
+        self.assertFalse(H.change("a-cli", "client", stage="dev").reached("gate"))
+        self.assertTrue(H.change("a-cl2", "client", stage="live").reached("gate"))
+
+    def test_next_executor_core_rules(self):
+        self.assertEqual(stages.next_executor(H.change("ch-a", "client")), "dev")
+        self.assertIsNone(stages.next_executor(H.change("ch-d", "client", stage="gate", commit=SHA)))
+        ch = H.change("ch-e", "client", stage="gate", commit=SHA)
+        store.set_hold(ch, "failed", "the user asked for a fix"); store.save(ch)
         self.assertEqual(stages.next_executor(store.load("ch-e")), "dev")
-        ch = H.change("ch-f", "server")
+        ch = H.change("ch-f", "client")
         store.set_hold(ch, "blocked", "deps"); store.save(ch)
         self.assertIsNone(stages.next_executor(store.load("ch-f")))
+
+    def test_booking_key_is_the_head_and_the_finding_set(self):
+        """BR-S9: the same head and finding set is the same key; a verifier is keyed by the head alone."""
+        ch = H.change("feat", "server", stage="gate", commit=SHA)
+        k1 = stages.booking_key(ch, "dev")
+        self.assertEqual(k1, stages.booking_key(ch, "dev"))
+        ch["commit"] = SHB
+        self.assertNotEqual(k1, stages.booking_key(ch, "dev"))
+        self.assertEqual(stages.booking_key(ch, "gate"), SHB)
+        ch["booked"] = {"dev": stages.booking_key(ch, "dev")}
+        self.assertTrue(stages.would_loop(ch, "dev"))
+        self.assertFalse(stages.would_loop(ch, "gate"))
 
 
 class CheckTest(unittest.TestCase):
@@ -180,7 +138,7 @@ class CheckTest(unittest.TestCase):
         H.sandbox(self)
 
     def obs(self, **facts):
-        from hd.observe import FakeObserver
+        from hd.tracks import FakeObserver
         return FakeObserver(**facts)
 
     def test_client_full(self):
@@ -211,28 +169,6 @@ class CheckTest(unittest.TestCase):
         texts = [t for o_, t in its if not o_]
         self.assertTrue(any("already on master" in t for t in texts))
         self.assertTrue(any("netqa" in t for t in texts))
-
-    def test_server(self):
-        ch = H.change("feat", "server", stage="dev", commit=SHA, evidence="re/evidence/feat",
-                      pr="https://github.com/AlexPerrin/OpenRune-Server/pull/9")
-        o = self.obs(tips={("fork", "content/feat"): SHA}, evidence={"re/evidence/feat": ["accuracy.md"]},
-                     docs={"accuracy/feat.md": "# spec"}, ci={("content/feat", SHA): "success"})
-        ok, its = check.run(ch, o)
-        self.assertTrue(ok, check.render(ch, its))
-        o.f["ci"][("content/feat", SHA)] = "pending"
-        ok, its = check.run(ch, o)
-        self.assertFalse(ok)
-        o.f["ci"][("content/feat", SHA)] = "success"
-        o.f["tips"][("fork", "content/feat")] = SHB
-        ok, its = check.run(ch, o)
-        self.assertTrue(any("not aaaaaaaaa" in t for _, t in its))
-
-    def test_server_local_needs_no_pr_and_no_spec(self):
-        ch = H.change("loc", "server", stage="dev", commit=SHA, branch="local/loc", local_only=True, evidence="re/evidence/loc")
-        o = self.obs(tips={("fork", "local/loc"): SHA}, evidence={"re/evidence/loc": ["x"]},
-                     docs={}, ci={("local/loc", SHA): "success"})
-        ok, its = check.run(ch, o)
-        self.assertTrue(ok, check.render(ch, its))
 
 
 class LeaseTest(unittest.TestCase):

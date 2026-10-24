@@ -1,4 +1,4 @@
-"""The tick (problem 3f, invariants I1, I2, I9; BR-C2, BR-C4, BR-C5, BR-S5, BR-R4): each step with the agent,
+"""The tick (BR-C2, BR-C4, BR-C5, BR-S4, BR-S9, BR-H1): each step with the agent,
 batch and heal modules stubbed, FakeObserver for the world, a temp git repo for the client merge."""
 import os
 import subprocess
@@ -8,8 +8,8 @@ from unittest import mock
 import hd_helpers as H
 from hd_helpers import SHA, SHB
 
-from hd import events, leases, store, tick
-from hd.observe import FakeObserver
+from hd import drive, events, leases, stages, store, tick
+from hd.tracks import FakeObserver
 
 
 def stub_modules(test, **over):
@@ -63,115 +63,212 @@ class ReconcileTest(unittest.TestCase):
         self.calls = stub_modules(self)
 
     def test_drift_repaired_and_logged(self):
-        """I1: the recorded stage follows the observation, both ways, with an event."""
-        ch = H.change("plug", "client", stage="checked", commit=SHA)
+        """BR-H1: the recorded stage follows the observation, both ways, with an event."""
+        H.change("plug", "client", stage="gate", commit=SHA)
         obs = FakeObserver(tips={("ours", "client/plug"): SHA}, contains={("ours", "master", SHA): True})
         tick.tick(obs)
         self.assertEqual(store.load("plug").stage, "live")
         self.assertEqual(store.load("plug")["live_commit"], SHA)
         ev = [e for e in events.read(kinds=["stage"]) if e.get("change") == "plug"]
-        self.assertEqual((ev[-1]["from"], ev[-1]["to"]), ("checked", "live"))
-        # a revert: master no longer contains it -> drift back to checked
+        self.assertEqual((ev[-1]["from"], ev[-1]["to"]), ("gate", "live"))
+        # a revert: master no longer contains it -> drift back to gate
         obs = FakeObserver(tips={("ours", "client/plug"): SHA}, contains={("ours", "master", SHA): False})
         tick.tick(obs)
-        self.assertEqual(store.load("plug").stage, "checked")
+        self.assertEqual(store.load("plug").stage, "gate")
         self.assertTrue(events.read(kinds=["drift"]))
 
     def test_new_commit_reenters_at_ready(self):
-        """BR-C2."""
-        ch = H.change("feat", "server", stage="live", commit=SHA)
-        obs = FakeObserver(tips={("fork", "content/feat"): SHB}, pins={"content/feat": SHA}, live={"integration": "c" * 40},
-                           contains={("fork", "c" * 40, SHA): True}, records=[])
+        """BR-C2: a new commit on the branch voids the hand-over, the QA record and the booking."""
+        H.change("feat", "server", stage="gate", commit=SHA, repo="/dev/clone", booked={"dev": "k", "gate": SHA})
+        H.write_gate("feat", SHA)
+        obs = FakeObserver(tips={("/dev/clone", "content/feat"): SHB}, pins={}, live={"integration": "c" * 40})
         tick.tick(obs)
         ch = store.load("feat")
         self.assertIsNone(ch["commit"])
-        self.assertEqual(ch["live_commit"], SHA)
+        self.assertIsNone(ch["booked"])
         ev = [e for e in events.read(kinds=["stage"]) if e.get("change") == "feat"]
-        self.assertEqual((ev[0]["from"], ev[0]["to"], ev[0]["commit"]), ("live", "ready", SHB))
+        self.assertEqual((ev[0]["from"], ev[0]["to"], ev[0]["commit"]), ("gate", "ready", SHB))
         self.assertIn(("spawn", "feat", "server-dev", "dev"), self.calls)   # re-dispatched in the same tick
-        # a dev working on a failed-hold fix pushes to the branch: not a re-entry while it owns the change
-        owned = H.change("owned", "server", stage="live", commit=SHA, owner="sd9")
-        store.set_hold(owned, "failed", "gate FAIL"); store.save(owned)
-        obs = FakeObserver(tips={("fork", "content/owned"): SHB}, pins={"content/owned": SHA}, live={"integration": "c" * 40},
-                           contains={("fork", "c" * 40, SHA): True}, records=[])
-        tick.tick(obs)
+        # a dev working on a fix pushes to the branch: not a re-entry while it owns the change
+        owned = H.change("owned", "server", stage="gate", commit=SHA, owner="sd9", repo="/dev/clone")
+        store.set_hold(owned, "failed", "fix the findings"); store.save(owned)
+        tick.tick(FakeObserver(tips={("/dev/clone", "content/owned"): SHB}, pins={}, live={"integration": "c" * 40}))
         self.assertEqual(store.load("owned")["commit"], SHA)
         self.assertEqual(store.load("owned")["owner"], "sd9")
 
+    def test_a_contributed_change_is_not_reentered_by_its_own_pr(self):
+        H.change("feat", "server", stage="review", commit=SHA, upstream_pr=7, repo="/dev/clone")
+        H.write_gate("feat", SHA)
+        tick.tick(FakeObserver(tips={("/dev/clone", "content/feat"): SHB},
+                               upstream_prs={7: {"number": 7, "state": "open", "draft": False, "head": SHA}}))
+        ch = store.load("feat")
+        self.assertEqual((ch.stage, ch["commit"]), ("review", SHA))
+
     def test_deps_hold_set_and_cleared(self):
-        """BR-C4."""
-        srv = H.change("srv", "server", stage="checked", commit=SHA)
+        """BR-C4: a dep is done for the client when the test server runs it, whatever its upstream stage."""
+        H.change("srv", "server", stage="gate", commit=SHA)
         H.change("cli", "client", deps=["srv"])
         tick.tick(FakeObserver(tips={("fork", "content/srv"): SHA}, pins={}, live={"integration": "c" * 40}))
         cli = store.load("cli")
         self.assertEqual(cli.hold, "blocked")
-        self.assertEqual([c for c in self.calls if c[0] == "spawn"], [])   # not dispatched while blocked
-        srv = store.load("srv"); srv["stage"] = "live"; store.save(srv)
+        self.assertEqual([c for c in self.calls if c[0] == "spawn" and c[1] == "cli"], [])   # not dispatched while blocked
         tick.tick(FakeObserver(tips={("fork", "content/srv"): SHA}, pins={"content/srv": SHA}, live={"integration": "c" * 40},
-                               contains={("fork", "c" * 40, SHA): True}, records=[]))
+                               contains={("fork", "c" * 40, SHA): True}))
+        srv = store.load("srv")
+        self.assertEqual((srv.stage, srv["live_commit"]), ("gate", SHA))   # live, the upstream stage untouched
         self.assertIsNone(store.load("cli").hold)
         self.assertIn(("spawn", "cli", "client-dev", "dev"), self.calls)
 
+    def test_a_local_only_change_ends_at_live(self):
+        H.change("loc", "server", stage="gate", commit=SHA, branch="local/loc", local_only=True)
+        tick.tick(FakeObserver(tips={("fork", "local/loc"): SHA}, pins={"local/loc": SHA}, live={"integration": "c" * 40},
+                               contains={("fork", "c" * 40, SHA): True}))
+        self.assertEqual(store.load("loc").stage, "live")
 
-class ReapTest(unittest.TestCase):
+
+class TrainQueueTest(unittest.TestCase):
+    """The test server and the upstream flow are independent: a handed-over server change joins the train at once."""
     def setUp(self):
         H.sandbox(self)
         self.calls = stub_modules(self)
 
-    def test_check_pass_then_enqueue(self):
-        ch = H.change("feat", "server", stage="dev", commit=SHA, owner="sd1", evidence="re/evidence/feat",
-                      pr="https://github.com/AlexPerrin/OpenRune-Server/pull/9")
-        obs = FakeObserver(tips={("fork", "content/feat"): SHA}, evidence={"re/evidence/feat": ["x"]},
-                           docs={"accuracy/feat.md": "x"}, ci={("content/feat", SHA): "success"}, pins={},
-                           live={"integration": "c" * 40})
-        acts = tick.tick(obs)
-        ch = store.load("feat")
-        self.assertEqual(ch.stage, "checked")
-        self.assertIsNone(ch["owner"])
-        self.assertIn(("enqueue", "feat"), self.calls)
-        self.assertEqual(events.read(kinds=["check"])[0]["result"], "PASS")
-        self.assertTrue(any("check PASS" in a for a in acts))
+    def obs(self, **kw):
+        f = dict(tips={("fork", "content/feat"): SHA}, pins={}, live={"integration": "c" * 40})
+        f.update(kw)
+        return FakeObserver(**f)
 
-    def test_check_pass_keeps_a_blocked_hold(self):
-        """A hand-over clears a failed hold (BR-S3), never a blocked one: the dep is still not live."""
-        H.change("srv", "server", stage="checked", commit=SHA)
-        ch = H.change("cli", "client", stage="dev", commit=SHB, owner="cd1", deps=["srv"], evidence="re/evidence/cli")
-        store.set_hold(ch, "blocked", "waiting for srv"); store.save(ch)
-        obs = FakeObserver(tips={("ours", "client/cli"): SHB, ("fork", "content/srv"): SHA}, contains={("ours", "master", SHB): False},
-                           evidence={"re/evidence/cli": ["repack.log", "logcat.txt"]}, files={"repack.log": "telemetry: a\n" * 7},
-                           pins={}, live={"integration": "c" * 40})
-        tick.tick(obs)
-        cli = store.load("cli")
-        self.assertEqual((cli.stage, cli.hold), ("checked", "blocked"))
-        self.assertNotIn(("enqueue", "cli"), self.calls)
+    def test_handed_over_change_is_queued_without_any_gate(self):
+        H.change("feat", "server", stage="gate", commit=SHA)
+        acts = tick.tick(self.obs())
+        self.assertIn(("enqueue", "feat"), self.calls)
+        self.assertEqual(store.load("feat").stage, "gate")   # no QA record: still queued
+        self.assertTrue(any("queued for the next train" in a for a in acts))
+
+    def test_only_what_the_fork_has_is_queued(self):
+        H.change("feat", "server", stage="gate", commit=SHA)
+        tick.tick(self.obs(tips={("fork", "content/feat"): SHB}))
+        tick.tick(self.obs(tips={}))
+        self.assertNotIn(("enqueue", "feat"), self.calls)
+
+    def test_a_hold_keeps_it_off_the_train_but_qa_findings_do_not(self):
+        H.change("held", "server", stage="gate", commit=SHA, branch="content/held")
+        ch = store.load("held"); store.set_hold(ch, "failed", "train gate"); store.save(ch)
+        H.change("found", "server", stage="contribute", commit=SHA, branch="content/found")
+        H.write_gate("found", SHA, "FAIL", findings=["x"])
+        tick.tick(self.obs(tips={("fork", "content/held"): SHA, ("fork", "content/found"): SHA}))
+        queued = [c[1] for c in self.calls if c[0] == "enqueue"]
+        self.assertEqual(queued, ["found"])
 
     def test_already_pinned_commit_is_not_queued(self):
-        """A hand-over of a commit integration already carries (a spec written for a live change) never queues a train."""
-        ch = H.change("feat", "server", stage="dev", commit=SHA, owner="sd1", evidence="re/evidence/feat",
-                      pr="https://github.com/AlexPerrin/OpenRune-Server/pull/9")
-        obs = FakeObserver(tips={("fork", "content/feat"): SHA}, evidence={"re/evidence/feat": ["x"]},
-                           docs={"accuracy/feat.md": "x"}, ci={("content/feat", SHA): "success"}, pins={"content/feat": SHA},
-                           live={"integration": "c" * 40}, contains={("fork", "c" * 40, SHA): True}, records=[])
+        H.change("feat", "server", stage="gate", commit=SHA)
+        obs = self.obs(pins={"content/feat": SHA}, contains={("fork", "c" * 40, SHA): True})
         tick.tick(obs)
         self.assertNotIn(("enqueue", "feat"), self.calls)
-        self.assertEqual(store.load("feat").stage, "checked")
-        tick.tick(obs)   # the next tick observes it live (pin = commit, the live integration carries it)
-        self.assertNotIn(("enqueue", "feat"), self.calls)
-        self.assertEqual(store.load("feat").stage, "live")
+        self.assertEqual(store.load("feat")["live_commit"], SHA)   # observed live, still at gate
 
-    def test_check_fail_returns_to_ready_with_items(self):
-        """BR-S5."""
-        ch = H.change("feat", "server", stage="dev", commit=SHA, owner="sd1", evidence="re/evidence/feat")
-        obs = FakeObserver(tips={("fork", "content/feat"): SHB}, evidence={"re/evidence/feat": []},
-                           ci={("content/feat", SHA): "pending"})
-        tick.tick(obs)
+
+class NoLoopTest(unittest.TestCase):
+    """BR-S9: a dev or QA run is booked only for a head or finding set that was not booked before."""
+    def setUp(self):
+        H.sandbox(self)
+        self.calls = stub_modules(self)
+
+    def test_same_facts_make_a_durable_decision_hold(self):
+        ch = H.change("feat", "server", stage="gate", commit=SHA)
+        store.set_hold(ch, "failed", "fix the findings"); ch["booked"] = {"dev": stages.booking_key(ch, "dev")}
+        store.save(ch)
+        acts = tick.tick(FakeObserver(tips={("fork", "content/feat"): SHA}))
+        self.assertEqual([c for c in self.calls if c[0] == "spawn"], [])
         ch = store.load("feat")
-        self.assertTrue(any("not aaaaaaaaa" in t for t in ch["check"]))
-        self.assertTrue(any("evidence dir" in t for t in ch["check"]))
-        ev = [e for e in events.read(kinds=["stage"]) if e.get("change") == "feat"]
-        self.assertEqual((ev[0]["from"], ev[0]["to"]), ("dev", "ready"))
-        self.assertEqual(events.read(kinds=["check"])[0]["result"], "FAIL")
-        self.assertIn(("spawn", "feat", "server-dev", "dev"), self.calls)   # the next dev fixes exactly those items
+        self.assertEqual(ch.hold, "decision")
+        self.assertIn("needs you", ch.hold_reason)
+        self.assertTrue(any("decision hold" in a for a in acts))
+        tick.tick(FakeObserver(tips={("fork", "content/feat"): SHA}))   # durable: no second run on a later tick
+        self.assertEqual([c for c in self.calls if c[0] == "spawn"], [])
+        self.assertEqual(drive.work(FakeObserver())["decisions"][0]["change"], "feat")
+
+    def test_a_new_head_or_a_new_finding_set_is_booked(self):
+        ch = H.change("feat", "server", stage="gate", commit=SHA)
+        store.set_hold(ch, "failed", "fix it"); ch["booked"] = {"dev": stages.booking_key(ch, "dev")}
+        ch["commit"] = SHB
+        store.save(ch)
+        tick.tick(FakeObserver(tips={("fork", "content/feat"): SHB}))
+        self.assertIn(("spawn", "feat", "server-dev", "dev"), self.calls)
+
+    def test_qa_is_booked_once_per_commit(self):
+        ch = H.change("feat", "server", stage="gate", commit=SHA)
+        ch["booked"] = {"gate": SHA}
+        store.save(ch)
+        tick.tick(FakeObserver(tips={("fork", "content/feat"): SHA}))
+        self.assertEqual([c for c in self.calls if c[0] == "spawn"], [])
+        self.assertEqual(store.load("feat").hold, "decision")
+
+    def test_unhold_resets_the_booking(self):
+        from hd import cli
+        ch = H.change("feat", "server", stage="gate", commit=SHA)
+        store.set_hold(ch, "decision", "needs you"); ch["booked"] = {"gate": SHA}; store.save(ch)
+        cli.main(["unhold", "feat", "go on"])
+        self.assertIsNone(store.load("feat")["booked"])
+        tick.tick(FakeObserver(tips={("fork", "content/feat"): SHA}))
+        self.assertIn(("spawn", "feat", "server-qa", "gate"), self.calls)
+
+    def test_a_dry_run_holds_nothing(self):
+        ch = H.change("feat", "server", stage="gate", commit=SHA)
+        ch["booked"] = {"gate": SHA}; store.save(ch)
+        acts = tick.tick(FakeObserver(tips={("fork", "content/feat"): SHA}), dry_run=True)
+        self.assertIsNone(store.load("feat").hold)
+        self.assertTrue(any("would hold" in a for a in acts))
+
+
+class FindingsStepTest(unittest.TestCase):
+    """BR-S4: a maintainer finding is filed once, keyed by its id."""
+    def setUp(self):
+        H.sandbox(self)
+        self.calls = stub_modules(self)
+        H.change("feat", "server", stage="review", commit=SHA, upstream_pr=7, review_seen="2026-10-24T00:00:00Z", prio="P2")
+        H.write_gate("feat", SHA)
+        self.pr = {"number": 7, "state": "open", "draft": False, "head": SHA}
+
+    def obs(self, reviews):
+        return FakeObserver(tips={("fork", "content/feat"): SHA}, upstream_prs={7: self.pr}, reviews={7: reviews})
+
+    def finding(self, fid="IC_kwDOabc123", at="2026-10-24T05:00:00Z", **kw):
+        return dict({"id": fid, "author": "maintainer", "body": "please drop the extra test", "at": at, "kind": "comment",
+                     "url": "https://github.com/OpenRune/OpenRune-Server/pull/7#issuecomment-1"}, **kw)
+
+    def test_filed_once_as_a_review_fix_change_on_the_same_branch(self):
+        acts = tick.tick(self.obs([self.finding()]))
+        (new,) = [c for c in store.all_changes() if c.get("finding")]
+        self.assertEqual((new["finding"], new["branch"], new["upstream_pr"], new["track"], new["prio"]),
+                         ("IC_kwDOabc123", "content/feat", 7, "server", "P0"))
+        self.assertTrue(new.has_dod())
+        self.assertIn("please drop the extra test", new.body)
+        self.assertTrue(any("maintainer finding filed" in a for a in acts))
+        self.assertEqual(events.read(kinds=["finding"])[0]["finding"], "IC_kwDOabc123")
+        tick.tick(self.obs([self.finding()]))
+        self.assertEqual(len([c for c in store.all_changes() if c.get("finding")]), 1)   # keyed by the id: once
+
+    def test_not_findings(self):
+        mine = self.finding("c1", author="AlexPerrin")
+        bot = self.finding("c2", author="github-actions[bot]")
+        approval = self.finding("c3", kind="review:approved")
+        empty = self.finding("c4", body="  ")
+        old = self.finding("c5", at="2026-10-23T00:00:00Z")
+        tick.tick(self.obs([mine, bot, approval, empty, old]))
+        self.assertEqual([c for c in store.all_changes() if c.get("finding")], [])
+
+    def test_the_first_scan_sets_the_baseline(self):
+        ch = store.load("feat"); ch["review_seen"] = None; store.save(ch)
+        tick.tick(self.obs([self.finding()]))
+        self.assertEqual([c for c in store.all_changes() if c.get("finding")], [])
+        self.assertTrue(store.load("feat")["review_seen"])
+
+    def test_a_review_fix_change_does_not_file_findings_itself(self):
+        tick.tick(self.obs([self.finding()]))
+        (new,) = [c for c in store.all_changes() if c.get("finding")]
+        new["stage"] = "review"; new["commit"] = SHB; store.save(new)
+        tick.tick(self.obs([self.finding(), self.finding("IC_2", body="another")]))
+        self.assertEqual(len([c for c in store.all_changes() if c.get("finding")]), 2)   # filed from the parent only
 
 
 class ShipTest(unittest.TestCase):
@@ -193,8 +290,8 @@ class ShipTest(unittest.TestCase):
         self.addCleanup(os.environ.pop, "HD_SHIP_REPO", None)
         self.addCleanup(os.environ.pop, "HD_NO_PUSH", None)
 
-    def test_checked_client_change_merges_into_master(self):
-        H.change("plug", "client", stage="checked", commit=self.sha)
+    def test_handed_over_client_change_merges_into_master(self):
+        H.change("plug", "client", stage="gate", commit=self.sha)
         obs = FakeObserver(tips={("ours", "client/plug"): self.sha}, contains={("ours", "master", self.sha): False})
         acts = tick.tick(obs)
         self.assertTrue(any("merged into master" in a for a in acts), acts)
@@ -205,7 +302,7 @@ class ShipTest(unittest.TestCase):
         self.assertTrue(events.read(kinds=["ship"]))
 
     def test_merge_failure_is_an_exception_hold(self):
-        H.change("plug", "client", stage="checked", commit="f" * 40)
+        H.change("plug", "client", stage="gate", commit="f" * 40)
         obs = FakeObserver(tips={("ours", "client/plug"): "f" * 40}, contains={("ours", "master", "f" * 40): False})
         tick.tick(obs)
         ch = store.load("plug")
@@ -235,11 +332,10 @@ class DispatchTest(unittest.TestCase):
         self.assertIn(("spawn", "c-a", "client-dev", "dev"), self.calls)
         self.assertNotIn("c-a", events.read(kinds=["tick"])[-1]["stalled"])
 
-    def test_gate_executor_for_live_server_change(self):
-        H.change("feat", "server", stage="live", commit=SHA)
-        obs = FakeObserver(tips={("fork", "content/feat"): SHA}, pins={"content/feat": SHA}, live={"integration": "c" * 40},
-                           contains={("fork", "c" * 40, SHA): True}, records=[])
-        tick.tick(obs)
+    def test_qa_is_booked_for_a_handed_over_server_change_before_it_is_live(self):
+        """The aggregate does not wait for the test server."""
+        H.change("feat", "server", stage="gate", commit=SHA)
+        tick.tick(FakeObserver(tips={("fork", "content/feat"): SHA}, pins={}, live={"integration": "c" * 40}))
         self.assertIn(("spawn", "feat", "server-qa", "gate"), self.calls)
 
     def test_no_dod_no_dispatch(self):

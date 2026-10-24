@@ -2,8 +2,8 @@
 """PreToolUse hook (Edit|Write) for the QA companions (client-qa, server-qa): a companion writes its QA records,
 its checklist and its scratch files, never the code it checks (docs/ARCHITECTURE.md, Hooks).
 
-Records live in qa/ of this repo (client), qa/ of a fork `docs` checkout (server), or openrune/upstream/qa/
-(server, until they move to the fork), so the check is on the path's tail, not on one root.
+Records live in qa/ of this repo (client release records) and in the change's evidence dir re/evidence/<slug>/
+(the server gate record gate.md, gate-ci.json, dumps), so the check is on the path's tail, not on one root.
 """
 import json
 import os
@@ -11,7 +11,8 @@ import re
 import sys
 
 ALLOWED_TAIL = [
-    r"(^|/)qa/[^/]+\.md",           # qa/<slug>.md, qa/client-<version>.md
+    r"(^|/)qa/[^/]+\.md",           # qa/client-<version>.md
+    r"(^|/)re/evidence/.+",         # the gate record and evidence of a server change
     r"(^|/)QA\.md",                 # the server QA checklist
     r"(^|/)docs/qa/.+",             # activity briefs and their evidence
 ]

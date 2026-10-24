@@ -8,12 +8,14 @@ is an event; agents execute one stage and are spawned by the console session; tw
   store     change / lock / run / batch records on disk
   policy    harness/policy.yaml: tracks, roles, resources, limits (BR-P*)
   stages    the lifecycle and each stage's precondition per track (BR-C*, BR-S*)
-  observe   external truth: git refs, fork CI, GitHub PRs, docker, processes (BR-H1)
-  check     the hand-over check (the `checked` precondition)
+  observe   external truth: git refs, docker, the live server, processes (BR-H1)
+  check     the hand-over check, run by `hd handover` (an incomplete hand-over is refused)
+  tracks    the client, harness and server tracks behind one interface (tracks/__init__.py); the server track holds the
+            whole upstream contribution workflow (QA record, approval card, contribution, findings, GitHub)
   leases    the shared-resource locks (BR-R*)
   agents    stage executors booked by the daemon, spawned by the console (BR-G*)
   batches   trains and releases: queue, rebuild, gate, image, deploy (BR-B*)
-  actions   what needs the user's OK, observed from the remotes (BR-A*)
+  actions   what needs the user's OK: the tracks' cards and release batches (BR-A*)
   drive     the console's work list (`hd drive`)
   heal      repairs (BR-H2, BR-H3)
   tick      observe -> advance -> dispatch -> heal -> log

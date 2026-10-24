@@ -1,25 +1,27 @@
 """One driver tick (problem 3f, PROBLEM.md BR-H1..H2), in this order:
 
-  1 observe + reconcile   every change's stage re-derived from git, CI, GitHub, docker and the locks; a record
-                          that disagrees is repaired and logged as `drift`; a branch that moved past its
-                          hand-over re-enters at ready (BR-C2); deps set or clear `blocked` holds (BR-C4)
-  2 reap                  a change at dev with a hand-over gets the check: PASS -> checked,
-                          FAIL -> ready with the failing items (BR-S5)
-  3 ship / train          checked client and harness changes merge into master; checked server changes join the
-                          queue; trains advance (rebuild, gate, image) one step, never blocking
-  4 deploy                a gated image deploys once the daemon holds `live-server` (BR-B3); included changes become live, dependents unblock
-  5 re-pin                upstream main moved: fast-forward, drop merged branches, train (BR-B5)
-  6 gates                 live server changes need the upstream gate; the release rule makes a release batch
-  7 dispatch              ready changes x free slots, by priority (BR-C5); one agent per stage
+  1 observe + reconcile   every change's stage re-derived from the facts each track reads (git, docker, ...); a record
+                          that disagrees is repaired and logged as `drift`; a branch that moved past its hand-over
+                          re-enters at ready and voids the gate (BR-C2); deps set or clear `blocked` holds (BR-C4);
+                          a server change's `live_commit` follows the test server
+  2 ship / train          each track's step for its handed-over changes (client and harness merge into their live
+                          target; server changes the fork has join the train queue); trains advance (rebuild, gate,
+                          image) one step, never blocking
+  3 deploy                a gated image deploys once the daemon holds `live-server` (BR-B3); included changes are on the test server, dependents unblock
+  4 re-pin                upstream main moved: fast-forward, drop merged branches, train (BR-B5)
+  5 gates                 the release rule makes a release batch; a release record sets its step; the release gate agent is booked
+  6 tracks                each track's own once-per-tick work (the server track files maintainer findings: BR-S4)
+  7 dispatch              ready changes and gates x free slots, by priority (BR-C5); a dev or gate is booked only for a
+                          head or finding set not booked before, else a durable decision hold (BR-S9)
   8 heal                  idle locks, lingering agents, dead containers, stuck batches (BR-H2)
-  9 log                  the `tick` event with its actions and the stalled changes
+  9 log                   the `tick` event with its actions and the stalled changes
 
 Every step runs in its own try/except: a failure is an `error` event, the others still run. `dry_run` observes,
 reconciles and reports what it would do without spawning, shipping, training or deploying."""
 import time
 import traceback
 
-from . import actions, agents, batches, check, events, heal, leases, metrics, policy, ship, stages, store
+from . import actions, agents, batches, events, heal, leases, metrics, policy, stages, store, tracks
 from .util import iso
 
 
@@ -51,42 +53,40 @@ def _step(ctx, name, fn):
 
 # --- 1 observe + reconcile ----------------------------------------------------------------------------------------
 
+def _reenter(ctx, slug, ch, moved):
+    """BR-C2: a new commit on the branch with no run owning the change voids the hand-over, the gate and the booking."""
+    events.emit("stage", change=slug, **{"from": ch.stage, "to": "ready"}, commit=moved,
+                why="new commit on the branch: hand over again (BR-C2)")
+    store.set_stage(ch, "ready", f"branch moved to {moved[:9]} past {str(ch['commit'])[:9]}: hand over again (BR-C2)")
+    if ch.hold == "failed":
+        store.clear_hold(ch, "the commit moved: the gate record is void")
+    ch["commit"], ch["owner"], ch["booked"] = None, None, None
+    store.save(ch)
+    ctx.refresh(slug)
+    ctx.act(f"{slug}: branch moved to {moved[:9]}, re-enters at ready")
+
+
 def reconcile(ctx):
     waiting = {}
     for slug, ch in list(ctx.idx.items()):
-        if ch.stage == stages.terminal(ch) and ch.stage != "live":
+        if ch.stage == "merged":
             continue
         stage, why, moved = stages.derive(ch, ctx.obs, ctx.idx)
         waiting[slug] = why
-        if moved and ch.reached("checked") and not ch.get("owner") and not ctx.dry_run:
-            # BR-C2: a new commit on the branch with no run owning the change (a dev's pushes while it works on a
-            # failed-hold fix are expected: its hand-over moves the commit); the handed-over commit stays recorded
-            if ch.stage == "live" or ch.reached("live"):
-                ch["live_commit"] = ch["commit"]
-            events.emit("stage", change=slug, **{"from": ch.stage, "to": "ready"}, commit=moved,
-                        why="new commit on the branch: hand over again (BR-C2)")
-            store.set_stage(ch, "ready", f"branch moved to {moved[:9]} past {str(ch['commit'])[:9]}: hand over again (BR-C2)")
-            ch["commit"] = None
-            ch["owner"] = None
-            store.save(ch)
-            ctx.refresh(slug)
-            ctx.act(f"{slug}: branch moved to {moved[:9]}, re-enters at ready")
+        if moved and ch.reached("gate") and not ch.get("owner") and not ctx.dry_run:
+            _reenter(ctx, slug, ch, moved)
             continue
+        tracks.of(ch).reconcile(ctx, slug, ch)
+        ch = ctx.idx.get(slug, ch)
         if stage != ch.stage:
-            direction = "drift" if store.STAGES.index(stage) < store.STAGES.index(ch.stage) else "stage"
+            direction = "drift" if ch.chain().index(stage) < ch.chain().index(ch.stage) else "stage"
             if ctx.dry_run:
                 ctx.act(f"{slug}: {ch.stage} -> {stage} ({why or 'observed'}) [dry run]")
                 continue
             before = ch.stage
             if stage == "live":
                 ch["live_commit"] = ch["commit"]
-            elif stage == "gated":
-                ch["gated_commit"] = ch["commit"]
-            elif stage == "published":
-                ch["published_commit"] = ch["commit"]
             store.set_stage(ch, stage, "observed" if direction == "stage" else f"drift: {why}")
-            if stage == "gated" and ch.hold == "failed":
-                store.clear_hold(ch, "gate PASS observed")
             store.save(ch)
             events.emit(direction, change=slug, **{"from": before, "to": stage}, commit=ch.get("commit"), why=why)
             ctx.refresh(slug)
@@ -110,74 +110,12 @@ def reconcile(ctx):
             ctx.act(f"{slug}: unblocked")
 
 
-# --- 2 reap (hand-over checks; a run's end is `hd run-end`) --------------------------------------------------------------------------------------------------------
-
-def run_check(ctx, ch):
-    passed, items = check.run(ch, ctx.obs)
-    text = check.render(ch, items)
-    if passed is None:
-        waiting = [t for ok, t in items if ok is None]
-        store.rec_save("checks", ch["slug"], {"text": text, "passed": None})
-        ctx.act(f"{ch['slug']}: check waits ({'; '.join(waiting)})")
-        return None
-    events.emit("check", change=ch["slug"], result="PASS" if passed else "FAIL",
-                items=[t for ok, t in items if ok is False])
-    if passed:
-        if ch.hold == "failed":
-            store.clear_hold(ch, "handed over (BR-S3)")   # a blocked or decision hold is not the dev's to clear
-        store.set_stage(ch, "checked", "hand-over check PASS")
-        ch["owner"] = None
-        ch.pop("check", None)
-        events.emit("stage", change=ch["slug"], **{"from": "dev", "to": "checked"}, commit=ch.get("commit"))
-    else:
-        fails = [t for ok, t in items if ok is False]
-        ch["check"] = fails
-        store.set_stage(ch, "ready", f"hand-over check FAIL ({len(fails)}): the next dev fixes exactly those items")
-        ch["owner"] = None
-        events.emit("stage", change=ch["slug"], **{"from": "dev", "to": "ready"}, why="check FAIL", items=fails)
-    store.save(ch)
-    ctx.refresh(ch["slug"])
-    ctx.act(f"{ch['slug']}: check {'PASS' if passed else 'FAIL'}")
-    store.rec_save("checks", ch["slug"], {"text": text, "passed": passed})
-    return passed
-
-
-def reap(ctx):
-    for slug, ch in list(ctx.idx.items()):
-        if ch.stage != "dev" or not ch.get("commit"):
-            continue
-        if ctx.dry_run:
-            ctx.act(f"{slug}: would run the hand-over check [dry run]")
-            continue
-        run_check(ctx, ch)
-
-
-# --- 3 ship / train ----------------------------------------------------------------------------------------------------
+# --- 2 ship / train ----------------------------------------------------------------------------------------------------
 
 def ship_and_train(ctx):
     for slug, ch in list(ctx.idx.items()):
-        if ch.stage != "checked" or ch.hold:
-            continue
-        if ch.get("track") == "server":
-            if ctx.obs.pin(ch.get("branch")) == ch.get("commit"):
-                continue   # integration already carries this commit (a re-hand-over for a spec or a record): no train
-            if ctx.dry_run:
-                ctx.act(f"{slug}: would join the train queue [dry run]")
-                continue
-            if batches.enqueue(ch):
-                ctx.act(f"{slug}: queued for the next train")
-        else:
-            if ctx.dry_run:
-                ctx.act(f"{slug}: would merge into {policy.live_target(ch.get('track'))} [dry run]")
-                continue
-            ok, msg = ship.merge_to_master(ch)
-            store.add_log(ch, f"ship: {msg}")
-            if not ok:
-                store.set_hold(ch, "exception", f"ship: {msg}")
-                events.emit("hold", change=slug, hold="exception", reason=msg)
-            store.save(ch)
-            ctx.refresh(slug)
-            ctx.act(f"{slug}: {msg}")
+        if ch.get("commit") and ch.reached("gate"):
+            tracks.of(ch).ship(ctx, slug, ch)
     if ctx.dry_run:
         return
     for a in batches.advance(ctx.obs) or []:
@@ -185,7 +123,7 @@ def ship_and_train(ctx):
     ctx.refresh()
 
 
-# --- 4 deploy -----------------------------------------------------------------------------------------------------------
+# --- 3 deploy -----------------------------------------------------------------------------------------------------------
 
 def deploy(ctx):
     b = batches.deploy_ready(ctx.obs)
@@ -203,7 +141,7 @@ def deploy(ctx):
     ctx.act(f"deploy {b['id']}: {msg}")
 
 
-# --- 5 re-pin -------------------------------------------------------------------------------------------------------------
+# --- 4 re-pin -------------------------------------------------------------------------------------------------------------
 
 def repin(ctx):
     sha = batches.repin_due(ctx.obs)
@@ -219,7 +157,7 @@ def repin(ctx):
     ctx.refresh()
 
 
-# --- 6 gates and releases ---------------------------------------------------------------------------------------------------
+# --- 5 gates and releases ---------------------------------------------------------------------------------------------------
 
 def release_record(b):
     """The client release record qa/client-<version>.md in this repo with Verdict PASS at the batch's commit."""
@@ -275,6 +213,13 @@ def gates(ctx):
                 ctx.act(f"client-qa {r.get('name')} -> release {b['id']}")
 
 
+# --- 6 tracks ----------------------------------------------------------------------------------------------------------------
+
+def tracks_step(ctx):
+    for t in tracks.every():
+        t.step(ctx)
+
+
 # --- 7 dispatch -----------------------------------------------------------------------------------------------------------------
 
 def slots_free(role, running):
@@ -302,6 +247,21 @@ def candidates(ctx):
     return [(ch, ex, role) for _, _, ch, ex, role in out]
 
 
+def hold_loop(ctx, ch, ex):
+    """BR-S9: the same head and finding set were already given to a run; a new run would repeat it. A durable
+    `decision` hold puts the change in the user's list (`hd unhold` clears it and resets the booking)."""
+    why = (f"needs you: a {ex} run was already booked for exactly this head ({str(ch.get('commit') or 'none')[:9]}) and "
+           "these findings; booking another would repeat it")
+    if ctx.dry_run:
+        ctx.act(f"{ch['slug']}: would hold ({ex} already booked for these facts) [dry run]")
+        return
+    store.set_hold(ch, "decision", why)
+    store.save(ch)
+    events.emit("hold", change=ch["slug"], hold="decision", reason=why, source="no-loop")
+    ctx.refresh(ch["slug"])
+    ctx.act(f"{ch['slug']}: decision hold ({ex} not re-booked for the same facts)")
+
+
 def dispatch(ctx):
     running = agents.running()
     for b in batches.open_batches("train"):
@@ -322,6 +282,9 @@ def dispatch(ctx):
                     ctx.act(f"integrator {r.get('name')} for {b['id']}")
     cap = int(policy.get()["agents"].get("max_concurrent", 0) or 0)
     for ch, ex, role in candidates(ctx):
+        if stages.would_loop(ch, ex):
+            hold_loop(ctx, ch, ex)
+            continue
         if (cap and len(running) >= cap) or slots_free(role, running) <= 0:
             ctx.stalled.append(ch["slug"])
             continue
@@ -359,13 +322,12 @@ def heal_step(ctx):
 
 def tick(obs=None, dry_run=False, interval=60):
     if obs is None:
-        from .observe import Observer
-        obs = Observer()
+        obs = tracks.Observer()
     obs.reset()
     t0 = time.time()
     ctx = Ctx(obs, dry_run)
-    for name, fn in (("reconcile", reconcile), ("reap", reap), ("ship", ship_and_train), ("deploy", deploy),
-                     ("repin", repin), ("gates", gates), ("dispatch", dispatch),
+    for name, fn in (("reconcile", reconcile), ("ship", ship_and_train), ("deploy", deploy),
+                     ("repin", repin), ("gates", gates), ("tracks", tracks_step), ("dispatch", dispatch),
                      ("metrics", metrics_step), ("heal", heal_step)):
         _step(ctx, name, fn)
     secs = round(time.time() - t0, 1)

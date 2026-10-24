@@ -101,7 +101,7 @@ def render(w):
         for a in w["actions"]:
             out.append(actions.render(a))
     if w["decisions"]:
-        out.append("== Decisions for the user")
+        out.append("== Needs you (decision holds)")
         for d in w["decisions"]:
             out.append(f"  {d['change']}: {d['question']}\n    clear: {d['clear']}")
     if w["exceptions"]:

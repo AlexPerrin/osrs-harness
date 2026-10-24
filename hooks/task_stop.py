@@ -5,7 +5,7 @@ its result is not on disk. The change slug and the agent's name come from its br
 
   dev   : the change is still at `dev` with this agent as owner and no hand-over (no commit) and no hold
           -> `hd handover|block|fail`
-  gate  : no `gate PASS|FAIL` line by this agent in the change's log -> push the record, then `hd gate <slug> PASS|FAIL`
+  gate  : no `QA aggregate PASS|FAIL at <commit>` line in the change's log -> write gate.md, then `hd gate <slug> PASS|FAIL`
   train : the batch is still at `exception` without a resolution -> `hd resolve <batch> "note"`
 """
 import json
@@ -62,14 +62,15 @@ def main():
         return
     ch = store.load(slug)
     if stage == "gate":
-        if not any(re.search(rf"gate (PASS|FAIL) .*{re.escape(name or '')}", m) for _, m in ch.log_lines()):
-            block(f"Change {slug}: your gate verdict is not on disk. Push the record to the fork's docs branch, then "
-                  f"`{HD} gate {slug} PASS` or `{HD} gate {slug} FAIL \"what must change\"`.")
+        at = str(ch.get("commit") or "")[:9]
+        if not any(re.search(rf"QA aggregate (PASS|FAIL) at {re.escape(at)}", m) for _, m in ch.log_lines()):
+            block(f"Change {slug}: your aggregate is not on disk. Write gate.md in the evidence dir (every finding), then "
+                  f"`{HD} gate {slug} PASS` or `{HD} gate {slug} FAIL \"summary\"`; `hd gate` checks the record.")
         return
     if ch.stage == "dev" and ch.get("owner") == name and not ch.get("commit") and not ch.hold:
         block(f"Change {slug} is still at dev without a hand-over. Put the result on disk: tick the definition of done, then "
               f"`{HD} handover {slug} --branch <b> --commit <sha> --evidence re/evidence/{slug} --summary \"...\"` "
-              f"(--pr/--ci/--repo for a server change), or `{HD} block {slug} --by <other-slug> \"why\"`, or "
+              f"(--repo <your clone> for a server change; the hand-over runs its check and refuses an incomplete one), or `{HD} block {slug} --by <other-slug> \"why\"`, or "
               f"`{HD} fail {slug} \"why\"`.")
 
 

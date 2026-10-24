@@ -4,6 +4,9 @@
 - Our repos (AlexPerrin/osrs-plugins-reverse, AlexPerrin/OpenRune-Server): approved without a prompt.
 - Upstream (OpenRune/*) and anything whose target can't be told: the user is asked.
 - A push or branch deletion on the fork whose branch has an open upstream PR changes that PR: asked.
+- `hd contribute <slug> --approved <sha>`: the one sequence of upstream writes the user's yes in chat covers; it runs
+  without a second prompt, and publish_gate.py checks the gate PASS and that the yes names the change's commit.
+- Fork actions never prompt: gate scratch branches (`gate/*`), fork CI (`gh workflow run` on the fork), fork PRs.
 
 Writes recognised: `gh pr|issue|release|repo fork|gist` write subcommands, `gh api` with a write method or
 fields, `git push`, `tools/fork.sh`, `tools/release-dev.sh`, `open-batch-*.sh` (archived).
@@ -18,7 +21,9 @@ import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import hdpaths  # noqa: E402,F401
 import shellparse as sp  # noqa: E402
+from hd.tracks.server import hooks as server_hooks  # noqa: E402
 
 ROOT = os.environ.get("CLAUDE_PROJECT_DIR") or os.environ.get("HD_CLIENT_ROOT") or os.path.expanduser("~/osrs-plugins-reverse")
 OURS = {"alexperrin/osrs-plugins-reverse", "alexperrin/openrune-server", "alexperrin/osrs-harness"}
@@ -31,6 +36,7 @@ GH_WRITES = {
     "repo": {"fork", "create", "delete", "edit", "rename", "archive", "sync"},
     "gist": {"create", "edit", "delete", "clone"},
     "label": {"create", "edit", "delete", "clone"},
+    "workflow": {"run", "enable", "disable"},
 }
 READ_ONLY = {"cd", "echo", "printf", "true", "tail", "head", "grep", "wc", "cat", "sort", "cut", "tr"}
 GIT_READ = {"fetch", "log", "status", "rev-parse", "show", "ls-remote", "diff", "branch", "remote", "merge-base", "cherry"}
@@ -74,6 +80,8 @@ def classify(seg, cwd):
         return "read", ""
     if cmd in ("gh", "git") and any(t in ("--help", "-h") for t in w[1:]) or w[:2] == ["gh", "help"]:
         return "read", ""   # help text only, nothing is sent
+    if server_hooks.is_contribute(w):
+        return "ours", "hd contribute (bound to the approved commit; publish_gate.py verifies)"
     if cmd == "release-dev.sh" or w[0].endswith("tools/release-dev.sh"):
         return "ours", "dev release of osrs-plugins-reverse"
     if re.search(r"open-batch-[^/]*\.sh$", w[0]):
@@ -154,7 +162,7 @@ def main():
     if data.get("tool_name") != "Bash":
         return
     command = data.get("tool_input", {}).get("command", "")
-    if not re.search(r"\bgh\b|\bgit\b[^|;&]*\bpush\b|fork\.sh|release-dev\.sh|open-batch-", command):
+    if not re.search(r"\bgh\b|\bgit\b[^|;&]*\bpush\b|fork\.sh|release-dev\.sh|open-batch-|hd\.py\s+contribute", command):
         return
     cwd = data.get("cwd") or ROOT
     # Heredoc bodies are data (scripts, file contents), not commands: drop them before splitting.

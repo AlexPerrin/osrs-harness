@@ -1,10 +1,11 @@
-"""External truth (BR-H1), read fresh each tick and memoised for the tick: git refs in the two clones, fork CI, PR
-state on the fork and upstream, docker images and containers, the live server, processes. Everything the stage
-preconditions and the checks need goes through one `Observer`, so a test replaces it with `FakeObserver`.
+"""External truth (BR-H1), read fresh each tick and memoised for the tick: git refs in the clones, docker images and
+containers, the live server, processes. Everything the stage preconditions and the checks need goes through one
+observer, so a test replaces it with a fake. The core constructs `hd.tracks.Observer` / `FakeObserver`: these classes
+plus each track's observation mixin (GitHub: hd/tracks/server/github.py).
 
-Repos: `ours` = this checkout (master); `fork` = the push clone's `fork` remote (AlexPerrin/OpenRune-Server);
-`upstream` = the push clone's `origin` remote (OpenRune/OpenRune-Server). `fetch()` refreshes the remotes once per
-tick; HD_NO_FETCH=1 skips network (tests, offline)."""
+Repos: `ours` = this checkout (master); `fork` = the push clone's `fork` remote; `upstream` = the push clone's
+`origin` remote; an absolute path = a dev's clone. `fetch()` refreshes the remotes once per tick; HD_NO_FETCH=1 skips
+network (tests, offline)."""
 import glob
 import json
 import os
@@ -21,33 +22,6 @@ def _run(args, cwd=None, timeout=60):
         return subprocess.run(args, cwd=cwd, capture_output=True, text=True, timeout=timeout)
     except (OSError, subprocess.TimeoutExpired):
         return None
-
-
-REQUIRED_UPSTREAM_CHECKS = ("build", "gameval")
-
-
-def rollup_state(checks):
-    """Fold a gh statusCheckRollup (check runs: status/conclusion/name; statuses: state/context) to
-    'success' | 'failure' | 'pending' | 'none'."""
-    seen, states = [], []
-    checks = [c for c in checks if "advisory" not in (c.get("name") or c.get("context") or "").lower()]
-    for c in checks:
-        name = (c.get("name") or c.get("context") or "").lower()
-        concl = str(c.get("conclusion") or c.get("state") or "").upper()
-        if c.get("status") not in (None, "COMPLETED") or concl in ("", "PENDING", "EXPECTED"):
-            states.append("pending")
-        elif concl in ("SUCCESS", "NEUTRAL", "SKIPPED"):
-            states.append("success")
-        else:
-            states.append("failure")
-        seen.append(name)
-    if not checks:
-        return "none"
-    if "failure" in states:
-        return "failure"
-    if "pending" in states or not all(any(r in n for n in seen) for r in REQUIRED_UPSTREAM_CHECKS):
-        return "pending"
-    return "success"
 
 
 class Observer:
@@ -86,10 +60,12 @@ class Observer:
     def _repo(self, repo):
         if repo == "harness":
             return HD_HOME
+        if os.path.isabs(str(repo)):
+            return repo   # a dev's clone (a change's `repo`)
         return self.ours if repo == "ours" else self.clone
 
     def _ref(self, repo, name):
-        if repo in ("ours", "harness"):
+        if repo in ("ours", "harness") or os.path.isabs(str(repo)):
             return f"refs/heads/{name}"
         if repo == "fork":
             return f"refs/remotes/{self.fork_remote}/{name}"
@@ -108,9 +84,6 @@ class Observer:
     def upstream_main(self):
         self.fetch()
         return self.rev("upstream", self._ref("upstream", "main"))
-
-    def commit_exists(self, repo, sha):
-        return self.rev(repo, sha) is not None
 
     def contains(self, repo, ref, sha):
         """ref (a branch name for ours/fork/upstream, or a sha) contains sha; None when either is unknown."""
@@ -131,10 +104,6 @@ class Observer:
             return r.stdout.strip() if r and r.returncode == 0 else None
         return self._m(("mb", repo, a, b), f)
 
-    def count_commits(self, repo, base, sha):
-        r = _run(["git", "-C", self._repo(repo), "rev-list", "--count", f"{base}..{sha}"])
-        return int(r.stdout.strip()) if r and r.returncode == 0 and r.stdout.strip().isdigit() else None
-
     def changed_files(self, repo, base, sha):
         r = _run(["git", "-C", self._repo(repo), "diff", "--name-only", base, sha])
         return r.stdout.split() if r and r.returncode == 0 else None
@@ -153,23 +122,6 @@ class Observer:
             if t is not None:
                 return t
         return None
-
-    def docs_records(self):
-        """[(name, text)] for every qa/*.md on the fork's docs branch; None when the branch can't be read."""
-        def f():
-            ref = self._ref("fork", self.docs_branch)
-            r = _run(["git", "-C", self.clone, "ls-tree", "--name-only", ref, "qa/"])
-            if not r or r.returncode != 0:
-                return None
-            out = []
-            for name in r.stdout.split():
-                if name.endswith(".md"):
-                    t = self.show("fork", ref, name)
-                    if t:
-                        out.append((name, t))
-            return out
-        self.fetch()
-        return self._m(("docs_records",), f)
 
     def pin(self, branch):
         """The integration pin of a branch (integration.lock on the fork's local/integration-tools)."""
@@ -197,78 +149,6 @@ class Observer:
         except ValueError:
             return None
 
-    def fork_ci(self, branch, sha):
-        """'success' | 'failure' | 'pending' | 'none' (no run at the sha) | None (gh failed)."""
-        def f():
-            runs = self._gh_json(["run", "list", "-R", self.fork_repo, "--branch", branch, "--limit", "20", "--json",
-                                  "headSha,conclusion,status,workflowName,url"])
-            if runs is None:
-                return None
-            at = [r for r in runs if r.get("headSha") == sha and r.get("workflowName") == "CI"]
-            if not at:
-                return "none"
-            c = at[0].get("conclusion")
-            if c == "success":
-                return "success"
-            if c in ("failure", "cancelled", "timed_out", "startup_failure"):
-                return "failure"
-            return "pending"
-        return self._m(("ci", branch, sha), f)
-
-    def upstream_ci(self, number, sha):
-        """The upstream PR's checks at its head `sha`: 'success' | 'failure' | 'pending' | 'none' (PR head is not `sha`,
-        or no checks yet) | None (gh failed). Success needs every check green, with build & boot and gameval-conflicts
-        among them (REQUIRED_UPSTREAM_CHECKS)."""
-        def f():
-            p = self._gh_json(["pr", "view", str(number), "-R", self.upstream_repo, "--json", "headRefOid,statusCheckRollup"])
-            if p is None:
-                return None
-            if p.get("headRefOid") != sha:
-                return "none"
-            return rollup_state(p.get("statusCheckRollup") or [])
-        return self._m(("upstream_ci", str(number), sha), f)
-
-    def fork_pr(self, branch):
-        def f():
-            prs = self._gh_json(["pr", "list", "-R", self.fork_repo, "--head", branch, "--state", "all", "--limit", "5",
-                                 "--json", "number,url,state,isDraft,headRefOid"])
-            if prs is None:
-                return None
-            open_ = [p for p in prs if p.get("state") == "OPEN"] or prs
-            if not open_:
-                return {}
-            p = open_[0]
-            return {"number": p["number"], "url": p.get("url"), "state": p.get("state", "").lower(),
-                    "draft": p.get("isDraft"), "head": p.get("headRefOid")}
-        return self._m(("fork_pr", branch), f)
-
-    def upstream_pr(self, number_or_branch):
-        """{number, url, state (open|closed), draft, head, merged, title} or {} when none, None when gh failed."""
-        def f():
-            if isinstance(number_or_branch, int) or str(number_or_branch).isdigit():
-                p = self._gh_json(["pr", "view", str(number_or_branch), "-R", self.upstream_repo, "--json",
-                                   "number,url,state,isDraft,headRefOid,mergedAt,title,headRefName"])
-                if p is None:
-                    return None
-                prs = [p]
-            else:
-                # gh's --head takes a bare branch name (an `owner:branch` form finds nothing): filter on the fork owner here
-                owner = self.fork_repo.split("/")[0]
-                prs = self._gh_json(["pr", "list", "-R", self.upstream_repo, "--head", str(number_or_branch),
-                                     "--state", "all", "--limit", "10", "--json",
-                                     "number,url,state,isDraft,headRefOid,mergedAt,title,headRefName,headRepositoryOwner"])
-                if prs is not None:
-                    prs = [p for p in prs if (p.get("headRepositoryOwner") or {}).get("login") == owner]
-                if prs is None:
-                    return None
-                prs = [p for p in prs if p.get("state") == "OPEN"] or [p for p in prs if p.get("mergedAt")] or prs
-            if not prs:
-                return {}
-            p = prs[0]
-            return {"number": p["number"], "url": p.get("url"), "state": str(p.get("state", "")).lower(),
-                    "draft": bool(p.get("isDraft")), "head": p.get("headRefOid"), "merged": bool(p.get("mergedAt")),
-                    "title": p.get("title"), "branch": p.get("headRefName")}
-        return self._m(("upstream_pr", str(number_or_branch)), f)
 
     def release(self, tag):
         """{tag, url} of the GitHub release for `tag` in our repo, {} when none, None when gh failed."""
@@ -285,21 +165,6 @@ class Observer:
             return {"tag": d.get("tagName"), "url": d.get("url")} if d else {}
         return self._m(("release", tag), f)
 
-    def upstream_pr_reviews(self, number):
-        """Review comments and reviews on an upstream PR, newest last: [{author, body, at, kind}]."""
-        def f():
-            p = self._gh_json(["pr", "view", str(number), "-R", self.upstream_repo, "--json", "comments,reviews"])
-            if p is None:
-                return None
-            out = []
-            for c in p.get("comments") or []:
-                out.append({"author": (c.get("author") or {}).get("login"), "body": c.get("body", ""),
-                            "at": c.get("createdAt"), "kind": "comment"})
-            for r in p.get("reviews") or []:
-                out.append({"author": (r.get("author") or {}).get("login"), "body": r.get("body", ""),
-                            "at": r.get("submittedAt"), "kind": f"review:{str(r.get('state', '')).lower()}"})
-            return sorted(out, key=lambda x: x.get("at") or "")
-        return self._m(("reviews", number), f)
 
     # --- docker and the live server ---------------------------------------------------------------------------------
 
@@ -366,9 +231,9 @@ class Observer:
 
 class FakeObserver(Observer):
     """Tests: answers from dicts. facts keys: tips {(repo, branch): sha}, contains {(repo, ref, sha): bool},
-    ci {(branch, sha): str}, fork_prs {branch: dict}, upstream_prs {key: dict}, records [(name, text)], pins
-    {branch: sha}, live {...}, evidence {dir: [names]}, files {path: text}, alive {pid: bool}, upstream_main sha,
-    changed {(base, sha): [paths]}, docs {path: text}, images {tag: id}, containers {name: dict}, reviews {n: [...]}."""
+    pins {branch: sha}, live {...}, evidence {dir: [names]}, files {path: text}, alive {pid: bool}, upstream_main sha,
+    changed {(base, sha): [paths]}, docs {path: text}, images {tag: id}, containers {name: dict}; a track's mixin adds
+    its own (hd/tracks/server/github.py)."""
 
     def __init__(self, **facts):
         self.f = facts
@@ -389,17 +254,11 @@ class FakeObserver(Observer):
     def upstream_main(self):
         return self.f.get("upstream_main")
 
-    def commit_exists(self, repo, sha):
-        return sha in self.f.get("commits", set()) or any(v == sha for v in self.f.get("tips", {}).values())
-
     def contains(self, repo, ref, sha):
         return self.f.get("contains", {}).get((repo, ref, sha))
 
     def merge_base(self, repo, a, b):
         return self.f.get("merge_base", {}).get((repo, a, b), "base000")
-
-    def count_commits(self, repo, base, sha):
-        return self.f.get("count", {}).get((base, sha), 1)
 
     def changed_files(self, repo, base, sha):
         return self.f.get("changed", {}).get((base, sha), ["src/x.kt"])
@@ -410,33 +269,14 @@ class FakeObserver(Observer):
     def docs_file(self, path_):
         return self.f.get("docs", {}).get(path_)
 
-    def docs_records(self):
-        return self.f.get("records")
-
     def pin(self, branch):
         return self.f.get("pins", {}).get(branch)
 
     def integration_list(self):
         return self.f.get("integration_list", list(self.f.get("pins", {})))
 
-    def fork_ci(self, branch, sha):
-        return self.f.get("ci", {}).get((branch, sha), "none")
-
-    def upstream_ci(self, number, sha):
-        return self.f.get("upstream_ci", {}).get((number, sha), "none")
-
-    def fork_pr(self, branch):
-        return self.f.get("fork_prs", {}).get(branch, {})
-
-    def upstream_pr(self, key):
-        u = self.f.get("upstream_prs", {})
-        return u.get(key, u.get(str(key), {}))
-
     def release(self, tag):
         return self.f.get("releases", {}).get(tag, {})
-
-    def upstream_pr_reviews(self, number):
-        return self.f.get("reviews", {}).get(number, [])
 
     def live(self):
         return self.f.get("live", store.live())

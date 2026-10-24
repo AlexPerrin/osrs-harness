@@ -1,19 +1,17 @@
-"""Actions that need the user's OK (v4). Upstream actions on an OpenRune PR and client releases are given in chat in
-the console session; nothing is recorded about them. This module computes, from git and GitHub state alone, what each
-gated change or gated release batch needs next, with the exact commands and the text files the commands read.
-Completion is observed (the PR exists at the commit, the release exists), never written down: when the world has
-moved the action is gone from the list. There is no approved, denied, stale or failed state.
+"""Actions that need the user's OK (BR-A1): a track's upstream items and a client release. Given in chat by the console;
+nothing is recorded about them. The core collects the cards: each track's `needs_you(change, obs, idx)` (the server
+track's approval card and its siblings, hd/tracks/server/cards.py) and the release batches below. Completion is
+observed (the work is visible in the world), never written down: when the world has moved the card is gone from the
+list. There is no approved, denied, stale or failed state.
 
-  pending_actions(obs=None, idx=None)   [action]; each action is
-      {id, kind: upstream|release, action: open-pr|update-pr|ready-pr|tag-release|choose-tag,
-       change, batch, commit, commands: [[argv]...], files: [path...], text: {title, body, comment},
-       record (the gate record name), diff ("base..head"), caveats, note}
-      A gated server change (stage `gated`, branch and commit) needs: open-pr when no upstream PR exists, ready-pr
-      when the PR is a draft at the commit, update-pr (push the commit, then comment) when the PR head is behind it;
-      nothing when the PR is at the commit, closed or merged, or gh cannot be read. PR text comes from the fork's docs
-      branch (pr-texts/<slug>.title, .upstream.body, .update.md). A gated release batch needs tag-release (one
-      `gh release create <tag> --target <commit>` with the APK) once it has a tag, else choose-tag.
-  render(action)                        the action as text, commands quoted for a shell
+  pending_actions(obs=None, idx=None)   [card]; each card is
+      {id, kind: upstream|release, action, change, batch, commit, commands: [[argv]...], files: [path...],
+       text: {title, body, comment}, record, verdict, checks, findings, diff ("base..head"), steps ([(step, done, why)]),
+       caveats, note}
+      tag-release a gated release batch with a tag: one `gh release create <tag> --target <commit>` with the APK;
+                  choose-tag when it has none (the user picks, `hd release-request vX.Y.Z`).
+  text_file(id, part, text)             write a text file a card's command reads
+  render(card)                          the card as text, commands quoted for a shell
   release_published(batch, obs)         True when the release for the batch's tag exists on GitHub (observed)
 
 Text files the commands read are written to `harness/state/actions/<id>.<part>.md` when the list is computed.
@@ -22,17 +20,14 @@ HD_GIT / HD_GH are not read here: the console runs the printed commands itself, 
 import os
 import re
 
-from . import ROOT, batches, policy, stages, state_dir, store
-from .util import short
-
-PR_URL = re.compile(r"/pull/(\d+)")
+from . import batches, policy, state_dir, store, tracks
 
 
 def _dir():
     return os.path.join(state_dir(), "actions")
 
 
-def _text_file(aid, part, text):
+def text_file(aid, part, text):
     p = os.path.join(_dir(), f"{aid}.{part}.md")
     os.makedirs(_dir(), exist_ok=True)
     with open(p, "w") as f:
@@ -40,77 +35,7 @@ def _text_file(aid, part, text):
     return p
 
 
-def _pr_slug(ch):
-    """The docs-branch name of the change's PR text: the branch after its prefix (BR-C1)."""
-    b = ch.get("branch") or ""
-    return b.split("/", 1)[1] if "/" in b else ch["slug"]
-
-
-def _caveats(body):
-    out, inside = [], False
-    for line in (body or "").splitlines():
-        if line.startswith("## "):
-            inside = line.strip().lower() == "## caveats"
-        elif inside and line.startswith("- "):
-            out.append(line[2:].strip())
-    return out
-
-
-def _head_at(pr, commit):
-    head = str(pr.get("head") or "")
-    return bool(head) and (head.startswith(commit) or commit.startswith(head))
-
-
-def needed(pr, commit):
-    """What a gated change needs from its upstream PR state, or None (nothing: done, closed, or unreadable)."""
-    if pr is None:
-        return None
-    if not pr:
-        return "open-pr"
-    if pr.get("merged") or pr.get("state") != "open":
-        return None
-    if _head_at(pr, commit):
-        return "ready-pr" if pr.get("draft") else None
-    return "update-pr"
-
-
-def _upstream(ch, obs):
-    if ch.stage != "gated" or not (ch.get("branch") and ch.get("commit")):
-        return None
-    branch, commit = ch["branch"], ch["commit"]
-    pr = obs.upstream_pr(ch.get("upstream_pr") or branch)
-    action = needed(pr, commit)
-    if action is None:
-        return None
-    aid = f"{ch['slug']}-{action}-{short(commit, 7)}"
-    rp = policy.repos()
-    upstream, clone = rp["upstream"], os.path.join(ROOT, rp.get("fork_clone", "re/upstream-pr/or"))
-    slug = _pr_slug(ch)
-    title = obs.docs_file(f"pr-texts/{slug}.title")
-    body = obs.docs_file(f"pr-texts/{slug}.upstream.body")
-    text, commands, files, note = {"title": (title or "").strip(), "body": body or ""}, [], [], None
-    if action == "open-pr":
-        if title and body:
-            f = _text_file(aid, "body", body)
-            files.append(f)
-            commands = [["gh", "pr", "create", "-R", upstream, "--base", "main", "--head", f"AlexPerrin:{branch}",
-                         "--title", text["title"], "--body-file", f]]
-        else:
-            note = f"PR text missing on docs: pr-texts/{slug}.*"
-    elif action == "ready-pr":
-        commands = [["gh", "pr", "ready", str(pr["number"]), "-R", upstream]]
-    else:
-        comment = obs.docs_file(f"pr-texts/{slug}.update.md") or f"Updated to {commit}: {ch.get('summary') or ''}".rstrip()
-        text["comment"] = comment
-        f = _text_file(aid, "comment", comment)
-        files.append(f)
-        commands = [["git", "-C", clone, "push", rp.get("fork_remote", "fork"), f"{commit}:refs/heads/{branch}"],
-                    ["gh", "pr", "comment", str(pr["number"]), "-R", upstream, "--body-file", f]]
-    mb = obs.merge_base("fork", f"refs/remotes/{rp.get('upstream_remote', 'origin')}/main", commit)
-    rec = stages.gate_record(obs.docs_records(), branch, commit)
-    return {"id": aid, "kind": "upstream", "action": action, "change": ch["slug"], "batch": None, "commit": commit,
-            "commands": commands, "files": files, "text": text, "record": rec[0] if rec else None,
-            "diff": f"{mb}..{commit}" if mb else None, "caveats": _caveats(body), "note": note}
+_text_file = text_file
 
 
 def release_tag(batch):
@@ -147,14 +72,11 @@ def _release(batch, obs):
 
 def pending_actions(obs=None, idx=None):
     if obs is None:
-        from .observe import Observer
-        obs = Observer()
+        obs = tracks.Observer()
     idx = store.index() if idx is None else idx
     out = []
     for ch in idx.values():
-        a = _upstream(ch, obs)
-        if a:
-            out.append(a)
+        out += tracks.of(ch).needs_you(ch, obs, idx)
     for b in batches.open_batches("release"):
         if b.get("step") == "gated" and not release_published(b, obs):
             out.append(_release(b, obs))
@@ -173,7 +95,13 @@ def render(a):
     for cmd in a.get("commands") or []:
         lines.append("  $ " + " ".join(quote(w) for w in cmd))
     if a.get("record"):
-        lines.append(f"  gate record: {a['record']}")
+        lines.append(f"  record: {a['record']}")
+    for c in a.get("checks") or []:
+        lines.append(f"  check: {c}")
+    for f in a.get("findings") or []:
+        lines.append(f"  finding: {f}")
+    for n, d, w in a.get("steps") or []:
+        lines.append(f"  step {n}: {'done' if d else 'pending' if d is False else 'unknown'} ({w})")
     if a.get("diff"):
         lines.append(f"  diff: {a['diff']}")
     for c in a.get("caveats") or []:

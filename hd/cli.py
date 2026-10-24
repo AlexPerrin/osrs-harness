@@ -4,11 +4,11 @@ Changes
   new --track t --slug s --title "..." [--prio P2] [--dod "item"]... [--deps a,b] [--branch b] [--spec n] [--network]
       [--local-only] [--backlog] [--text "..."] [--server-dod]
   list [--track t] [--stage s] [--all]      show <slug>      log <slug> "msg"      lint
-  handover <slug> --branch b --commit sha [--evidence dir] [--summary "..."] [--pr url] [--ci url] [--repo dir]
-      [--partial]                         the dev's hand-over; the next tick runs the check (BR-S5)
+  handover <slug> --branch b --commit sha [--evidence dir] [--summary "..."] [--repo dir]
+                                          the dev's hand-over: runs the check now and refuses an incomplete one
   block <slug> --by <other> ["why"]       a dep edge + a blocked hold (BR-C4)
   fail <slug> "why"                       an agent that cannot finish: a decision hold
-  gate <slug> PASS|FAIL ["note"]          the QA companion's verdict after pushing the record
+  gate <slug> PASS|FAIL ["note"]          the track's verifier record (server: QA's aggregate, checked against the commit)
   hold <slug> blocked|decision|failed|exception "reason"   an operator's hold (never a stage: BR-S2);  unhold <slug>
   resolve <batch> "note" [--decision]     the integrator recorded a resolution and the train resumes; --decision: nothing
                                           recorded, the user decides (no resume)
@@ -19,6 +19,9 @@ Changes
   run-link <name> <agent-id>              the console: the Agent-tool id of a spawned run
   run-end <name> [--exit ok] [--turns n] [--tokens n] [--minutes m]   the console: the run ended
   run-stopped <name>                      the console: the stopped run's agent was TaskStopped
+Track commands (hd/tracks, each track registers its own; server: gate-ci, contribute)
+  gate-ci <slug> [--no-wait]              the server gate's build evidence (scratch merge + fork CI)
+  contribute <slug> --approved <sha> [--no-wait]   the atomic upstream sequence after the user's yes (resumable)
 Console
   drive [--json]                          the console's work list: spawns, stops, user OKs, decisions, exceptions
   actions [--json]                        upstream actions and releases that need the user's OK (observed, never recorded)
@@ -38,7 +41,7 @@ import os
 import subprocess
 import sys
 
-from . import ROOT, events, leases, policy, store
+from . import ROOT, events, leases, policy, store, tracks
 from .util import iso, local, slug_ok
 
 T = "    "
@@ -50,14 +53,6 @@ def _load(slug):
     return store.load(slug)
 
 
-def _server_dod(spec):
-    return [f"accuracy/{spec}.md on the fork's docs branch (accuracy-check: sources, RSProx comparison, caveats)",
-            "change built and checked in game on the branch server (evidence in re/evidence/<slug>/)",
-            "one change only, branch off upstream main (no stacking)",
-            "fork PR open with green CI at the handed-over commit",
-            "PR text reviewed (pr-text-review)"]
-
-
 def cmd_new(a):
     dod = list(a.dod or [])
     spec = a.spec
@@ -65,7 +60,7 @@ def cmd_new(a):
         if a.track != "server":
             sys.exit("hd: --server-dod is for --track server")
         spec = spec or (a.branch.split("/", 1)[-1] if a.branch else a.slug)
-        dod = _server_dod(spec) + dod
+        dod = tracks.get("server").default_dod(spec) + dod
     branch = a.branch
     if not branch and a.track == "client":
         branch = f"client/{a.slug}"
@@ -131,32 +126,36 @@ def cmd_note(a):
 
 
 def cmd_handover(a):
+    """Record a hand-over only when its check passes: the items it prints are the dev's to fix in the same run."""
+    from . import check
     ch = _load(a.slug)
-    repo = a.repo or ROOT
+    repo = a.repo or tracks.of(ch).default_repo()
     r = subprocess.run(["git", "-C", repo, "rev-parse", "--verify", "-q", a.commit + "^{commit}"], capture_output=True, text=True)
     sha = r.stdout.strip()
     if not sha:
         sys.exit(f"hd: commit {a.commit} not found in {repo} (use --repo <clone>)")
-    unticked = ch.dod_unticked()
-    if unticked and not a.partial:
-        sys.exit("hd: the definition of done still has unticked items (tick them with [x], or --partial and say what is "
-                 "left in --summary):\n" + "\n".join(unticked))
-    ch.update(branch=a.branch, commit=sha)
+    trial = store.Change(dict(ch), ch.body)
+    trial.update(branch=a.branch, commit=sha)
     if a.evidence:
-        ch["evidence"] = a.evidence
+        trial["evidence"] = a.evidence
+    if tracks.of(ch).records_repo and a.repo:
+        trial["repo"] = os.path.realpath(a.repo)
+    passed, items = check.run(trial, _obs())
+    events.emit("check", change=ch["slug"], result="PASS" if passed else "FAIL", items=[t for ok, t in items if not ok])
+    if not passed:
+        sys.exit("hd: hand-over refused, nothing recorded; fix these and run it again\n" + check.render(trial, items))
+    ch.update({k: trial[k] for k in ("branch", "commit", "evidence", "repo") if k in trial})
     if a.summary:
         ch["summary"] = a.summary
-    if a.pr:
-        ch["pr"] = a.pr
-    if a.ci:
-        ch["ci"] = a.ci
-    if ch.stage != "dev":
-        store.set_stage(ch, "dev", "hand-over recorded")
-    store.clear_hold(ch, "handed over (BR-S3)")
+    before = ch.stage
+    store.set_stage(ch, "gate", "hand-over recorded")
+    if ch.hold == "failed":
+        store.clear_hold(ch, "handed over (BR-S3)")   # a blocked or decision hold is not the dev's to clear
     store.add_log(ch, f"handover {a.branch}@{sha[:9]}: {a.summary or ''}")
     store.save(ch)
     events.emit("handover", change=ch["slug"], branch=a.branch, commit=sha, owner=ch.get("owner"))
-    print(f"{ch['slug']}: hand-over recorded; the next tick runs the check")
+    events.emit("stage", change=ch["slug"], **{"from": before, "to": "gate"}, commit=sha, why="hand-over")
+    print(f"{ch['slug']}: handed over at {sha[:9]}; the {'gate' if ch['track'] == 'server' else 'merge'} follows")
 
 
 def cmd_block(a):
@@ -164,7 +163,7 @@ def cmd_block(a):
     if a.by not in ch["deps"]:
         ch["deps"].append(a.by)
     store.set_hold(ch, "blocked", f"waiting for {a.by}" + (f": {a.why}" if a.why else ""))
-    ch["owner"] = None
+    ch["owner"], ch["booked"] = None, None
     if ch.stage == "dev":
         store.set_stage(ch, "ready", f"blocked by {a.by}")
     store.save(ch)
@@ -198,6 +197,7 @@ def cmd_hold(a):
 def cmd_unhold(a):
     ch = _load(a.slug)
     store.clear_hold(ch, a.why or "cleared by the operator")
+    ch["booked"] = None   # the operator's answer is a new fact: the next run may be booked (BR-S9)
     store.save(ch)
     events.emit("hold", change=ch["slug"], hold="none", reason=a.why, by="operator")
     print(f"{ch['slug']}: hold cleared")
@@ -213,13 +213,7 @@ def cmd_gate(a):
         print(f"{a.slug}: release gate {a.verdict} recorded")
         return
     ch = _load(a.slug)
-    if a.verdict == "FAIL":
-        store.set_hold(ch, "failed", a.note or "upstream gate FAIL (see the record)")
-        events.emit("hold", change=ch["slug"], hold="failed", reason=a.note, source="gate")
-    else:
-        store.add_log(ch, f"gate PASS claimed: {a.note or ''} (the record on docs is what counts)")
-    ch["owner"] = None
-    store.save(ch)
+    tracks.of(ch).record_gate(ch, a.verdict, a.note)
     print(f"{ch['slug']}: gate {a.verdict} recorded")
 
 
@@ -242,8 +236,7 @@ def cmd_resolve(a):
 
 
 def _obs():
-    from .observe import Observer
-    return Observer()
+    return tracks.Observer()
 
 
 def cmd_check(a):
@@ -330,11 +323,11 @@ def cmd_lint(a):
         for d in ch.get("deps") or []:
             if d not in idx:
                 print(f"lint: {ch['slug']}: dep {d} unknown"); bad += 1
-        if ch.stage not in store.STAGES:
+        if ch.stage not in ch.chain():
             print(f"lint: {ch['slug']}: stage {ch.stage}"); bad += 1
         if ch.stage != "backlog" and not ch.has_dod():
             print(f"lint: {ch['slug']}: {ch.stage} without a definition of done"); bad += 1
-        if ch.reached("checked") and not (ch.get("branch") and ch.get("commit")) and not (ch.stage == "live" and ch["track"] != "server"):
+        if ch.reached("gate") and not (ch.get("branch") and ch.get("commit")) and not (ch.stage == "live" and ch["track"] != "server"):
             print(f"lint: {ch['slug']}: {ch.stage} without branch and commit"); bad += 1
         if ch.get("track") == "server" and ch.get("branch") and policy.branch_track(ch["branch"]) is None:
             print(f"lint: {ch['slug']}: branch {ch['branch']} is not content/, fix/ or local/ (BR-C1)"); bad += 1
@@ -497,13 +490,14 @@ def main(argv=None):
     s = sp.add_parser("dod"); s.add_argument("slug"); s.add_argument("numbers", nargs="+", type=int, help="1-based items"); s.set_defaults(f=cmd_dod)
     s = sp.add_parser("note"); s.add_argument("text"); s.add_argument("--kind", default="note"); s.set_defaults(f=cmd_note)
     s = sp.add_parser("handover"); s.add_argument("slug"); s.add_argument("--branch", required=True); s.add_argument("--commit", required=True)
-    s.add_argument("--evidence"); s.add_argument("--summary"); s.add_argument("--pr"); s.add_argument("--ci"); s.add_argument("--repo")
-    s.add_argument("--partial", action="store_true"); s.set_defaults(f=cmd_handover)
+    s.add_argument("--evidence"); s.add_argument("--summary"); s.add_argument("--repo"); s.set_defaults(f=cmd_handover)
     s = sp.add_parser("block"); s.add_argument("slug"); s.add_argument("--by", required=True); s.add_argument("why", nargs="?"); s.set_defaults(f=cmd_block)
     s = sp.add_parser("fail"); s.add_argument("slug"); s.add_argument("why"); s.set_defaults(f=cmd_fail)
     s = sp.add_parser("hold"); s.add_argument("slug"); s.add_argument("kind", choices=["blocked", "decision", "failed", "exception"]); s.add_argument("reason"); s.set_defaults(f=cmd_hold)
     s = sp.add_parser("unhold"); s.add_argument("slug"); s.add_argument("why", nargs="?"); s.set_defaults(f=cmd_unhold)
     s = sp.add_parser("gate"); s.add_argument("slug"); s.add_argument("verdict", choices=["PASS", "FAIL"]); s.add_argument("note", nargs="?"); s.set_defaults(f=cmd_gate)
+    for t in tracks.every():
+        t.register(sp)
     s = sp.add_parser("resolve"); s.add_argument("batch"); s.add_argument("note"); s.add_argument("--decision", action="store_true", help="nothing recorded: the user decides; no resume"); s.set_defaults(f=cmd_resolve)
     s = sp.add_parser("check"); s.add_argument("slug"); s.set_defaults(f=cmd_check)
     s = sp.add_parser("brief"); s.add_argument("slug"); s.add_argument("--stage", default="dev"); s.set_defaults(f=cmd_brief)

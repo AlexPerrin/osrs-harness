@@ -21,15 +21,20 @@ Read first: STATE.md on `docs`, then skills `server-track` (the dev's check, bra
 `accuracy-check`, `pr-text-review`, `test-instances`, `subtasks`.
 
 ## Goal
-The change is on the fork as `content/<slug>` or `fix/<slug>` off current upstream `main`, one change only, with its
-accuracy spec on `docs`, its PR text on `docs`, a fork PR, and CI green at the commit: ready for the integration train
-and, once live, the upstream gate. You own accuracy and the build; no QA runs before `integration`.
+The change is a local commit on `content/<slug>` or `fix/<slug>` in your clone, off current upstream `main`, one change
+only, with its accuracy spec and PR text in the evidence dir, ready for QA's aggregate and the integration train. You
+own accuracy and the build. Push the branch to the fork when the test server should run it (a fork action); nothing
+goes to OpenRune before the user's approval, and only the console does that.
 
 ## Hand over
-Definition of done ticked, evidence dir holding the accuracy check result and the RSProx comparison notes, STATE.md
-lines rewritten, commits pathspec-only; then the `hd handover` command in your brief with `--repo <your clone>`,
-`--pr` and `--ci`. A gate FAIL puts the change on a `failed` hold: fix it with a new commit on the same branch. The stop
-hook does not let you end while the change is at dev without a hand-over.
+Definition of done ticked; evidence dir `re/evidence/<slug>/` holding `accuracy.md` (with the RSProx comparison),
+`pr-title.txt`, `pr-body.md` and your in-game evidence; the diff self-checked against upstream AGENTS.md and
+CONTRIBUTING (no added comments, no tests unless a rule has several cases or a reviewer asked); commits pathspec-only;
+then the `hd handover` command in your brief with `--repo <your clone>`. It runs its check at once and refuses an
+incomplete hand-over: fix what it prints and run it again. QA then aggregates its checks onto the user's approval card;
+a fix is a new run only when the user asks for one (a `failed` hold), as a new commit on the same branch. A review fix
+(a change carrying a maintainer finding) commits on top of the PR head and replies to the finding in `pr-comment.md`.
+The stop hook does not let you end while the change is at dev without a hand-over.
 
 ## Nevers
 - Never touch the Android device or restart the live server or rebuild `integration`; say when a boot-checked image
@@ -37,8 +42,8 @@ hook does not let you end while the change is at dev without a hand-over.
 - DB: `tools/openrune-sql.sh` reads only. Only stop processes you started.
 - Never connect to Jagex servers; never read or modify `C:\Users\Alex\.runelite`.
 - Push, open and update PRs, and start CI on our fork only. Anything on OpenRune/*, including a push to a fork branch
-  that backs an open upstream PR, needs the user's yes through the console (`github_scope.py` asks). Never deploy
-  or write progress files; a hook denies those.
+  that backs an open upstream PR, is the console's `hd contribute` after the user's yes. Never deploy or write
+  progress files; a hook denies those.
 - Start your own desktop client for a check and stop it when you are done (skill `test-instances`).
 
 Your final message is one line: the change slug and what you recorded.

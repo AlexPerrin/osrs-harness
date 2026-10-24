@@ -2,6 +2,21 @@
 
 One short entry per issue, newest first: symptom, root cause, evidence, fix, how to recognise it again.
 
+## 2026-10-24 The gate ran after the upstream push and reported one failure at a time
+
+- **Symptom.** A PR was already public when QA found a head regression; the next round found style comments (goblin);
+  the fix commit needed another push and another round. A gate run on a change that was not yet live was stopped as
+  lingering; QA could not push its CI scratch branch (the role hook denied every push).
+- **Root cause.** The lifecycle put the gate after the test-server deploy and the upstream publication, QA stopped at the
+  first failing check, a dev's own check paper-stamped the hand-over (`checked`), and the upstream workflow lived in the
+  core beside client and harness code.
+- **Fix.** dev -> QA aggregate -> the user's approval card -> `hd contribute`; `hd handover` refuses an incomplete hand-over;
+  QA records every check and finding for the exact commit before anything is pushed (`hd gate-ci` runs the scratch merge
+  and fork CI; server-qa may push `gate/*`); the contribution is one resumable sequence bound to the commit sha; the
+  server's upstream workflow is the server track module behind the track interface (`hd/tracks/`).
+- **Recognise.** A PR head newer than the last QA record; a `gate` run stopped as lingering while its change waited for
+  a train; two QA rounds on one commit with different findings.
+
 ## 2026-10-24 Instance leases made every agent wait for a shared client
 
 - **Symptom.** Dispatch stalled while an agent held `device` or `desktop`; a pending deploy drained instances and

@@ -7,7 +7,7 @@ import hd_helpers as H
 from hd_helpers import SHA
 
 from hd import agents, batches, events, heal, leases, store, util
-from hd.observe import FakeObserver
+from hd.tracks import FakeObserver
 
 
 class HealTest(unittest.TestCase):
@@ -52,14 +52,14 @@ class HealTest(unittest.TestCase):
         ch = H.change("feat", "server")
         rec = agents.spawn(ch, "server-dev", "dev")
         ch = store.load("feat")
-        store.set_stage(ch, "checked", "check PASS", commit=SHA)
-        ch["owner"] = None   # the check clears the owner
+        store.set_stage(ch, "gate", "hand-over recorded", commit=SHA)
+        ch["owner"] = None   # the run end clears the owner
         store.save(ch)
         acts = heal.run(FakeObserver(), store.index())
-        self.assertEqual(acts, [f"agent {rec['name']} stopped: lingering: owner is None (change at checked)"])
+        self.assertEqual(acts, [f"agent {rec['name']} stopped: lingering: owner is None (change at gate)"])
         r = store.rec_load(agents.RUNS, rec["name"])
-        self.assertEqual(r["exit"], "stopped:lingering: owner is None (change at checked)")
-        self.assertEqual(store.load("feat").stage, "checked")
+        self.assertEqual(r["exit"], "stopped:lingering: owner is None (change at gate)")
+        self.assertEqual(store.load("feat").stage, "gate")
 
     def test_dead_run_without_handover_back_to_ready(self):
         ch = H.change("feat", "server", stage="dev", owner="sd9")

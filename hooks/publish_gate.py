@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
-"""PreToolUse hook (Bash), every session: the upstream publish gate (skill server-track, the QA record).
+"""PreToolUse hook (Bash), every session: the publish gate (skill server-track, docs/PROBLEM.md BR-A2, BR-A4). The
+server track's rules are hd/tracks/server/hooks.py; this entry point parses the command and denies on its answer.
 
-`gh pr create` against upstream (OpenRune/*, or --head AlexPerrin:<branch>) is denied unless a QA record for
-<branch> says PASS for the branch's commit on the fork (fork/<branch> in the fork clone, else the local
-branch). A new commit voids the record. Records (server QA, while they move to the fork): qa/*.md on the
-fork's `docs` branch (fork/docs, then the local docs), then openrune/upstream/qa/*.md here. Header lines read:
-  - Branch: `content/<slug>`
-  - Commit: `<full sha>`
-  ## Upstream gate: **PASS**
-Older records with only `## Verdict: **PASS**` were full QA runs and count as the upstream gate.
-Fork PRs (tools/fork.sh) come before QA by design and aren't gated. Commands run inside scripts
-(e.g. the archived open-batch-*.sh) aren't visible to this hook; they still go through the ask rule.
+An upstream contribution is bound to a commit twice over:
+  - `hd contribute <slug> --approved <sha>` is denied unless QA's record (the local file `gate.md` in the change's
+    evidence dir, its verdict and findings on the card the user decided on) exists at exactly the change's commit and
+    `<sha>` is that commit: the user's yes in chat is bound to the sha the console types, so a new commit, a record for
+    another commit or a missing record stops the run.
+  - a direct `gh pr create` against upstream (OpenRune/*, or --head AlexPerrin:<branch>) is denied unless a change on
+    that branch has QA's record at the commit the branch is at (fork/<branch> in the fork clone, else the local one).
+A client release (`git tag` / `gh release create` with a semver tag) needs qa/client-<version>.md with PASS at the
+tagged commit. Fork PRs are not gated. Commands run inside scripts are not visible to this hook; they still go through
+the ask rule (github_scope.py).
 """
-import glob
 import json
 import os
 import re
@@ -30,7 +30,7 @@ def deny(reason):
     print(json.dumps({"hookSpecificOutput": {
         "hookEventName": "PreToolUse",
         "permissionDecision": "deny",
-        "permissionDecisionReason": f"Publish gate: {reason} (skill server-track, the QA record).",
+        "permissionDecisionReason": f"Publish gate: {reason} (skill server-track, the gate record).",
     }}))
     sys.exit(0)
 
@@ -38,18 +38,6 @@ def deny(reason):
 def git(*args):
     r = subprocess.run(["git", "-C", CLONE, *args], capture_output=True, text=True)
     return r.stdout if r.returncode == 0 else None
-
-
-def records():
-    for ref in ("refs/remotes/fork/docs", "refs/heads/docs"):
-        for name in (git("ls-tree", "--name-only", ref, "qa/") or "").split():
-            if name.endswith(".md"):
-                text = git("show", f"{ref}:{name}")
-                if text:
-                    yield f"{ref.split('/', 2)[2]}:{name}", text
-    for path in sorted(glob.glob(os.path.join(hdpaths.server_tools(), "upstream/qa/*.md"))):
-        with open(path) as f:
-            yield path, f.read()
 
 
 def release_gate(cmd):
@@ -82,6 +70,10 @@ def main():
     import shellparse
     cmd = shellparse.strip_heredocs(cmd)
     release_gate(cmd)
+    from hd.tracks.server import hooks as server_hooks   # the server track's rules (hd/tracks/server/hooks.py)
+    reason = server_hooks.contribute_deny(cmd)
+    if reason:
+        deny(reason)
     if not re.search(r"\bgh\s+pr\s+create\b", cmd):
         return
     head = re.search(r"--head[=\s]+[\"']?(?:AlexPerrin:)?([A-Za-z0-9._/-]+)", cmd)
@@ -90,28 +82,17 @@ def main():
     upstream = (re.search(r"(?<![A-Za-z0-9_-])OpenRune/OpenRune|github\.com[:/]+OpenRune/", cmd, re.I)
                 or (not on_fork and head and re.search(r"--head[=\s]+[\"']?AlexPerrin:", cmd)))
     if on_fork and not re.search(r"(?<![A-Za-z0-9_-])OpenRune/OpenRune", cmd, re.I) or not upstream:
-        return  # a fork PR (fork.sh, -R AlexPerrin/OpenRune-Server) or not an upstream PR
+        return  # a fork PR or not an upstream PR
     if not head:
-        deny("upstream `gh pr create` needs an explicit --head AlexPerrin:<branch> so its QA record can be checked")
+        deny("upstream `gh pr create` needs an explicit --head AlexPerrin:<branch> so its gate record can be checked")
     branch = head.group(1)
     sha = (git("rev-parse", "--verify", "-q", f"refs/remotes/fork/{branch}")
            or git("rev-parse", "--verify", "-q", f"refs/heads/{branch}") or "").strip()
     if not sha:
         deny(f"no branch {branch} on the fork or in the fork clone")
-    found = []
-    for path, text in records():
-        if not re.search(rf"^- Branch: `{re.escape(branch)}`", text, re.M):
-            continue
-        commit = re.search(r"^- Commit: `([0-9a-f]{7,40})`", text, re.M)
-        verdict = (re.search(r"^## Upstream gate: \*\*(PASS|FAIL|PENDING)\*\*", text, re.M)
-                   or re.search(r"^## Verdict: \*\*(PASS|FAIL)\*\*", text, re.M))
-        if commit and verdict and verdict.group(1) == "PASS" and sha.startswith(commit.group(1)):
-            return  # gate passed; the normal ask rule still applies
-        found.append(f"{path}: upstream gate {verdict.group(1) if verdict else 'missing'} at "
-                     f"{commit.group(1)[:9] if commit else 'no commit'}")
-    if not found:
-        deny(f"no QA record for {branch}; server-qa records the upstream gate PASS for {sha[:9]} first")
-    deny(f"{branch} is at {sha[:9]}, but no record has an upstream gate PASS for it ({'; '.join(found)})")
+    reason = server_hooks.direct_pr_deny(branch, sha)
+    if reason:
+        deny(reason)
 
 
 if __name__ == "__main__":

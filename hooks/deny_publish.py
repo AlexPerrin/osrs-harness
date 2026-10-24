@@ -16,8 +16,9 @@ denied: a push whose remote URL is not the fork (in the fork clone `origin` IS O
 `origin` is the fork), a bare `git push` (target unknown), and any write segment naming OpenRune/OpenRune.
 github_scope.py still asks the user before a push to a fork branch that backs an open upstream PR.
 
-`--docs-writes` (server-qa, user 2026-10-19): the companion pushes its own records to the fork's `docs` branch
-(a non-forced push of one refspec onto `docs`, remote resolving to the fork). Nothing else.
+`--docs-writes` (server-qa, BR-P1): the companion pushes the fork's `docs` branch (a non-forced push of one refspec
+onto `docs`) and its gate scratch branches (one refspec onto `gate/<name>`, forced allowed: they are scratch), remote
+resolving to the fork. Nothing else. `hd contribute` is the console's: denied to every role.
 
 The target of a push is resolved, not guessed from words: the remote after `push`, the directory from `git -C`
 and/or the last `cd` before it, else the hook input's `cwd`; then `git remote get-url --push <remote>`.
@@ -32,6 +33,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import hdpaths  # noqa: E402
 import shellparse as sp  # noqa: E402
+from hd.tracks.server import hooks as server_hooks  # noqa: E402
 
 RULES = [
     (r"\bgit\b(\s+-\S+(\s+[^-\s]\S*)?)*\s+push\b", "pushes"),   # git [opts] push, not `git stash push`
@@ -42,6 +44,7 @@ RULES = [
     (r"\btools/fork\.sh\b|(^|[\s/])fork\.sh\b", "fork pushes and PRs"),
     (r"\bopenrune\.sh\s+deploy\b|--env-file\s+switch\.env\s+up\b", "live server deploys and restarts"),
     (r"\bprogress\.py\b(?![^|;&]*--dry-run)", "progress writes (use --dry-run)"),
+    (r"\bhd\.py\s+contribute\b", "upstream contributions"),   # the console runs it after the user's yes
 ]
 PUSH = re.compile(RULES[0][0])
 
@@ -165,6 +168,14 @@ def local_push_clone(url, d):
     return os.path.realpath(target).rstrip("/") == os.path.realpath(clone).rstrip("/")
 
 
+def _scratch_gate(p):
+    return server_hooks.is_scratch_push(p["refspecs"], p["opts"], sp.dest)
+
+
+def _docs_or_gate(p):
+    return _scratch_gate(p) or (len(p["refspecs"]) == 1 and sp.dest(p["refspecs"][0]) == "docs" and not sp.forced(p))
+
+
 def push_problem(seg, w, cwd, docs, run):
     """Why this push segment isn't allowed (None = allowed) under --fork-writes (docs=False) / --docs-writes."""
     p = sp.parse_push(w, cwd) if w else None
@@ -176,15 +187,16 @@ def push_problem(seg, w, cwd, docs, run):
         return "a bare `git push` (no remote: the target can't be told)"
     url = sp.push_url(p, run)
     if local_push_clone(url, p["dir"]):
-        return None if not docs or (len(p["refspecs"]) == 1 and sp.dest(p["refspecs"][0]) == "docs"
-                                    and not sp.forced(p)) else "not a single non-forced refspec onto docs"
+        return None if not docs or _docs_or_gate(p) else "not a single non-forced refspec onto docs or a refspec onto gate/*"
     if sp.norm_repo(url) != sp.FORK:
         return f"remote {p['remote']} in {p['dir']} is {url or 'unknown'}, not AlexPerrin/OpenRune-Server"
     if docs:
+        if _scratch_gate(p):
+            return None
         if sp.forced(p):
             return "a forced or deleting push"
         if len(p["refspecs"]) != 1 or sp.dest(p["refspecs"][0]) != "docs":
-            return "not a single refspec onto docs"
+            return "not a single refspec onto docs or gate/*"
         return None
     if "--mirror" in p["opts"]:
         return "a mirror push"

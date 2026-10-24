@@ -1,11 +1,11 @@
 ---
 name: server-track
-description: "Server track rules: fork branches, one-change-per-PR upstream rules, gameval ids, the dev's check and the upstream gate, the QA record format, the integrator's cases. Use as server-dev, server-qa or integrator, and before any upstream PR text."
+description: "Server track rules: fork branches, one-change-per-PR upstream rules, gameval ids, the dev's check, QA's aggregate and its record, the contribution, the integrator's cases. Use as server-dev, server-qa or integrator, and before any upstream PR text."
 ---
 # Server track
 
 Test server: the fork AlexPerrin/OpenRune-Server (fork of OpenRune/OpenRune-Server). Our changes reach the live test
-server first (`integration`), then upstream as PRs.
+server (`integration`) and, independently, upstream as PRs.
 
 ## Branches on the fork
 - `main` mirrors upstream `main`; only a fast-forward sync moves it.
@@ -15,8 +15,8 @@ server first (`integration`), then upstream as PRs.
 - `integration` (default branch): `main` + every `content/*`/`fix/*` handed over and not merged upstream + every
   `local/*`, in the recorded order (`integration.txt`, pins in `integration.lock`). Built by
   `scripts/build-integration.sh`, never hand-edited; the live server builds from a pinned commit.
-- `docs`: STATE.md (what is live, gotchas; rewritten, never appended; about 150 lines), `accuracy/<slug>.md`,
-  `qa/<slug>.md`, `pr-texts/<slug>.*`, QA.md. Our docs never go upstream.
+- `docs`: STATE.md (what is live, gotchas; rewritten, never appended; about 150 lines), QA.md and older specs.
+  Our docs never go upstream. Gate branches `gate/<slug>` are QA's scratch merges (fork CI only).
 
 ## Changes for upstream
 - **One change per PR**: one quest, feature or fix. A fix found on the way is its own `fix/<slug>`. A large feature is
@@ -29,8 +29,9 @@ server first (`integration`), then upstream as PRs.
   Content that overlaps another open PR goes up as a draft that references it.
 - **A PR is ready only when every reported defect is fixed in it**; nothing is promised to a maintainer as a separate
   or later PR.
-- **Updates**: a new commit goes onto the existing PR branch (merge `main` in; never force-push), after the gate and
-  with the user's yes; an update is a comment, the description is never replaced (BR-A8).
+- **Updates**: a new commit goes onto the existing PR branch (merge `main` in; never force-push) as a change of its
+  own that went through QA's aggregate and the user's approval of that commit; an update is a comment, the
+  description is never replaced (BR-A8). A maintainer finding is filed once as a review-fix change on the same branch.
 - **Upstream conventions** (AGENTS.md, CONTRIBUTING, `.github/pull_request_template.md` on upstream `main`): tests
   only for real logic that moves items or state (a rule with several cases, a regression a reviewer asked for), never
   for a handler, packet, shop, simple op or wiki string. **The default is no test in an upstream PR**; files used to
@@ -51,49 +52,66 @@ server first (`integration`), then upstream as PRs.
   branches, apply the reported id to the one that is later in `integration.txt`. Upstream's CI cannot push to a fork
   PR: apply its reported reassignment on the branch.
 
-## The dev's check (server-dev; no QA before `integration`)
-The dev owns accuracy and the build for the fork and live server:
-1. Spec `accuracy/<slug>.md` on `docs` first (skill `accuracy-check`: upstream overlap, each mechanic's source,
-   behaviour, caveats, guesses, tests, PR split and `Depends:`). Commit it, `hd log <slug> "spec committed"`, keep
-   coding; the console may veto from the log. Stop only for a decision the dev cannot take (the PR split, an upstream
-   overlap, a conflicting source): `hd fail <slug> "decision needed: ..."`. For a blocker the client's repro is part
-   of the spec.
-2. Build on `content/<slug>` or `fix/<slug>` off `upstream/main` with tests only as above.
-3. Verify: skill `build-test` (dev builds in the warm container with `qa.sh dev <name> <clone>`), behaviour against
-   the spec, `ab-test` on desktop RuneLite where it renders. Build evidence is the fork's GitHub Actions CI green at
-   the commit, or `GATE_VOL=<name>-gate-gradle GATE_OWNER=<name> qa.sh gate <clone>` where CI does not apply.
-4. PR text on `docs` (skill `pr-text-review`), fork PR opened, then `hd handover`.
+## Lifecycle of a server change
+dev (local commit, hand-over) -> QA aggregate -> the user's approval card -> `hd contribute` -> review -> merged. The
+test server runs the change through the integration train as soon as the fork has its commit; that and the upstream
+flow are independent. The only gate is the user's approval of the upstream action.
 
-A new commit voids the gate and needs the evidence again; the branch stays in `integration` at the last handed-over
-commit meanwhile. A push to a branch that backs an open upstream PR changes that PR and asks the user.
+## The dev's check (server-dev; nothing runs before the hand-over but the dev's own checks)
+The dev owns accuracy and the build:
+1. Spec `accuracy.md` in the evidence dir first (skill `accuracy-check`: upstream overlap, each mechanic's source,
+   behaviour, caveats, guesses, tests, PR split and `Depends:`). Stop only for a decision the dev cannot take (the PR
+   split, an upstream overlap, a conflicting source): `hd fail <slug> "decision needed: ..."`. For a blocker the
+   client's repro is part of the spec.
+2. Build on `content/<slug>` or `fix/<slug>` off `upstream/main`, in the dev's clone; commit locally. Tests only as
+   above. Push the branch to the fork when the test server should run it.
+3. Verify: skill `build-test` (`qa.sh dev <name> <clone>` in the warm container), behaviour against the spec,
+   `ab-test` on desktop RuneLite where it renders.
+4. Self-check the diff against upstream AGENTS.md and CONTRIBUTING (no added comments, no tests unless justified) and
+   write the PR text (`pr-title.txt`, `pr-body.md`, skill `pr-text-review`) in the evidence dir.
+5. `hd handover ... --repo <clone>`: the check runs at once and refuses an incomplete hand-over.
 
-## The upstream gate (server-qa; the track's only QA step)
-Independent re-check at the exact commit, stopping at the first failure; the dev's runs are evidence, yours count.
-- **Accuracy**: `accuracy-check` against the spec and sources re-read through `osrs-mcp` (not the spec's quotes),
-  including the RSProx comparison.
-- **In-game**: the branch's own server on spare ports, your own desktop RuneLite pointed at it, driven
-  with `osrs-devtools-desktop`; every player-facing claim of the PR text; a blocker's repro passes. Stop and remove
-  your containers after; never touch `osrs-openrune`, `osrs-openrune-http`, `osrs-openrune-http-desktop`.
-- **Build**: CI green at the exact commit (`qa.sh gate` on upstream `main` + the branch where CI does not apply),
-  boot to "Server ready in".
-- **Scope**: one change, nothing unrelated, none of our docs in the diff, no open upstream PR for the same content,
-  on current `upstream/main`, `Depends:` stated, `fix_gameval_conflicts.py --check` clean.
-- **Tests**: a test file the PR text does not justify is a FAIL item.
-- **Text**: CONTRIBUTING, AGENTS.md, template sections present; `pr-text-review`; every claim true of the commit;
-  caveats cover every gap the accuracy check found. `reverse` (`-readOnly`) when the branch claims client protocol.
+A new commit voids QA's record and the approval; the branch stays in `integration` at the last pushed commit meanwhile.
 
-On PASS the change waits for the user's yes per upstream item.
+## QA's aggregate (server-qa; reports, never blocks)
+Independent check of the exact commit; the dev's runs are evidence, QA's count. Every check gets a PASS, FAIL or N/A line
+and every finding is listed at once; the result goes on the user's approval card.
+- **accuracy**: `accuracy-check` against the spec and sources re-read through `osrs-mcp`, including the RSProx comparison.
+- **ci**: `hd gate-ci <slug>`: the commit merged with current upstream `main` in a scratch clone (read from the dev's
+  clone, no push needed), pushed to the fork's `gate/<slug>`, CI dispatched there and observed.
+- **format**: spotless on the scratch merge.
+- **scope**: one change, nothing unrelated, none of our docs in the diff, no open upstream PR for the same content, on
+  current `upstream/main`, `Depends:` stated, `fix_gameval_conflicts.py --check` clean.
+- **style**: upstream AGENTS.md and CONTRIBUTING: no added comments, no test file the PR text does not justify
+  (`hd gate-ci` scans the diff for both), nothing public for a test, commit subjects `feat:`/`fix:`.
+- **text**: template sections, every claim true of the commit, caveats cover every gap (`pr-text-review`); `reverse`
+  (`-readOnly`) when the branch claims client protocol.
+- **ingame**: the branch's own server on spare ports, your own desktop RuneLite driven with `osrs-devtools-desktop`;
+  every player-facing claim of the PR text; a blocker's repro passes. Stop and remove your containers after; never touch
+  `osrs-openrune`, `osrs-openrune-http`, `osrs-openrune-http-desktop`.
 
 ## The QA record
-`qa/<slug>.md` on `docs`, beginning exactly (the publish hook parses it):
+`re/evidence/<slug>/gate.md`, beginning exactly (`hd gate` and the hooks parse it):
 ```
-# QA: <branch>
+# Gate: <branch>
 - Branch: `<branch>`
 - Commit: `<full sha>`
-## Upstream gate: **PASS**     (or **FAIL**, or **PENDING**)
+## Gate: **PASS**     (or **FAIL**; PASS only with no failed check and no finding)
+## Checks
+- accuracy|ci|format|scope|style|text|ingame: PASS|FAIL|N/A <reason or evidence link>   (one line each)
+## Findings
+- <each finding>     (or `- none`)
 ```
-A FAIL says precisely what must change. A new commit voids the record: re-check, never edit a verdict. An
-`## Internal gate: N/A (dev-checked)` line is optional; the hook reads only the upstream line.
+`hd gate <slug> PASS|FAIL "note"` checks it against the commit and, for PASS, the green CI result in `gate-ci.json`. A
+new commit voids the record: re-check, never edit a verdict. A finding holds nothing; if the user wants it fixed the
+console puts a `failed` hold on the change and a dev run is booked with the findings (no run for a head and finding set
+already booked: BR-S9).
+
+## The contribution
+After the user's yes on the approval card, bound to the commit sha, the console runs `hd contribute <slug> --approved
+<sha>`: push to the PR branch (fast-forward or the dev's merge commit; never force), open the PR as a draft when none
+exists, wait for green upstream CI at that commit, comment, move out of draft, request review. It resumes at the first
+unobserved step and stops before the comment when CI is not green.
 
 ## Integrator (a train at `exception`)
 Work in the build worktree `~/src/openrune-work/integration/build` and in `~/src/openrune-work/integration-tools`

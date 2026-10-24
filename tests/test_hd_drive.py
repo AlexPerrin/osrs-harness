@@ -9,7 +9,7 @@ import hd_helpers as H
 from hd_helpers import SHA
 
 from hd import agents, cli, drive, store
-from hd.observe import FakeObserver
+from hd.tracks import FakeObserver
 
 OBS = FakeObserver(upstream_prs={}, docs={}, records=[])
 
@@ -50,7 +50,7 @@ class DriveTest(unittest.TestCase):
         store.set_hold(ch, "decision", "fold into the PR branch?"); store.save(ch)
         ex = H.change("ee", "server")
         store.set_hold(ex, "exception", "ship: conflict"); store.save(ex)
-        stuck = H.change("ff", "server", stage="checked", commit=SHA)
+        stuck = H.change("ff", "server", stage="dev", commit=SHA)
         store.set_hold(stuck, "failed", "gate FAIL"); store.save(stuck)
         w = drive.work(OBS)
         self.assertEqual([(d["change"], d["question"]) for d in w["decisions"]], [("qq", "fold into the PR branch?")])
@@ -58,12 +58,12 @@ class DriveTest(unittest.TestCase):
         whats = sorted(e["what"] for e in w["exceptions"])
         self.assertEqual(len(whats), 2)
         self.assertTrue(whats[0].startswith("ee is on an exception hold"))
-        self.assertTrue(whats[1].startswith("ff (checked) is on a failed hold"))
+        self.assertTrue(whats[1].startswith("ff (dev) is on a failed hold"))
         ch = store.load("qq"); store.clear_hold(ch, "answered"); store.save(ch)
         self.assertEqual(drive.work(OBS)["decisions"], [])
 
     def test_a_failed_hold_a_dev_will_pick_up_is_not_an_exception(self):
-        ch = H.change("gg", "server", stage="live", commit=SHA)
+        ch = H.change("gg", "server", stage="gate", commit=SHA)
         store.set_hold(ch, "failed", "gate FAIL"); store.save(ch)
         self.assertEqual(drive.work(OBS)["exceptions"], [])
 

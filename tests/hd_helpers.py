@@ -104,3 +104,33 @@ def stub(d, name, body):
         f.write("#!/usr/bin/env bash\n" + body)
     os.chmod(p, 0o755)
     return p
+
+
+CHECKS = ("accuracy", "ci", "format", "scope", "style", "text", "ingame")
+
+
+def gate_text(commit, verdict="PASS", findings=(), branch="content/feat", checks=None):
+    """QA's aggregate record in the format `hd gate` checks."""
+    checks = dict({n: "PASS" for n in CHECKS}, **(checks or {}))
+    lines = [f"# Gate: {branch}", f"- Branch: `{branch}`", f"- Commit: `{commit}`", f"## Gate: **{verdict}**", "## Checks"]
+    lines += [f"- {n}: {r}" + (" reason" if r == "N/A" else "") for n, r in checks.items()]
+    lines += ["## Findings"] + ([f"- {f}" for f in findings] or ["- none"])
+    return "\n".join(lines) + "\n"
+
+
+def write_gate(slug, commit, verdict="PASS", findings=(), ci="success", **kw):
+    """QA's evidence files for a change: gate.md and gate-ci.json in its evidence dir."""
+    import json
+    from hd import evidence_dir
+    d = os.path.join(evidence_dir(), slug)
+    os.makedirs(d, exist_ok=True)
+    with open(os.path.join(d, "gate.md"), "w") as f:
+        f.write(gate_text(commit, verdict, findings, **kw))
+    if ci:
+        with open(os.path.join(d, "gate-ci.json"), "w") as f:
+            json.dump({"commit": commit, "result": ci, "scratch": "s" * 40, "upstream_main": "m" * 40, "findings": []}, f)
+
+
+def evidence_dir_for(slug):
+    from hd import evidence_dir
+    return os.path.join(evidence_dir(), slug)

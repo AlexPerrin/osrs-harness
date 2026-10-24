@@ -1,5 +1,6 @@
-"""hd.actions (BR-A1..A5, v4): what a gated change or release batch needs from the user, computed from observed
-state only. Completion is observed: the action disappears when the world has moved; nothing is recorded."""
+"""hd.actions (BR-A1..A5): what a change at `contribute` or a release batch needs from the user, computed from observed
+state and QA's local record only. Completion is observed: the action disappears when the world has moved; nothing is
+recorded."""
 import os
 import unittest
 
@@ -7,66 +8,78 @@ import hd_helpers as H
 from hd_helpers import SHA, SHB
 
 from hd import actions, store
-from hd.observe import FakeObserver
+from hd.tracks import FakeObserver
 
 DOCS = {"pr-texts/feat.title": "Add feat\n", "pr-texts/feat.upstream.body": "Body\n\n## Caveats\n- one caveat\n"}
 
 
 def obs(prs=None, docs=None, **kw):
-    return FakeObserver(upstream_prs=prs if prs is not None else {}, docs=DOCS if docs is None else docs, records=[], **kw)
+    return FakeObserver(upstream_prs=prs if prs is not None else {}, docs=DOCS if docs is None else docs, **kw)
 
 
-class UpstreamTest(unittest.TestCase):
+class ContributionTest(unittest.TestCase):
     def setUp(self):
         H.sandbox(self)
-        H.change("feat", "server", stage="gated", commit=SHA)
+        H.change("feat", "server", stage="contribute", commit=SHA)
+        H.write_gate("feat", SHA)
 
     def one(self, o):
         got = actions.pending_actions(o)
         self.assertEqual(len(got), 1, got)
         return got[0]
 
-    def test_open_pr_with_commands_and_text_file(self):
-        a = self.one(obs())
-        self.assertEqual((a["kind"], a["action"], a["change"], a["id"]), ("upstream", "open-pr", "feat", f"feat-open-pr-{SHA[:7]}"))
-        cmd = a["commands"][0]
-        self.assertEqual(cmd[:3], ["gh", "pr", "create"])
-        self.assertIn("OpenRune/OpenRune-Server", cmd)
-        self.assertIn("AlexPerrin:content/feat", cmd)
-        self.assertEqual(cmd[cmd.index("--title") + 1], "Add feat")
-        self.assertEqual(open(cmd[cmd.index("--body-file") + 1]).read(), "Body\n\n## Caveats\n- one caveat\n")
+    def test_one_command_bound_to_the_commit(self):
+        a = self.one(obs(contains={("fork", "content/feat", SHA): False}))
+        self.assertEqual((a["kind"], a["action"], a["change"], a["id"]), ("upstream", "contribute", "feat", f"feat-contribute-{SHA[:7]}"))
+        (cmd,) = a["commands"]
+        self.assertEqual(cmd[2:], ["contribute", "feat", "--approved", SHA])
+        self.assertEqual(a["text"]["title"], "Add feat")
         self.assertEqual(a["caveats"], ["one caveat"])
-        self.assertIn("gh pr create", actions.render(a))
+        self.assertIn("accuracy: PASS", a["checks"])
+        self.assertTrue(a["record"].endswith("feat/gate.md"))
+        self.assertEqual([n for n, _, _ in a["steps"]][:2], ["push", "open"])
+        text = actions.render(a)
+        self.assertIn("contribute feat --approved " + SHA, text)
+        self.assertIn("check: ci: PASS", text)
+        self.assertEqual(a["verdict"], "PASS")
+        self.assertIn("step push: pending", text)
 
-    def test_open_pr_without_text_has_no_command(self):
+    def test_findings_are_on_the_card_and_do_not_hide_it(self):
+        H.write_gate("feat", SHA, "FAIL", findings=["head regression"], checks={"style": "FAIL"})
+        a = self.one(obs())
+        self.assertIn("style: FAIL reason".replace(" reason", ""), [c.replace(" reason", "") for c in a["checks"]])
+        self.assertEqual(a["findings"], ["head regression"])
+        self.assertIn("finding: head regression", actions.render(a))
+
+    def test_without_pr_text_the_card_says_so(self):
         a = self.one(obs(docs={}))
-        self.assertEqual(a["commands"], [])
-        self.assertIn("PR text missing on docs: pr-texts/feat.*", a["note"])
+        self.assertIn("PR text missing", a["note"])
 
-    def test_draft_at_the_commit_needs_ready(self):
-        a = self.one(obs(prs={"content/feat": {"number": 7, "state": "open", "draft": True, "head": SHA}}))
-        self.assertEqual((a["action"], a["commands"]), ("ready-pr", [["gh", "pr", "ready", "7", "-R", "OpenRune/OpenRune-Server"]]))
+    def test_nothing_before_qa_or_while_held_or_after(self):
+        os.remove(os.path.join(H.evidence_dir_for("feat"), "gate.md"))
+        self.assertEqual(actions.pending_actions(obs()), [])
+        H.write_gate("feat", SHA)
+        ch = store.load("feat"); store.set_hold(ch, "failed", "fix it"); store.save(ch)
+        self.assertEqual(actions.pending_actions(obs()), [])
+        ch = store.load("feat"); store.clear_hold(ch); ch["stage"] = "review"; store.save(ch)
+        self.assertEqual(actions.pending_actions(obs()), [])
 
-    def test_head_behind_needs_push_then_comment(self):
-        a = self.one(obs(prs={"content/feat": {"number": 7, "state": "open", "draft": False, "head": SHB}}))
-        self.assertEqual(a["action"], "update-pr")
-        push, comment = a["commands"]
-        self.assertEqual(push[3], "push")
-        self.assertEqual(push[-1], f"{SHA}:refs/heads/content/feat")
-        self.assertEqual(comment[:4], ["gh", "pr", "comment", "7"])
-        self.assertIn("Updated to " + SHA, open(comment[comment.index("--body-file") + 1]).read())
+    def test_partial_run_shows_its_observed_steps(self):
+        o = obs(prs={"content/feat": {"number": 7, "state": "open", "draft": True, "head": SHA}},
+                contains={("fork", "content/feat", SHA): True}, upstream_ci={(7, SHA): "success"}, reviews={7: []})
+        a = self.one(o)
+        steps = {n: d for n, d, _ in a["steps"]}
+        self.assertEqual((steps["push"], steps["open"], steps["ci"], steps["comment"], steps["ready"]),
+                         (True, True, True, False, False))
 
-    def test_done_closed_merged_or_unreadable_is_nothing(self):
-        for pr in ({"number": 7, "state": "open", "draft": False, "head": SHA},       # at the commit, open for review
-                   {"number": 7, "state": "closed", "head": SHB},
-                   {"number": 7, "state": "closed", "merged": True, "head": SHB}):
-            self.assertEqual(actions.pending_actions(obs(prs={"content/feat": pr})), [])
-        self.assertEqual(actions.pending_actions(obs(prs={"content/feat": None})), [])   # gh failed: no guess
-
-    def test_only_gated_changes_with_a_commit(self):
-        H.change("other", "server", stage="live", commit=SHA)
-        H.change("nocommit", "server", stage="gated")
-        self.assertEqual([a["change"] for a in actions.pending_actions(obs())], ["feat"])
+    def test_draft_card_for_a_review_fix_on_a_ready_pr(self):
+        H.change("feat-rf", "server", stage="dev", branch="content/feat", upstream_pr=7, finding="IC_1")
+        ready = obs(prs={7: {"number": 7, "state": "open", "draft": False, "head": SHB}, "content/feat": {"number": 7, "state": "open", "draft": False, "head": SHB}})
+        cards = {a["action"]: a for a in actions.pending_actions(ready)}
+        self.assertIn("draft-pr", cards)
+        self.assertEqual(cards["draft-pr"]["commands"], [["gh", "pr", "ready", "7", "-R", "OpenRune/OpenRune-Server", "--undo"]])
+        draft = obs(prs={7: {"number": 7, "state": "open", "draft": True, "head": SHB}, "content/feat": {"number": 7, "state": "open", "draft": True, "head": SHB}})
+        self.assertNotIn("draft-pr", {a["action"] for a in actions.pending_actions(draft)})
 
 
 class ReleaseTest(unittest.TestCase):

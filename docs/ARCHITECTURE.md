@@ -12,50 +12,78 @@ chat) is the daemon's hands: it spawns the agents the daemon books and performs 
 Agents (client-dev, server-dev, client-qa, server-qa, integrator, harness-dev) each execute one stage of one change.
 
 ## 2. Components and responsibilities
+Two layers. The **core** orchestrates between the three tracks: changes, deps and priority, capacity, dispatch, holds, run
+bookkeeping, the console driver. A **track** (client, harness, server) owns everything specific to its product and is
+reached only through one narrow interface (section 2a); the core imports no track internals and says nothing about PRs, CI
+or reviews.
 ```mermaid
 flowchart LR
   user([User in chat]) <--> console[Console session<br/>skill: drive]
   console -- "hd drive / actions / status" --> cli[hd.py -> hd/cli.py]
   console -- "Agent tool spawns" --> agents[(Agents: client-dev, server-dev,<br/>client-qa, server-qa, integrator, harness-dev)]
   agents -- "hd handover / gate / block / fail / resolve" --> cli
-  agents -. "role hooks: deny_publish, task_stop,<br/>slot_stop, qa_write_scope" .-> hooks[hooks/]
+  agents -. "role hooks" .-> hooks[hooks/ entry points]
   daemon[harnessd: hd/daemon.py<br/>tick loop + digest] --> tick[hd/tick.py<br/>one tick = ordered steps]
-  tick --> stages[stages.py<br/>derive stage from facts]
-  tick --> check[check.py<br/>hand-over check]
+  tick --> stages[stages.py<br/>climb the chain on facts]
   tick --> batches[batches.py<br/>trains + releases]
-  tick --> leases[leases.py]
-  tick --> heal[heal.py]
-  tick --> agentsmod[agents.py<br/>book runs, briefs]
-  tick --> ship[ship.py<br/>merge to master]
-  stages --> observe[observe.py<br/>git, gh, docker, docs branch]
-  check --> observe
-  batches --> scripts[image.sh / deploy.sh /<br/>integrate.py / qa.sh]
-  cli --> drive[drive.py + actions.py<br/>the console's work list]
-  drive --> observe
+  tick --> leases[leases.py] & heal[heal.py] & agentsmod[agents.py<br/>book runs, briefs]
   tick --> store[(store.py<br/>changes/*.md, state/*.json)]
-  cli --> store
-  tick --> events[(events.jsonl)]
-  events --> kpi[kpi.py, daemon.digest]
+  tick --> events[(events.jsonl)] --> kpi[kpi.py, daemon.digest]
+  cli --> check[check.py] & drive[drive.py + actions.py<br/>the console's work list]
+  stages & tick & check & drive & agentsmod & cli --> iface{{tracks/ interface}}
+  iface --> client[tracks/client.py] & harness[tracks/harness.py] & server[tracks/server/]
+  server --> srv[qa, gateci, contribute, review,<br/>cards, github, hooks]
+  hooks --> srv
+  stages --> observe[observe.py<br/>git, docker, live server]
+  srv --> observe
 ```
-| Module | Responsibility |
+| Core module | Responsibility |
 |---|---|
-| `hd.py`, `hd/cli.py` | the command line; the only interface for agents, the console and the user |
+| `hd.py`, `hd/cli.py` | the command line; the only interface for agents, the console and the user; each track registers its own subcommands |
 | `hd/daemon.py` | the tick loop (detached process, `daemon.json`), `stop`, `status`, `digest` (news from events) |
-| `hd/tick.py` | one tick: reconcile, reap, ship/train, deploy, re-pin, gates, dispatch, metrics, heal, log; each step isolated |
-| `hd/stages.py` | the lifecycle and one observable precondition per stage per track; `derive()`, `next_executor()` |
-| `hd/observe.py` | external truth (`Observer`; `FakeObserver` for tests): git refs, fork CI, PRs, release, docs branch, docker, pids |
-| `hd/check.py` | the hand-over check: claims of a hand-over verified against evidence (the `checked` precondition); a server change's CI fact is the upstream PR's checks at the handed-over commit (a passing fork run is accepted too); no PR at that commit reads `CI pending` and waits, it neither fails nor re-dispatches a dev |
-| `hd/store.py` | changes (front matter + body), records (`rec_save/rec_load`), holds, stages written by the daemon only |
+| `hd/tick.py` | one tick: reconcile, ship/train, deploy, re-pin, gates, tracks, dispatch, metrics, heal, log; each step isolated |
+| `hd/stages.py` | the generic climb of a track's chain on its facts, booking keys; `derive()`, `next_executor()` |
+| `hd/observe.py` | external truth (`Observer`; `FakeObserver` for tests): git refs (the clones, a dev's clone), docker, the live server, pids; `tracks.Observer` adds each track's mixin |
+| `hd/check.py` | the hand-over check run by `hd handover`: the common items plus the track's; an incomplete hand-over is refused and nothing is recorded |
+| `hd/store.py` | changes (front matter + body), records (`rec_save/rec_load`), holds, stages written by the daemon and `hd handover` only |
 | `hd/leases.py` | locks on the shared resources (`integration`, `live-server`, `ghidra`): take, release, reclaim (section 10) |
 | `hd/agents.py` | names, briefs, booking a run (record, owner, `agent request` event), link, end, stop, lingering |
 | `hd/batches.py` + `train/` (`integrate.py`, `image.sh`, `deploy.sh`) | trains (queue, pins, rebuild, gate, image, deploy, re-pin) and release batches |
-| `hd/ship.py` | checked client and harness changes merge into their live target (`--no-ff`; the client push only) |
+| `hd/ship.py` | the merge of a handed-over client or harness change into its live target (`--no-ff`; the client push only) |
 | `hd/heal.py` | idle locks, lingering runs, a dev run ended without hand-over, dead containers, dead batch processes |
-| `hd/actions.py` | what needs the user's OK, computed from observed state (section 8) |
+| `hd/actions.py` | the user's list: every track's cards plus the release batches (section 8) |
 | `hd/drive.py` | the console's work list (section 7) |
 | `hd/kpi.py`, `hd/metrics.py`, `hd/events.py` | the append-only event log, KPIs derived from it, derived progress metrics |
-| `hooks/` | guards (section 10) |
+| `hooks/` | guard entry points: they parse the command and ask the server track's `hooks.py` (section 11) |
 | `.claude/agents/*.md`, `.claude/skills/*` | role files (each wires its hooks) and skills (`drive` is the console's loop) |
+
+### 2a. Tracks (hd/tracks)
+`tracks.of(change)` returns the track object; its methods are the whole interface (defaults in `base.py`):
+
+| Method | Meaning |
+|---|---|
+| `chain(ch)` | the stages of the change, `backlog ... terminal` |
+| `tip(ch, obs)`, `open_stages(ch)`, `moves_expected(ch)` | where the commit lives; where a moved branch re-enters at ready; a tip that moves on is normal |
+| `facts(ch, obs)` | `{stage: (met, why)}` for the stages after `gate`, plus `live` and `tip`; `waiting(stage, ch)` words the first unmet one |
+| `executor(ch)`, `finding_set(ch)` | the verifier role needed now; the findings a dev run is given (the no-loop key) |
+| `reconcile(ctx, slug, ch)`, `ship(ctx, slug, ch)`, `step(ctx)` | per change after the stage is derived; per handed-over change (merge or queue); once per tick |
+| `needs_you(ch, obs, idx)` | the track's cards for the user, from observed facts alone |
+| `check_items(ch, obs, ev, files)`, `default_dod(spec)`, `records_repo` | the hand-over check beyond the common items; the definition of done `hd new --server-dod` writes; the dev's clone is kept |
+| `brief(ch, stage)`, `run_valid(run, ch)`, `record_gate(ch, verdict, note)` | brief lines; why a booked verifier run no longer applies; `hd gate` |
+| `register(sp)`, `keys`, `migrate_stage(meta)` | the track's subcommands and front-matter keys; stages of a retired chain |
+
+| Track | Module | Chain | Settings |
+|---|---|---|---|
+| client | `tracks/client.py` (on `target.py`) | `backlog ready dev gate live`: `master` contains the commit; build evidence at hand-over; the release flow stays in the core | `tracks.client` |
+| harness | `tracks/harness.py` (on `target.py`) | `backlog ready dev gate live`: this repo's `main` contains the commit | `tracks.harness` |
+| server | `tracks/server/` | `backlog ready dev gate contribute review merged` (`local/*`: `... gate live`) | `tracks.server`: `dev_slots`, `reviewers`, `ci_equivalence` |
+
+Server track modules: `__init__` (the track), `qa` (QA's record and its checks), `gateci` (`hd gate-ci`: the scratch
+merge with upstream main, the fork's `gate/<slug>`, CI observed, the diff scan), `cards` (the approval card, the
+draft card), `contribute` (`hd contribute`: push, open, CI, comment, ready, review as observed steps), `review` (maintainer
+findings filed once as review-fix changes), `github` (the PR bucket and the fork's CI as observer mixins, the
+CI-equivalence table), `hooks` (the hook rules). `tracks.Observer` / `FakeObserver` are the core observers with the
+mixins. Releases, trains and the observer's fork and docs reads are still the core's.
 
 ## 3. Data model
 Committed: `harness/changes/<slug>.md` (YAML front matter, `## Change`, `## Definition of done` checkboxes, `## Log`),
@@ -70,12 +98,14 @@ erDiagram
   CHANGE {
     string slug PK
     string track "client|server|harness"
-    string stage "backlog..merged"
+    string stage "a stage of the track chain"
     json hold "blocked|decision|failed|exception"
     string branch
     string commit "handed-over sha"
+    string repo "the dev's clone"
     string owner "agent name in dev"
-    int upstream_pr
+    string live_commit "the live target carries it"
+    json booked "dev|gate: key of the last booked run"
     json cost "runs, turns, tokens, minutes"
   }
   RUN {
@@ -83,6 +113,7 @@ erDiagram
     string role
     string change
     string stage "dev|gate|train"
+    string commit "the head the run was booked for"
     bool console "always true"
     string agent_id "set by run-link"
     string ended "set by run-end or stop"
@@ -103,18 +134,23 @@ erDiagram
     string pid
   }
 ```
+Per change, in its evidence dir `re/evidence/<slug>/`: the track's evidence (server: `gate.md`, QA's record bound to the
+commit; `gate-ci.json`, the scratch merge's CI result and diff findings; `accuracy.md`; `pr-title.txt`, `pr-body.md`,
+`pr-comment.md`). Server-track change keys: `upstream_pr`, `finding`, `review_seen`.
 State files: `events.jsonl` (append-only), `leases/<res>.json` (the locks), `runs/<name>.json` + `<name>.log` (the brief),
 `batches/<id>.json`, `queue.json` (train queue), `live.json` (what the live server runs), `images/`, `deploys/`,
-`checks/`, `view/` (last tick, waiting words), `actions/<id>.<part>.md` (text files for the commands of an action),
+`view/` (last tick, waiting words), `actions/<id>.<part>.md` (text files for the commands of an action), `gates/<slug>/or` (the gate's scratch clone),
 `release.request` (`{tag}`), `counters.json` (agent names), `daemon.json`, `digest.json`, `digest.md`.
 
 ## 4. Observed vs recorded
 | Fact | Where it lives | How it changes |
 |---|---|---|
-| A change's stage (live, gated, published, merged) | derived each tick from git, CI, GitHub, docker, the docs-branch records | `stages.derive`; a disagreement is repaired and logged as `drift` |
-| `dev`, `checked` | recorded by the daemon (dispatch; hand-over check) | `store.set_stage`, never by an operator |
-| Holds | recorded (agents' `hd block/fail`, daemon, console) | `hd hold/unhold`, `gate FAIL`, check |
-| Upstream action done | observed (PR at the commit, release exists) | no record; the action leaves `hd actions` |
+| A change's stage from `gate` on | derived each tick from the facts the track reads (git, its records, docker, ...) | `stages.derive`; a disagreement is repaired and logged as `drift` |
+| `dev` and the hand-over | recorded (dispatch; `hd handover`, which runs the check) | `store.set_stage`, never by an operator |
+| `live_commit` | observed: the live target carries the commit (server: the integration pin and the live server) | tick `reconcile`, the train; independent of the server's upstream stages |
+| Holds | recorded (agents' `hd block/fail`, daemon, console) | `hd hold/unhold` |
+| QA's aggregate | the local file `gate.md`, bound to the commit | `hd gate` checks it; a new commit voids it |
+| A card's work done | observed in the world (the release exists; server: the PR is ready at the commit) | no record; the card leaves `hd actions` |
 | User's OK | the chat itself | nothing is stored; commands run only after it |
 | Release published | observed: `gh release view <tag>` | tick `gates` step sets the batch `published` |
 | Run spawned / stop done | recorded by the console's own commands (`run-link`, `run-stopped`) | they only remove items from the drive list |
@@ -123,39 +159,62 @@ No decision uses elapsed time, except the train debounce, gate and image timeout
 in policy (open work: docs/HANDOFF.md).
 
 ## 5. The change lifecycle
+The stage names are the track's chain (section 2a); below `gate` the recorded stage stands, from `gate` on the track's facts
+decide.
 ```mermaid
 stateDiagram-v2
   [*] --> backlog: hd new --backlog / no definition of done
   backlog --> ready: has a definition of done, deps live
   ready --> dev: dispatch (agent run booked, owner set)
-  dev --> checked: hand-over check PASS
-  dev --> ready: check FAIL (items listed) / run ended without hand-over / blocked
-  checked --> live: client: client repo master contains the commit; harness: this repo main contains it (ship merges)
-  checked --> live: server: pinned in integration and the live server runs it (train + deploy)
-  live --> gated: server: PASS record at the commit on the fork docs branch
-  gated --> published: server: OpenRune PR open, not draft, at the commit
-  published --> merged: upstream main contains the commit
-  live --> ready: branch moved past the handed-over commit (BR-C2)
+  dev --> gate: hd handover (its check passed)
+  dev --> ready: run ended without hand-over / blocked
+  gate --> live: client: master contains the commit; harness: main contains it (ship merges); local/*: the test server runs it
+  gate --> contribute: server: QA's record exists at the commit
+  contribute --> review: server: hd contribute after the user's yes
+  review --> merged: server: merged upstream
+  gate --> ready: branch moved past the handed-over commit
+  contribute --> ready: branch moved past the handed-over commit
   live --> [*]: client, harness, local/* (terminal)
   merged --> [*]
 ```
-Holds (`blocked`, `decision`, `failed`, `exception`) overlay any stage; they never are a stage. `next_executor`: `ready`
-or a `failed` hold on ready/live/published needs a dev; a live, non-local server change without a PASS record needs a
-server-qa gate; a `blocked`/`decision`/`exception` hold needs nothing. Unknown facts (gh down) never regress a stage.
+Server flow after the hand-over, two independent outputs:
+```mermaid
+flowchart LR
+  h[hd handover<br/>stage gate] --> t[train queue<br/>when the fork has the commit] --> l[live_commit]
+  h --> q[server-qa aggregate<br/>gate.md + gate-ci.json]
+  q --> c[approval card<br/>hd drive]
+  c -- "yes bound to the sha" --> k[hd contribute]
+  c -- "fix first: failed hold" --> d[dev run with the findings]
+  d --> h
+  k --> r[review] --> m[merged]
+  r -- "maintainer comment" --> f[review-fix change<br/>keyed by comment id] --> h
+```
+`live_commit` is the live target's own fact, set by the tick (client, harness) or the train (server); a dependent change waits
+for it only. A QA finding sets no hold and books no dev. `next_executor`: `ready`, or a `failed` hold at or after `gate`
+(an operator asked for a fix, or a train failed), needs a dev; otherwise the track's `executor` (the server's `gate`: a
+handed-over change that is not local-only with no QA record at its commit); a `blocked`/`decision`/`exception` hold needs
+nothing. Before a run is booked, `stages.would_loop` compares the booking key (head sha, the track's finding set; for a
+verifier the head) with the last booked one: equal means a durable `decision` hold and no run (`hd unhold`, `hd block`,
+`hd fail` and a branch move reset it). Unknown facts (gh down) never regress a stage.
 
-Harness track: branches and the live target are read in this repo (`stages.repo_of`); the target is policy
+A change whose `finding` is set is a review-fix: same branch and PR, full chain; the parent stays at `review` while the PR is
+open. Findings are the comments and reviews newer than the parent's `review_seen` by anyone but the fork owner and bots
+(approvals and dismissals excluded).
+
+Harness track: branches and the live target are read in this repo (`tracks/harness.py`); the target is policy
 `tracks.harness.live_target` (`main`). A `harness/<slug>` branch passes the check while main lacks the commit; a change
 handed over on `main` passes while main contains the commit. The daemon merges `harness/*` into main (`--no-ff`,
 trailer `Co-Authored-By: Claude <noreply@anthropic.com>`), locally, never pushed. `hd dod <slug> <n>...` ticks
 definition-of-done items on the store.
 
 ## 6. The tick (tick.py)
-Order, each step in its own try/except (a failure is an `error` event): 1 reconcile (derive stages, deps to blocked holds)
-· 2 reap (a change at dev with a commit gets the check) · 3 ship/train (checked client/harness changes merge; checked
-server changes join the queue; `batches.advance`) · 4 deploy (`live-server` lock, `deploy.sh`) · 5 re-pin (upstream main
-moved) · 6 gates (release rule makes a release batch; release record sets `gated`; an observed release sets
-`published`; the release gate agent is booked) · 7 dispatch (ready changes x free slots, by priority;
-integrator per train exception) · 8 metrics · 9 heal · the `tick` event. `--dry-run` observes and reports only.
+Order, each step in its own try/except (a failure is an `error` event): 1 reconcile (derive stages, `live_commit`, a moved
+branch re-enters at ready, deps to blocked holds, each track's `reconcile`) · 2 ship/train (each track's `ship` for its
+handed-over changes: merge or queue; `batches.advance`) · 3 deploy (`live-server` lock, `deploy.sh`) · 4
+re-pin (upstream main moved) · 5 gates (release rule makes a release batch; release record sets `gated`; an observed
+release sets `published`; the release gate agent is booked) · 6 tracks (each track's `step`) · 7 dispatch (ready changes and gates x free
+slots, by priority; the no-loop check; integrator per train exception) · 8 metrics · 9 heal · the `tick` event.
+`--dry-run` observes and reports only.
 
 ### Dispatch and hand-over
 ```mermaid
@@ -168,11 +227,11 @@ sequenceDiagram
   C->>D: hd drive (spawn list: runs without agent_id)
   C->>A: Agent tool (subagent_type=role, prompt=brief, isolation worktree for client-dev/client-qa/harness-dev)
   C->>S: hd run-link <name> <agent-id>
-  A->>S: hd handover <slug> --branch --commit --evidence (commit recorded on the change)
+  A->>S: hd handover <slug> --branch --commit --evidence [--repo] (the check runs now; refused or stage gate)
   A->>A: stop hook task_stop: result on disk? slot_stop: no lock held?
   A-->>C: completion notification
   C->>S: hd run-end <name> --tokens --turns (cost on change, locks freed, owner cleared)
-  D->>S: next tick, reap: check.run -> PASS: stage checked / FAIL: ready + items
+  D->>S: next tick: ship / train / QA booked from the stage gate
 ```
 A run whose change no longer names it (owner cleared, batch step moved) is `lingering`; heal stops it (`agent
 stop-request` event, run ended `stopped:<why>`) and `hd drive` lists the TaskStop for the console.
@@ -181,30 +240,32 @@ stop-request` event, run ended `stopped:<why>`) and `hd drive` lists the TaskSto
 `hd drive` prints, from run records, change files, batches and observed state: (a) spawns (booked runs with no
 `agent_id`: name, role, change, brief path, worktree yes/no), (b) stops, (c) actions needing the user's OK with exact
 commands, decisions (`decision` holds), (d) exceptions (a train at `exception` whose integrator ended, `exception`
-holds, `failed` holds no dev will pick up). Nothing in it is stored: each item disappears when its fact changes.
+holds, `failed` holds no dev will pick up). The `decision` holds are the user's "needs you": an agent's question, or the
+no-loop hold. Nothing in it is stored: each item disappears when its fact changes.
 The loop itself (spawn, link, end, ask, run, repeat; never EnterWorktree in the console) is `.claude/skills/drive/SKILL.md`.
 
-## 8. Upstream actions and releases (actions.py)
-A gated server change (stage `gated`, branch and commit) needs `open-pr` (no upstream PR), `ready-pr` (draft at the
-commit) or `update-pr` (PR head behind: push the commit to the fork branch, then comment). A gated release batch needs
-`tag-release` (one `gh release create <tag> --target <commit>` with the APK) or `choose-tag` (no tag yet: the user picks,
-`hd release-request vX.Y.Z`). PR text comes from the fork's docs branch (`pr-texts/<slug>.title|.upstream.body|.update.md`).
+## 8. The user's list (actions.py)
+`pending_actions` collects every track's `needs_you` cards and the gated release batches. A card carries the exact commands,
+the text files they post, the record, check lines, findings, diff range, observed steps and caveats; nothing is recorded,
+completion is the observation that removes it. Release batches need `tag-release` (one `gh release create <tag> --target
+<commit>` with the APK) or `choose-tag` (`hd release-request vX.Y.Z`).
+
+Server cards (`tracks/server/cards.py`): `contribute` for a change at `contribute`, one command bound to the commit; `draft-pr`
+for a review-fix change open on a PR that is ready.
 ```mermaid
 sequenceDiagram
   participant Q as server-qa
-  participant D as harnessd
   participant C as Console
   participant U as User (chat)
   participant G as GitHub
-  Q->>D: hd gate <slug> PASS (record pushed to fork docs branch)
-  D->>D: tick: record at the commit -> stage gated
-  C->>D: hd drive / hd actions: open-pr, commands + text file (computed from observed state)
-  C->>U: AskUserQuestion: action, title, body, gate record, diff, caveats, commands
-  U-->>C: yes
-  C->>G: gh pr create ... (publish_gate: QA PASS at the commit; github_scope: prompts for upstream)
-  D->>G: next tick observes PR open at the commit -> stage published; the action leaves the list
+  Q->>Q: hd gate-ci, checks, gate.md
+  Q->>C: hd gate <slug> PASS|FAIL (the record checked against the commit)
+  C->>C: hd drive: the card (verdict, checks, findings, PR text, diff, steps)
+  C->>U: AskUserQuestion: approve this commit / fix first / no
+  U-->>C: approve
+  C->>G: hd contribute <slug> --approved <sha> (push, open, CI, comment, ready, review)
+  C->>C: next tick: the PR is ready with the commit: stage review; the card is gone
 ```
-A completed action cannot be listed again because completion is the observation that removes it.
 
 ## 9. Integration train and deploy (batches.py)
 Train steps: `queued -> pinning -> rebuilding -> gating -> imaging -> imaged -> deploying -> live`, or `exception`
@@ -217,7 +278,7 @@ sequenceDiagram
   participant L as locks
   participant X as image.sh / deploy.sh / qa.sh
   participant I as integrator agent
-  T->>B: advance: checked server changes in queue.json
+  T->>B: advance: handed-over server changes in queue.json
   B->>B: pin branches, rebuild integration (integrate.py), lease push
   B->>X: gate (qa.sh), image (image.sh, boot check)
   T->>L: daemon takes live-server
@@ -241,11 +302,11 @@ not locks (skill `test-instances`). A deploy restarts the live server without wa
 ## 11. Hooks and guards
 | Hook | Loaded by | Rule |
 |---|---|---|
-| `deny_publish.py` (`--fork-writes`, `--docs-writes`) | every agent role file | agents cannot push, write to GitHub, deploy or touch integration; server-dev may write to the fork, server-qa to the fork's docs branch only; pushes to OpenRune stay denied; image builds, deploys and docker or compose writes on the live stack (`osrs-openrune*`) are denied to every role; every denial is an event |
-| `task_stop.py` | harness-dev, integrator | cannot end without a hand-over / gate verdict / resolution on disk |
+| `deny_publish.py` (`--fork-writes`, `--docs-writes`) | every agent role file | agents cannot push, write to GitHub, deploy or touch integration, nor run `hd contribute`; server-dev may write to the fork, server-qa to the fork's docs branch and `gate/*` only; pushes to OpenRune stay denied; image builds, deploys and docker or compose writes on the live stack (`osrs-openrune*`) are denied to every role; every denial is an event |
+| `task_stop.py` | harness-dev, integrator, server-qa | cannot end without a hand-over / QA aggregate / resolution on disk |
 | `slot_stop.py` | no role file | stops an agent ending while holding a lock |
 | `qa_write_scope.py` | client-qa, server-qa | QA writes only its records |
-| `publish_gate.py`, `github_scope.py` | every session, when wired in `.claude/settings.json` | no upstream PR without a QA PASS at the commit; upstream writes and pushes to a fork branch backing an open PR prompt the user |
+| `publish_gate.py`, `github_scope.py` | every session, when wired in `.claude/settings.json` | client release tags need their record; the server track's rules (`tracks/server/hooks.py`): `hd contribute` needs QA's record at the commit and an approval naming it, a direct upstream PR needs the record; other upstream writes and pushes to a fork branch backing an open PR prompt the user; fork actions (`gate/*` pushes, fork CI) never prompt |
 The console session does not load `deny_publish.py`: it can publish, which is why it asks the user in chat first.
 
 ## 12. Run and test

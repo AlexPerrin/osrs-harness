@@ -14,7 +14,8 @@ and `tools/hooks/*.py` that exec this repo.
 ```
 hd.py            the command line (python3 ~/osrs-harness/hd.py ...; `hd` in the docs)
 hd/              the daemon (store, events, policy, stages, observe, check, locks (leases.py), agents, batches, ship, heal, tick,
-                 daemon, kpi, metrics) and the console's side (actions, drive)
+                 daemon, kpi, metrics) and the console's side (actions, drive); hd/tracks/ holds each track
+                 (client, harness, server) behind one interface: the core only orchestrates between them
 hooks/           the Claude Code hooks the role files and the client repo's .claude wiring exec
 harness/         policy.yaml and changes/ (committed); state/ (git-ignored)
 .claude/         agents/ (role files) and skills/ (drive = the console loop; the track rules; the QA procedures)

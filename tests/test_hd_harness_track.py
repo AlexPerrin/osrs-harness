@@ -4,7 +4,7 @@ import os, subprocess, sys, unittest
 sys.path.insert(0, os.path.dirname(__file__))
 import hd_helpers as H
 from hd import check, cli, policy, ship, stages, store
-from hd.observe import FakeObserver
+from hd.tracks import FakeObserver
 
 SHA = "a" * 40
 EV = {"re/evidence/hx": ["tests.txt"]}
@@ -30,16 +30,16 @@ class StagesTest(unittest.TestCase):
         H.sandbox(self)
 
     def test_live_is_main_of_this_repo(self):
-        ch = H.change("hx", "harness", stage="checked", commit=SHA, branch="harness/hx")
+        ch = H.change("hx", "harness", stage="gate", commit=SHA, branch="harness/hx")
         o = obs(tips={("harness", "harness/hx"): SHA}, contains={("harness", "main", SHA): False})
-        self.assertEqual(stages.derive(ch, o, {})[0], "checked")
+        self.assertEqual(stages.derive(ch, o, {})[0], "gate")
         o = obs(tips={("harness", "harness/hx"): SHA}, contains={("harness", "main", SHA): True})
         self.assertEqual(stages.derive(ch, o, {})[:2], ("live", ""))
 
     def test_master_of_the_client_repo_is_not_read(self):
-        ch = H.change("hx", "harness", stage="checked", commit=SHA, branch="harness/hx")
+        ch = H.change("hx", "harness", stage="gate", commit=SHA, branch="harness/hx")
         o = obs(tips={("harness", "harness/hx"): SHA}, contains={("ours", "master", SHA): True})
-        self.assertEqual(stages.derive(ch, o, {})[0], "checked")
+        self.assertEqual(stages.derive(ch, o, {})[0], "gate")
 
     def test_handed_over_on_main_is_live_without_drift(self):
         ch = H.change("hx", "harness", stage="live", commit=SHA, branch="main")
@@ -108,7 +108,7 @@ class ShipTest(unittest.TestCase):
             self.addCleanup(os.environ.pop, k, None)
 
     def test_harness_change_merges_into_main_without_push(self):
-        ch = H.change("hx", "harness", stage="checked", commit=self.sha, branch="harness/hx")
+        ch = H.change("hx", "harness", stage="gate", commit=self.sha, branch="harness/hx")
         ok, msg = ship.merge_to_master(ch)
         self.assertTrue(ok, msg)
         self.assertIn("merged into main", msg)
@@ -117,7 +117,7 @@ class ShipTest(unittest.TestCase):
 
     def test_trailer_is_model_neutral(self):
         self.assertEqual(ship.TRAILER, "Co-Authored-By: Claude <noreply@anthropic.com>")
-        ch = H.change("hx", "harness", stage="checked", commit=self.sha, branch="harness/hx")
+        ch = H.change("hx", "harness", stage="gate", commit=self.sha, branch="harness/hx")
         ship.merge_to_master(ch)
         log = subprocess.run(["git", "-C", self.repo, "log", "-1", "--format=%B"], capture_output=True, text=True).stdout
         self.assertIn("Co-Authored-By: Claude <noreply@anthropic.com>", log)
@@ -134,7 +134,7 @@ class ShipTest(unittest.TestCase):
         commit_file(self.repo, "docs/d.md", "x\n")
         with open(os.path.join(self.repo, "docs", "d.md"), "w") as f:
             f.write("dirty\n")
-        ch = H.change("hx", "harness", stage="checked", commit=self.sha, branch="harness/hx")
+        ch = H.change("hx", "harness", stage="gate", commit=self.sha, branch="harness/hx")
         ok, msg = ship.merge_to_master(ch)
         self.assertFalse(ok)
         self.assertIn("uncommitted", msg)
@@ -142,7 +142,7 @@ class ShipTest(unittest.TestCase):
     def test_commit_already_on_main_is_shipped(self):
         from helpers import git
         git(self.repo, "merge", "-q", "--ff-only", self.sha)
-        ch = H.change("hy", "harness", stage="checked", commit=self.sha, branch="main")
+        ch = H.change("hy", "harness", stage="gate", commit=self.sha, branch="main")
         self.assertEqual(ship.merge_to_master(ch), (True, "already on main"))
 
 

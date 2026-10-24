@@ -6,7 +6,7 @@
     live_per_day          changes reaching live per day (stage events to=live), last 7 days
     lead_time_h           ready -> live, median and p90 (stage events per change)
     check_first_pass      share of changes whose first `check` event was PASS
-    gate_first_pass       share of changes whose first gate verdict (stage to=gated vs hold failed from a gate) was PASS
+    gate_first_pass       share of changes whose first `gate` event (`hd gate`) was PASS
     stall_minutes         minutes ready changes waited while a slot was free (tick events carry
                           `stalled: [slugs]`)
     interventions_per_day `note kind=user` events per day
@@ -132,8 +132,7 @@ def _first_pass(evs, kind_pred, pass_pred):
 
 
 def _is_gate_verdict(e):
-    return (e.get("kind") == "stage" and e.get("to") == "gated") or (
-        e.get("kind") == "hold" and e.get("hold") == "failed" and e.get("source") == "gate")
+    return e.get("kind") == "gate"
 
 
 def _by_role(evs):
@@ -171,7 +170,7 @@ def compute(evs=None, since=None):
         "live_per_day": _per_day(evs, lambda e: e.get("kind") == "stage" and e.get("to") == "live"),
         "lead_time_h": {"median": _median(lead), "p90": _p90(lead), "n": len(lead)},
         "check_first_pass": _first_pass(evs, lambda e: e.get("kind") == "check", lambda e: e.get("result") == "PASS"),
-        "gate_first_pass": _first_pass(evs, _is_gate_verdict, lambda e: e.get("kind") == "stage"),
+        "gate_first_pass": _first_pass(evs, _is_gate_verdict, lambda e: e.get("result") == "PASS"),
         "stall_minutes": round(stall, 2),
         "interventions_per_day": _per_day(evs, _user),
         "denials_per_hour": _denials(evs),

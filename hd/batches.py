@@ -6,7 +6,7 @@ Train steps: queued -> pinning -> rebuilding -> gating -> imaging -> imaged (wai
 -> live | exception | failed.
 Release steps: queued -> gating -> gated -> published (the release is observed on GitHub) | failed.
 
-  enqueue(ch)                   a checked server change joins the queue (`harness/state/queue.json`; a newer
+  enqueue(ch)                   a handed-over server change joins the queue (`harness/state/queue.json`; a newer
                                 commit of the same branch replaces its entry); idempotent
   advance(obs, now=False)       one step of every open batch, never blocking: starts a train when the oldest
                                 entry is past policy `batches.train_debounce_minutes` (or `now`, or a re-pin asked
@@ -508,7 +508,7 @@ def drop_pin(text, branch):
 
 def held_entries(entries):
     """Queue entries whose change carries a hold (decision, blocked, exception, failed): a train never takes them;
-    they leave the queue and are re-queued by the tick when the hold clears (the change is still `checked`)."""
+    they leave the queue and are re-queued by the tick when the hold clears. QA findings are not a hold."""
     out = []
     for e in entries:
         try:
@@ -639,18 +639,24 @@ def deploy(batch, obs):
 
 
 def _mark_live(b, isha, idx):
-    """The included changes at their handed-over commit -> live; returns the slugs."""
+    """The included changes at their handed-over commit are on the test server: `live_commit` is set (a local/* change
+    also reaches its `live` stage; a contributed server change keeps its upstream stage: the two are independent);
+    returns the slugs."""
     out = []
     for e in b.get("entries") or [{"slug": s} for s in b.get("includes") or []]:
         ch = idx.get(e["slug"])
-        if ch is None or ch.reached("live"):
+        if ch is None or (ch.get("live_commit") and ch.get("live_commit") == ch.get("commit")):
             continue
         if e.get("commit") and ch.get("commit") != e["commit"]:
             store.add_log(ch, f"train {b['id']} deployed {e['commit'][:9]}, but the change is now at "
                               f"{str(ch.get('commit'))[:9]} (not live)")
             store.save(ch)
             continue
-        before = store.set_stage(ch, "live", f"deployed by {b['id']} (integration {isha[:9]})")
+        before = ch.stage
+        if "live" in ch.chain():
+            store.set_stage(ch, "live", f"deployed by {b['id']} (integration {isha[:9]})")
+        else:
+            store.add_log(ch, f"live on the test server: deployed by {b['id']} (integration {isha[:9]})")
         ch["live_commit"], ch["batch"] = ch.get("commit"), b["id"]
         store.save(ch)
         events.emit("stage", change=ch.slug, commit=ch.get("commit"), batch=b["id"], **{"from": before, "to": "live"})
