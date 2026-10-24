@@ -4,7 +4,7 @@ track: server
 title: 'Fish barrel: Check message box and Destroy'
 prio: P1
 role: server-dev
-stage: published
+stage: merged
 hold: null
 deps: []
 branch: fix/fish-barrel-check-and-destroy
@@ -32,7 +32,7 @@ cost:
   minutes: 19.5
   usd: 7.54
 created: '2026-10-20T01:42:40Z'
-updated: '2026-10-22T02:08:34Z'
+updated: '2026-10-24T19:46:24Z'
 ---
 ## Change
 Fish barrel Check sends GAMEMESSAGE lines instead of the chatbox message box (interface 193 comp 2: 'The barrel is empty.' / 'The barrel contains: 3 x Raw shrimps' / 'The barrel is full. It may be emptied at a bank.'); Destroy (op 5) does nothing (FishBarrelScript dispatch `else -> {}`). A spawned barrel sits in the tester's slot 15 until Destroy works. Unblocks client: Fish Barrel hub plugin (gen 44).
@@ -53,3 +53,4 @@ Fish barrel Check sends GAMEMESSAGE lines instead of the chatbox message box (in
 - 2026-10-22T00:28:37Z run sq31 ended: 24 turns, 19.5 min, $7.54, exit ok
 - 2026-10-22T00:37:35Z approval fish-barrel-check-and-destroy-open-pr-4e2d456 executed (open-pr): https://github.com/OpenRune/OpenRune-Server/pull/388
 - 2026-10-22T00:38:23Z gated -> published: observed
+- 2026-10-24T19:46:24Z published -> merged: observed

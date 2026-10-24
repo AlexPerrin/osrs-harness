@@ -4,7 +4,7 @@ track: server
 title: 'fix: Take the stock clientscript maximum from the cache and the CS2 project'
 prio: P2
 role: server-dev
-stage: checked
+stage: live
 hold: null
 deps:
 - cannon-review-354
@@ -22,8 +22,8 @@ pr: https://github.com/AlexPerrin/OpenRune-Server/pull/31
 ci: https://github.com/AlexPerrin/OpenRune-Server/actions/runs/39707862594
 summary: 'sd35: StockClientScripts reads the stock clientscript range from the cache; PluginPacks.checkClientScriptIds fails a build on shadowing; quest 10197-10198, spawn 10199-10209; rebased onto upstream
   main e85278c9a'
-live_commit: 339d0f3fa8a96606e7846937c702af57503f3e66
-batch: int-20261022-5
+live_commit: c2f528fca73e316fe1a58e5f7124bb402e8f21cd
+batch: int-20261024-1
 cost:
   runs: 3
   turns: 0
@@ -31,7 +31,7 @@ cost:
   usd: 0
   tokens: 231639
 created: '2026-10-21T00:25:19Z'
-updated: '2026-10-24T19:32:22Z'
+updated: '2026-10-24T21:05:45Z'
 ---
 ## Change
 Branch `fix/11-dense-clientscript-ids` carried by the live server at its pin; no v2 task.
@@ -58,3 +58,5 @@ Branch `fix/11-dense-clientscript-ids` carried by the live server at its pin; no
 - 2026-10-22T02:04:07Z dev -> checked: hand-over check PASS
 - 2026-10-22T02:05:10Z in train int-20261022-5: integration 17c773333 pushed; gate, image and deploy pending
 - 2026-10-24T19:32:22Z 2026-10-24 reset (user): settle the existing upstream PRs (#354 #355 #367 #368) before opening new ones; depends on their review fixes, P2
+- 2026-10-24T19:52:20Z in train int-20261024-1: integration ae947cff4 pushed; gate, image and deploy pending
+- 2026-10-24T21:05:45Z checked -> live: deployed by int-20261024-1 (integration ae947cff4)

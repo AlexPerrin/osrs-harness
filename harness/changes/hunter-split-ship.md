@@ -4,17 +4,29 @@ track: server
 title: 'Hunter: split the 7 fin/hunter-* branches and ship each'
 prio: P2
 role: server-dev
-stage: dev
-hold: null
-deps: []
+stage: ready
+hold:
+  kind: blocked
+  reason: waiting for cannon-review-354, genie-review-355, goblin-diplomacy-review-367, witchs-potion-review-368
+  since: '2026-10-24T19:46:29Z'
+deps:
+- cannon-review-354
+- genie-review-355
+- goblin-diplomacy-review-367
+- witchs-potion-review-368
 branch: null
 commit: null
 local_only: false
-owner: sd32
+owner: null
 instances:
 - desktop
+cost:
+  runs: 1
+  turns: 10
+  minutes: 1.9
+  usd: 15.47
 created: '2026-10-20T01:42:41Z'
-updated: '2026-10-22T02:16:54Z'
+updated: '2026-10-24T19:46:29Z'
 ---
 ## Change
 7 fin/hunter-* branches (local only, re/upstream-pr/dev-hunter): linearise rumours (the older linear rumours are archived as refs/archive/sd22/fin-hunter-rumours dcf92ca13 in re/upstream-pr/or), gate each, write texts; integration still uses fin/hunter.
@@ -35,3 +47,7 @@ updated: '2026-10-22T02:16:54Z'
 - 2026-10-22T00:15:20Z spec committed: accuracy/hunter-split-ship.md (RSProx 1106/350: trap timings compared, failing->broken fixed to 1 tick on content/hunter-traps 1cd2300ed, rumours rebuilt fddf38117); 7 PR texts in pr-texts/hunter-*.upstream.body
 - 2026-10-22T02:16:31Z branch fix/<slug> (grooming)
 - 2026-10-22T02:16:54Z no single branch: the hand-over names the split content/hunter-* branches (grooming)
+- 2026-10-22T02:28:58Z run sd32 ended: 10 turns, 1.9 min, $15.47, exit ok
+- 2026-10-22T02:28:58Z dev -> ready: run sd32 ended without a hand-over
+- 2026-10-24T19:32:22Z 2026-10-24 reset (user): settle the existing upstream PRs (#354 #355 #367 #368) before opening new ones; depends on their review fixes, P2
+- 2026-10-24T19:46:29Z hold blocked: waiting for cannon-review-354, genie-review-355, goblin-diplomacy-review-367, witchs-potion-review-368
