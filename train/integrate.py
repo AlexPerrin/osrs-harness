@@ -12,7 +12,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from hd import fork_clone, server_work  # noqa: E402
 AUTHOR = "Alex Perrin <44126061+AlexPerrin@users.noreply.github.com>"
-TRAILER = "Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+TRAILER = "Co-Authored-By: Claude <noreply@anthropic.com>"
 TOOLS_BRANCH = "local/integration-tools"
 SECTIONS = ("# Upstream fixes", "# Content", "# Local only")
 

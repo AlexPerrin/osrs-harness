@@ -148,7 +148,8 @@ server-qa gate; a `blocked`/`decision`/`exception` hold needs nothing. Unknown f
 Harness track: branches and the live target are read in this repo (`stages.repo_of`), the target is policy
 `tracks.harness.live_target` (`main`); the client's master is never read. A `harness/<slug>` branch passes the check
 while main lacks the commit; a change handed over on `main` itself passes while main contains the commit (no merge, no
-BR-C2 drift as main moves on). The daemon merges `harness/*` into main and never pushes it. An agent ticks its
+BR-C2 drift as main moves on). The daemon merges `harness/*` into main automatically (harness changes are not public-facing: no user OK) and
+never pushes it; the merge trailer is the model-neutral `Co-Authored-By: Claude <noreply@anthropic.com>`. An agent ticks its
 definition of done with `hd dod <slug> <n>...` (on the store; agents cannot edit change files).
 
 ## 6. The tick (tick.py)

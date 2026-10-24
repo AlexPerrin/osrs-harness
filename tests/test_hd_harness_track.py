@@ -115,6 +115,30 @@ class ShipTest(unittest.TestCase):
         self.assertNotIn("pushed", msg)
         self.assertEqual(subprocess.run(["git", "-C", self.repo, "merge-base", "--is-ancestor", self.sha, "main"]).returncode, 0)
 
+    def test_trailer_is_model_neutral(self):
+        self.assertEqual(ship.TRAILER, "Co-Authored-By: Claude <noreply@anthropic.com>")
+        ch = H.change("hx", "harness", stage="checked", commit=self.sha, branch="harness/hx")
+        ship.merge_to_master(ch)
+        log = subprocess.run(["git", "-C", self.repo, "log", "-1", "--format=%B"], capture_output=True, text=True).stdout
+        self.assertIn("Co-Authored-By: Claude <noreply@anthropic.com>", log)
+        self.assertNotIn("Fable", log)
+
+    def test_guard_watches_the_current_layout(self):
+        for p in ("train", "docs", "hd", "hooks", "tests", "hd.py", "device-lock.sh", "harness/policy.yaml"):
+            self.assertIn(p, ship.HARNESS_DIRS)
+        for stale in ("image.sh", "deploy.sh", "integrate.py"):
+            self.assertNotIn(stale, ship.HARNESS_DIRS)
+
+    def test_uncommitted_tracked_change_in_a_harness_dir_blocks_the_merge(self):
+        from helpers import commit_file
+        commit_file(self.repo, "docs/d.md", "x\n")
+        with open(os.path.join(self.repo, "docs", "d.md"), "w") as f:
+            f.write("dirty\n")
+        ch = H.change("hx", "harness", stage="checked", commit=self.sha, branch="harness/hx")
+        ok, msg = ship.merge_to_master(ch)
+        self.assertFalse(ok)
+        self.assertIn("uncommitted", msg)
+
     def test_commit_already_on_main_is_shipped(self):
         from helpers import git
         git(self.repo, "merge", "-q", "--ff-only", self.sha)
