@@ -1,4 +1,52 @@
-# HANDOFF: start here (harness v3 session)
+# HANDOFF: start here
+
+**Session of 2026-10-24 (restart pending). Start the next session in ~/osrs-harness so the role agent types load with
+the fixed hook paths (they load at session start; `.claude/agents/*.md` were fixed in 6901c09).**
+
+## State
+- Daemon and dashboard are STOPPED. Start: `python3 hd.py serve --detach` and `python3 hd.py start --interval 60`. The
+  console session must stay alive: the daemon emits `agent request` events (brief: harness/state/runs/<name>.log, or
+  `hd brief <slug> --stage dev`), you spawn them with the Agent tool (subagent_type = the role), then `hd run-link
+  <name> <agent-id>` and on completion `hd run-end <name> ...`. Never start with HD_MAX_CLIENTSCRIPT_ID set (see below).
+- Live test server: integration ae947cff4 on upstream main 5c4c9c106, image osrs-openrune:integration-ae947cf,
+  rollback osrs-openrune:rollback-e27ff4d. Deployed with the one-off override HD_MAX_CLIENTSCRIPT_ID=10198.
+- Upstream: #406 (stile, ours, open; head 68ddd1b6c = test dropped, body updated), #354 cannon (changes requested),
+  #355 genie (draft, findings), #367 goblin (finding), #368 witch's potion (conflicting). Merged: #362 #366 #370 #372 #373 #388.
+- Review-fix changes (P0, ready, not started): cannon-review-354, genie-review-355, goblin-diplomacy-review-367,
+  witchs-potion-review-368. sd40/sd41 were spawned twice and blocked by the stale hook path (no work done). Client dev
+  dispatch is OFF (policy tracks.client.dev_slots 0) until BlueStacks is up and server-dev is settled.
+- stile-approach was handed over again at 68ddd1b6c; its check FAILS only on "no CI run at 68ddd1b6c": GitHub answers
+  422 "Actions has been disabled for this repository" for the fork (settings say enabled). Fork CI cannot run until the
+  user fixes that on github.com. This blocks every green-CI hand-over check.
+- Pending approval: rel-20261022-1-tag-release-v0.1.1 (NOT READY: needs an isolated release build at 7bb7048).
+
+## Layout (repos are isolated; see memory project-repo-isolation-layout)
+Fork clone ~/src/OpenRune-Server; work dir ~/src/openrune-work (integration, qa, images, agents/<name>/or, server-tools =
+fork branch local/server-tools); role files and skills in ~/osrs-harness/.claude; the client repo is client-only
+(its removal commit d78a893 is local, not pushed). Evidence dirs still live in the client checkout re/evidence/.
+Not done: `.claude/settings.json` hook wiring in this repo (add it for the console session when the user says so).
+
+## Open work, in the user's order
+1. Re-dispatch the four review fixes with the guarded role types (server-dev); push to PR heads only after the user's OK.
+2. Option 3: verify custom clientscript ids (10197-10198) with stock ids above 9999 (10000-10188 in 241.4). Server side: the
+   desktop RuneLite instances (desktop/desktop2) can confirm the cache and quest list; the Android tolerance is a BlueStacks
+   client test, only when the user starts BlueStacks.
+3. Option 1: make check_cache.py derive its limit from the cache's stock maximum (1:1 with the official cache; custom ids
+   right after it) and remove HD_MAX_CLIENTSCRIPT_ID from image.sh.
+4. Prune timed mechanisms (user: "actions are atomic, not timed"): image/deploy/gate timeouts, train debounce, lease
+   minutes/heartbeats, budget minutes. Replace with observed-fact checks. Also dead hook rules for ship.sh/integrate.py.
+5. Gate for ground-item-despawn-times and 11-dense-clientscript-ids; unstack Hunter; spec-missing holds on old branches.
+6. Stale text: docs/ and the rest of this file describe v2; rewrite when pruning.
+
+## Rules that bit this session
+- Guards matter: agents without the role hooks can push upstream; keep them on. Nothing goes to OpenRune without the user's OK.
+- No "separately / its own PR" to maintainers; a PR is ready only when reported defects are fixed in it. No stacking.
+- Time is never a mechanism; decide on observed facts.
+- Times for the user are US Eastern.
+
+---
+# Older handoff (harness v3 build session, 2026-10-20/21; partly stale)
+
 
 **2026-10-21 9:45 PM EDT: the harness moved to its own repo, AlexPerrin/osrs-harness (~/osrs-harness).** Commands below
 run from the client checkout through its shims (`python3 tools/harness/hd.py` there execs `~/osrs-harness/hd.py`), or

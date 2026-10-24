@@ -4,11 +4,11 @@ track: server
 title: 'Stile: approach from the outside tile'
 prio: P1
 role: server-dev
-stage: gated
+stage: dev
 hold: null
 deps: []
 branch: fix/stile-approach
-commit: 513144d3dfcfcfd5613123bbe3457b952192c384
+commit: 68ddd1b6c0de78e18788b22dc52ff6df2909d348
 local_only: false
 owner: null
 instances:
@@ -16,17 +16,18 @@ instances:
 evidence: /home/alex/osrs-plugins-reverse/re/evidence/fix-stile-approach
 pr: https://github.com/AlexPerrin/OpenRune-Server/pull/21
 ci: https://github.com/AlexPerrin/OpenRune-Server/actions/runs/39363600299
-summary: '513144d3d on fork (PR #21), CI+Formatting green; 17 in-game crossings from every side/angle walk to the in-line tile, step on T+1, climb T+2, step off T+5 = RSProx 1718; dev''s check PASS. Docs
-  554bd95c7 (spec, PR text, qa record, STATE) local in re/agents/sd27/or branch docs: orchestrator to publish it and update PR #21''s body (hook denied both).'
+upstream_pr: 406
+summary: '68ddd1b6c drops StileScriptTest from 513144d3d (maintainer precedent on #366: these tests can be removed); no other change. #406 head; PR body updated. User OK 2026-10-24.'
 gated_commit: 513144d3dfcfcfd5613123bbe3457b952192c384
 live_commit: 513144d3dfcfcfd5613123bbe3457b952192c384
+published_commit: 513144d3dfcfcfd5613123bbe3457b952192c384
 cost:
   runs: 2
   turns: 16
   minutes: 2.9
   usd: 11.77
 created: '2026-10-20T01:42:40Z'
-updated: '2026-10-24T19:42:49Z'
+updated: '2026-10-24T21:10:22Z'
 ---
 ## Change
 fix/stile-approach 8a8c0ca7a failed the internal gate: the player walks onto the stile's own blocking tile, so it never climbs. Fix: start the climb from the tile outside the stile on the player's side, in line with it; check in game; update the PR text. Covers the #366 review item 'stile jump from too far away (player not always in the pen)'.
@@ -50,3 +51,8 @@ fix/stile-approach 8a8c0ca7a failed the internal gate: the player walks onto the
 - 2026-10-22T01:18:57Z run sq33 ended: 16 turns, 2.9 min, $11.77, exit ok
 - 2026-10-24T19:32:22Z 2026-10-24 reset (user): settle the existing upstream PRs (#354 #355 #367 #368) before opening new ones; depends on their review fixes, P2
 - 2026-10-24T19:42:49Z 2026-10-24 user: P1, runs first; dependency on the four review fixes removed (it fixes the stile bug reported on merged #366)
+- 2026-10-24T19:45:12Z approval stile-approach-open-pr-513144d executed (open-pr): https://github.com/OpenRune/OpenRune-Server/pull/406
+- 2026-10-24T19:46:29Z gated -> published: observed
+- 2026-10-24T19:51:51Z published -> ready: branch moved to 68ddd1b6c past 513144d3d: hand over again (BR-C2)
+- 2026-10-24T21:10:22Z ready -> dev: hand-over recorded
+- 2026-10-24T21:10:22Z handover fix/stile-approach@68ddd1b6c: 68ddd1b6c drops StileScriptTest from 513144d3d (maintainer precedent on #366: these tests can be removed); no other change. #406 head; PR body updated. User OK 2026-10-24.
