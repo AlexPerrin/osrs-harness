@@ -84,8 +84,10 @@ done
 # 4. build with the live image's id pinned
 live_id=$($DOCKER inspect "$LIVE" --format '{{.Image}}')
 [ -n "$live_id" ] || die "no live container $LIVE"
-echo "image: building $tag from $ctx (LIVE_IMAGE $live_id)"
-$DOCKER build --build-arg LIVE_IMAGE="$live_id" -t "$tag" "$ctx" || die "docker build failed" 5
+live_ref=osrs-openrune:live-$(echo "${live_id#sha256:}" | cut -c1-12)   # BuildKit won't take a bare id in FROM: a local tag of that id
+$DOCKER tag "$live_id" "$live_ref" || die "docker tag of the live image failed" 5
+echo "image: building $tag from $ctx (LIVE_IMAGE $live_ref = $live_id)"
+$DOCKER build --build-arg LIVE_IMAGE="$live_ref" -t "$tag" "$ctx" || die "docker build failed" 5
 image_id=$($DOCKER inspect "$tag" --format '{{.Id}}')
 
 # 5. key hash: compared, never printed

@@ -543,7 +543,8 @@ class ScriptTest(unittest.TestCase):
         tag = f"osrs-openrune:integration-{sha7}"
         ctx = os.path.join(self.d, "images-ctx", f"image-{sha7}")
         self.assertIn(f"inspect osrs-openrune --format {{{{.Image}}}}", calls)
-        self.assertIn(f"build --build-arg LIVE_IMAGE=sha256:live -t {tag} {ctx}", calls)
+        self.assertIn("tag sha256:live osrs-openrune:live-live", calls)
+        self.assertIn(f"build --build-arg LIVE_IMAGE=osrs-openrune:live-live -t {tag} {ctx}", calls)
         self.assertIn("run --rm --entrypoint sha256sum sha256:live /app/.data/rsa.properties", calls)
         self.assertIn(f"run --rm --entrypoint sha256sum {tag} /app/.data/rsa.properties", calls)
         boot = [l for l in calls if l.startswith("run -d")]
