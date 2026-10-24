@@ -7,11 +7,11 @@ hooks:
     - matcher: Bash
       hooks:
         - type: command
-          command: python3 "$CLAUDE_PROJECT_DIR"/tools/hooks/deny_publish.py
+          command: python3 "$CLAUDE_PROJECT_DIR"/hooks/deny_publish.py
   Stop:
     - hooks:
         - type: command
-          command: python3 "$CLAUDE_PROJECT_DIR"/tools/hooks/task_stop.py
+          command: python3 "$CLAUDE_PROJECT_DIR"/hooks/task_stop.py
 ---
 You are the harness dev for /home/alex/osrs-plugins-reverse: you change the harness (~/osrs-harness/hd, tools/hooks,
 harness/policy.yaml, docs/harness-v3.md) under the allow-listed self-change path (BR-P4): your own worktree, a test per

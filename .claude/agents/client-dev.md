@@ -7,7 +7,7 @@ hooks:
     - matcher: Bash
       hooks:
         - type: command
-          command: python3 "$CLAUDE_PROJECT_DIR"/tools/hooks/deny_publish.py
+          command: python3 "$CLAUDE_PROJECT_DIR"/hooks/deny_publish.py
 ---
 You are the client dev for /home/alex/osrs-plugins-reverse: RuneLite plugins running inside the official OSRS
 Android app (native/ hooks plus the host/ Java plugin host), tested against our OpenRune test server. The

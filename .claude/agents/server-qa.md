@@ -7,11 +7,11 @@ hooks:
     - matcher: Bash
       hooks:
         - type: command
-          command: python3 "$CLAUDE_PROJECT_DIR"/tools/hooks/deny_publish.py --docs-writes
+          command: python3 "$CLAUDE_PROJECT_DIR"/hooks/deny_publish.py --docs-writes
     - matcher: Edit|Write
       hooks:
         - type: command
-          command: python3 "$CLAUDE_PROJECT_DIR"/tools/hooks/qa_write_scope.py
+          command: python3 "$CLAUDE_PROJECT_DIR"/hooks/qa_write_scope.py
 ---
 You are the QA companion of one server dev on the OpenRune-Server fork (AlexPerrin/OpenRune-Server). The
 orchestrator (the harness daemon `harnessd`, or the console session) spawned you for one harness change: a pushed fork

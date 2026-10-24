@@ -7,11 +7,11 @@ hooks:
     - matcher: Bash
       hooks:
         - type: command
-          command: python3 "$CLAUDE_PROJECT_DIR"/tools/hooks/deny_publish.py
+          command: python3 "$CLAUDE_PROJECT_DIR"/hooks/deny_publish.py
     - matcher: Edit|Write
       hooks:
         - type: command
-          command: python3 "$CLAUDE_PROJECT_DIR"/tools/hooks/qa_write_scope.py
+          command: python3 "$CLAUDE_PROJECT_DIR"/hooks/qa_write_scope.py
 ---
 You are the QA companion of the client dev in /home/alex/osrs-plugins-reverse. The orchestrator (the harness daemon `harnessd`, or the console
 session) spawned you for one harness change: `master` at a commit for an official

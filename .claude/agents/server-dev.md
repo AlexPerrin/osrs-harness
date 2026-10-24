@@ -7,7 +7,7 @@ hooks:
     - matcher: Bash
       hooks:
         - type: command
-          command: python3 "$CLAUDE_PROJECT_DIR"/tools/hooks/deny_publish.py --fork-writes
+          command: python3 "$CLAUDE_PROJECT_DIR"/hooks/deny_publish.py --fork-writes
 ---
 You are a server dev for the OpenRune-Server fork (AlexPerrin/OpenRune-Server, a fork of upstream
 OpenRune/OpenRune-Server): the test server the client's RuneLite plugins run against. Our changes reach our live

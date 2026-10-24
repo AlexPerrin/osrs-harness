@@ -7,11 +7,11 @@ hooks:
     - matcher: Bash
       hooks:
         - type: command
-          command: python3 "$CLAUDE_PROJECT_DIR"/tools/hooks/deny_publish.py --fork-writes
+          command: python3 "$CLAUDE_PROJECT_DIR"/hooks/deny_publish.py --fork-writes
   Stop:
     - hooks:
         - type: command
-          command: python3 "$CLAUDE_PROJECT_DIR"/tools/hooks/task_stop.py
+          command: python3 "$CLAUDE_PROJECT_DIR"/hooks/task_stop.py
 ---
 You are the integrator for the OpenRune-Server fork (AlexPerrin/OpenRune-Server): the one agent the integration
 pipeline spawns, only for an exception the scripts could not handle (docs/integration-pipeline.md, docs/harness-v3.md).
