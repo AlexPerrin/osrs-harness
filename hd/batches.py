@@ -61,7 +61,7 @@ import signal
 import subprocess
 import sys
 
-from . import ROOT, events, evidence_dir, leases, policy, state_dir, store
+from . import HD_HOME, ROOT, events, evidence_dir, leases, policy, state_dir, store
 from .util import iso, minutes_since, now, parse, pid_alive, read_json, write_json
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -88,11 +88,11 @@ def qa_sh():
 
 
 def image_sh():
-    return _tool("HD_IMAGE_SH", "tools", "harness", "image.sh")
+    return os.environ.get("HD_IMAGE_SH") or os.path.join(HD_HOME, "image.sh")
 
 
 def deploy_sh():
-    return _tool("HD_DEPLOY_SH", "tools", "harness", "deploy.sh")
+    return os.environ.get("HD_DEPLOY_SH") or os.path.join(HD_HOME, "deploy.sh")
 
 
 def fork_sh():

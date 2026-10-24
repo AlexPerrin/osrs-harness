@@ -389,6 +389,13 @@ class TrainTest(unittest.TestCase):
         self.assertTrue(leases.holds("integration", leases.DAEMON))
         self.assertEqual(self.run_to("imaged")["step"], "imaged")
 
+    def test_default_image_and_deploy_scripts_exist(self):
+        with mock.patch.dict(os.environ):
+            os.environ.pop("HD_IMAGE_SH", None)
+            os.environ.pop("HD_DEPLOY_SH", None)
+            self.assertTrue(os.path.isfile(batches.image_sh()), batches.image_sh())
+            self.assertTrue(os.path.isfile(batches.deploy_sh()), batches.deploy_sh())
+
     def test_gate_failure_with_docker_down_waits_and_restarts(self):
         batches.enqueue(self.checked("ta", "fix/a"))
         os.environ["STUB_GATE_RC"] = "1"
