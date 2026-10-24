@@ -556,7 +556,7 @@ class ScriptTest(unittest.TestCase):
         self.assertIn("run --rm --entrypoint sha256sum sha256:live /app/.data/rsa.properties", calls)
         self.assertIn(f"run --rm --entrypoint sha256sum {tag} /app/.data/rsa.properties", calls)
         boot = [l for l in calls if l.startswith("run -d")]
-        self.assertEqual(boot, [f"run -d --name hd-boot-{sha7} --tmpfs /app/.data/postgres {tag}"])
+        self.assertEqual(boot, [f"run -d --name hd-boot-{sha7} --tmpfs /app/.data/postgres:uid=1000,gid=1000,mode=0700 {tag}"])
         self.assertNotIn(" -p ", boot[0])
         self.assertIn(f"rm -f hd-boot-{sha7}", calls)
         self.assertIn("key hash: match", r.stdout)

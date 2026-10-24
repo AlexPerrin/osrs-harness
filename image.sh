@@ -106,7 +106,7 @@ unset h_live h_new
 name=hd-boot-$sha7
 cleanup() { $DOCKER rm -f "$name" >/dev/null 2>&1 || true; }
 trap cleanup EXIT
-$DOCKER run -d --name "$name" --tmpfs /app/.data/postgres "$tag" >/dev/null || die "boot container did not start" 5
+$DOCKER run -d --name "$name" --tmpfs /app/.data/postgres:uid=1000,gid=1000,mode=0700 "$tag" >/dev/null || die "boot container did not start" 5
 ready=""
 waited=0
 while [ "$waited" -lt "$TIMEOUT" ]; do
