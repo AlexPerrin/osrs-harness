@@ -3,4 +3,4 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # the harness repo
-from hd import fork_clone  # noqa: E402,F401
+from hd import fork_clone, server_tools  # noqa: E402,F401

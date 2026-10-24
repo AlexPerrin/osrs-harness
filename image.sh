@@ -6,7 +6,7 @@
 #   2. exit 3 if <clone>/.data/rsa.properties exists (the live key never enters a clone); stage
 #      <server work>/image-<sha7>/: server/ = <clone>/server/app/build/install/app, data/ = <clone>/.data without
 #      game.key (the gate's throwaway key) and postgres/; exit 3 if a key file survives the staging
-#   3. the cache fixes (openrune/scripts add_varcs, fix_long_varps, fix_reftable, check_cache, python3 -I) on the
+#   3. the cache fixes (server-tools/scripts add_varcs, fix_long_varps, fix_reftable, check_cache, python3 -I) on the
 #      staged data/cache/LIVE, as openrune.sh build runs them on src/
 #   4. docker build from tools/harness/Dockerfile.integration with LIVE_IMAGE = the live container's image id, so
 #      game.key, rsa.properties, game.yml and entrypoint.sh are COPY --from the live image only
@@ -25,7 +25,7 @@ HD_HOME=$(cd "$(dirname "$0")" && pwd)   # the harness repo
 ROOT=${HD_CLIENT_ROOT:-$HOME/osrs-plugins-reverse}   # the client checkout
 STATE=${HD_STATE_DIR:-$ROOT/harness/state}
 DOCKER=${DOCKER:-${HD_DOCKER:-docker}}
-SCRIPTS=${HD_CACHE_SCRIPTS:-$ROOT/openrune/scripts}
+SCRIPTS=${HD_CACHE_SCRIPTS:-${HD_SERVER_TOOLS:-${HD_SERVER_HOME:-$HOME/src}/openrune-work/server-tools}/scripts}
 CTX_ROOT=${HD_IMAGE_ROOT:-${HD_SERVER_HOME:-$HOME/src}/openrune-work}
 TIMEOUT=${HD_IMAGE_TIMEOUT:-1800}
 POLL=${HD_POLL_SECONDS:-5}

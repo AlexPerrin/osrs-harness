@@ -6,7 +6,7 @@
 #      (harness/state/leases/<resource>.json holder): the tick drains and takes them first (BR-R4)
 #   3. rollback tag first: osrs-openrune:241 -> osrs-openrune:rollback-<live sha7> (live.json's integration, else
 #      the live image id); then the new image -> osrs-openrune:241
-#   4. `docker compose --env-file switch.env up -d --no-deps openrune` in openrune/, never --build
+#   4. `docker compose --env-file switch.env up -d --no-deps openrune` in server-tools/, never --build
 #   5. waits for "Server ready in" in the live container's log since the start, up to HD_DEPLOY_TIMEOUT s (300);
 #      on timeout the rollback tag goes back to :241 and compose up runs again: result rollback, exit 1
 #   6. record harness/state/deploys/<batch>.json {result: ok|rollback, image, rollback_tag, seconds, ready_line}
@@ -19,7 +19,7 @@ HD_HOME=$(cd "$(dirname "$0")" && pwd)   # the harness repo
 ROOT=${HD_CLIENT_ROOT:-$HOME/osrs-plugins-reverse}   # the client checkout
 STATE=${HD_STATE_DIR:-$ROOT/harness/state}
 DOCKER=${DOCKER:-${HD_DOCKER:-docker}}
-OPENRUNE=${HD_OPENRUNE_DIR:-$ROOT/openrune}
+OPENRUNE=${HD_OPENRUNE_DIR:-${HD_SERVER_TOOLS:-${HD_SERVER_HOME:-$HOME/src}/openrune-work/server-tools}}   # the compose dir (project name osrs-openrune is set in the file)
 INSTANCES=${HD_INSTANCES:-$HD_HOME/instances.tsv}
 TIMEOUT=${HD_DEPLOY_TIMEOUT:-300}
 POLL=${HD_POLL_SECONDS:-5}

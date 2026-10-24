@@ -60,6 +60,11 @@ def server_work():
     return os.path.join(server_home(), "openrune-work")
 
 
+def server_tools():
+    """The fork's local/server-tools branch checked out: qa.sh, fork.sh, the cache scripts, the live stack's compose."""
+    return os.environ.get("HD_SERVER_TOOLS") or os.path.join(server_work(), "server-tools")
+
+
 def harness_dir():
     return os.environ.get("HD_HARNESS_DIR") or os.path.join(HD_HOME, "harness")
 

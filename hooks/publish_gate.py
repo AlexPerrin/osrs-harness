@@ -47,7 +47,7 @@ def records():
                 text = git("show", f"{ref}:{name}")
                 if text:
                     yield f"{ref.split('/', 2)[2]}:{name}", text
-    for path in sorted(glob.glob(os.path.join(ROOT, "openrune/upstream/qa/*.md"))):
+    for path in sorted(glob.glob(os.path.join(hdpaths.server_tools(), "upstream/qa/*.md"))):
         with open(path) as f:
             yield path, f.read()
 
