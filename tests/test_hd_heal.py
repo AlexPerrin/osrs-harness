@@ -13,7 +13,7 @@ from hd.observe import FakeObserver
 class HealTest(unittest.TestCase):
     def setUp(self):
         self.d = H.sandbox(self)
-        H.env(self, HD_SPAWN="fake", HD_WORKTREE="0", HD_DOCKER=H.stub(self.d, "docker", 'echo "$@" >> "$(dirname "$0")/docker.log"\n'))
+        H.env(self, HD_DOCKER=H.stub(self.d, "docker", 'echo "$@" >> "$(dirname "$0")/docker.log"\n'))
         self.addCleanup(util.freeze, None)
 
     def docker_log(self):
@@ -66,13 +66,9 @@ class HealTest(unittest.TestCase):
 
     def test_dead_run_without_handover_back_to_ready(self):
         ch = H.change("feat", "server", stage="dev", owner="sd9")
-        log = os.path.join(os.environ["HD_STATE_DIR"], "runs", "sd9.log")
-        os.makedirs(os.path.dirname(log), exist_ok=True)
-        open(log, "w").close()
         store.rec_save(agents.RUNS, "sd9", {"name": "sd9", "role": "server-dev", "change": "feat", "stage": "dev",
-                                            "pid": H.dead_pid(), "started": util.iso(), "log": log, "cwd": "/x",
-                                            "budget": {"usd": 25, "minutes": 240}, "ended": None})
-        agents.poll()
+                                            "console": True, "started": util.iso(), "log": "/x", "ended": None})
+        agents.end("sd9", "ok")
         self.assertIsNone(store.load("feat")["owner"])
         acts = heal.run(FakeObserver(), store.index())
         self.assertEqual(acts, ["change feat back to ready: run sd9 ended without a hand-over"])

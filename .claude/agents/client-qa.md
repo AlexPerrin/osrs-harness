@@ -73,7 +73,7 @@ Never connect anything to Jagex or RuneScape servers. Never read or modify C:\Us
 your records (pathspec-only, see CLAUDE.md). You never push, post or tag; a hook denies those. If anything is
 denied, don't work around it: report it.
 
-When the record is committed: `hd gate <slug> PASS` (the daemon files the release approval), or
+When the record is committed: `hd gate <slug> PASS` (the console then asks the user for the release OK in chat), or
 `hd gate <slug> FAIL "<what must change>"`; the stop hook won't let you finish
 before. Your final message is one line: the change slug, PASS or FAIL, the record path.
 

@@ -1,5 +1,5 @@
-# Harness policy (BR-P*): one versioned file read by the daemon, the hooks and the briefs. Rules, not prose.
-version: 3
+# Harness policy v4 (BR-P*): one versioned file read by the daemon, the hooks and the briefs. Rules, not prose.
+version: 4
 
 tracks:
   client:
@@ -54,13 +54,6 @@ batches:
 
 agents:
   max_concurrent: 3                  # total running agents (the usage window, not dollars, is the constraint)
-  spawn_mode: console                # console: the daemon decides, the console session spawns with the Agent tool
-                                     # (visible in the user's CLI) and reports the end with `hd run-end`; headless: claude -p
-  permission_mode: auto              # claude -p --permission-mode; hooks still apply
-  model: null                        # null = the role file's / default model
-  budget_usd: {client-dev: 25, server-dev: 25, client-qa: 15, server-qa: 15, integrator: 8, harness-dev: 15}
-  budget_minutes: {client-dev: 240, server-dev: 240, client-qa: 180, server-qa: 150, integrator: 60, harness-dev: 120}  # lease grants only; never a stop
-  linger_grace_minutes: 0            # a run is stopped as soon as its change no longer names it (no time grace)
   roles:
     client-dev:  {track: client, stage: dev,  worktree: true,  pushes: []}
     server-dev:  {track: server, stage: dev,  worktree: false, pushes: [fork]}
@@ -69,10 +62,6 @@ agents:
     integrator:  {track: server, stage: train, worktree: false, pushes: [fork-tools]}
     harness-dev: {track: harness, stage: dev, worktree: true,  pushes: []}
   names: {client-dev: cd, server-dev: sd, client-qa: cq, server-qa: sq, integrator: ig, harness-dev: hd}
-
-approvals:                           # BR-A1: the only two kinds that prompt the user (+ decision = a question)
-  kinds: [upstream, release, decision]
-  notify: digest                     # BR-A7: one digest per tick with news
 
 evidence:
   client_repack_telemetry_lines: 7

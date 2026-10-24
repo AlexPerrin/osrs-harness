@@ -7,9 +7,9 @@ checkboxes, `## Log` with dated lines). Front matter keys (the order they are wr
   deps (slugs), branch, commit (the handed-over commit), local_only (server: local/* branch, ends at live),
   owner (the agent in dev), instances (granted for the stage), evidence (dir), pr (fork PR url), ci (run url),
   upstream_pr (number), spec (accuracy/<spec>.md), network (client: touches networking), summary,
-  gated_commit, live_commit, published_commit, batch, cost ({runs, turns, minutes, usd}), created, updated.
+  gated_commit, live_commit, published_commit, batch, cost ({runs, turns, tokens, minutes}), created, updated.
 
-State records (git-ignored, `harness/state/<kind>/<id>.json`): leases, runs, batches, approvals, images;
+State records (git-ignored, `harness/state/<kind>/<id>.json`): leases, runs, batches, actions (text files), images;
 `live.json` (what the live server runs) and `daemon.json` (the daemon's pid and last tick).
 """
 import glob

@@ -78,7 +78,7 @@ server. Never connect anything to Jagex servers. Never read or modify C:\Users\A
 records and QA.md (pathspec-only, see CLAUDE.md) and push them onto the fork's `docs` branch yourself, a plain
 non-forced push; any other push, and any post, a hook denies. If anything is denied, don't work around it: report it.
 
-When the record is pushed: `hd gate <slug> PASS` (the daemon files the upstream approval for the user), or
+When the record is pushed: `hd gate <slug> PASS` (the console then asks the user for the upstream OK in chat), or
 `hd gate <slug> FAIL "<what must change>"` (a failed hold: the dev fixes it with a new commit on the same branch); the stop hook won't let you finish before. Your final message is one line: the change slug, PASS or FAIL, the
 record path.
 

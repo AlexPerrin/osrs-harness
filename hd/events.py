@@ -1,6 +1,6 @@
 """The event log (BR-H4): `harness/state/events.jsonl`, append-only, one JSON object per line, UTC. Every stage
-change, hold, batch step, lease event, approval event, agent start and end, denial, drift, deploy, re-pin and metric
-recount is one line. The dashboard, the KPIs and every post-mortem read it; nothing rewrites it.
+change, hold, batch step, lease event, agent request, start and end, denial, drift, deploy, re-pin and metric
+recount is one line. The KPIs and every post-mortem read it; nothing rewrites it.
 
   emit(kind, **fields)      append one event; returns it
   read(since=None, kinds=None, change=None, limit=None)   the events, oldest first
@@ -11,11 +11,10 @@ Kinds (the `kind` field; `data` holds the rest):
   hold       change held or released: hold (blocked|decision|failed|exception|none), reason
   check      hand-over check: result (PASS|FAIL), items
   batch      a train or release step: batch, step (queued|pinning|rebuilding|gating|imaging|deploying|live|
-             exception|failed|rolled-back), detail
+             exception|failed|rolled-back|published), detail
   lease      resource lease: action (grant|take|heartbeat|release|reclaim|expire|drain|undrain|deny), resource,
              holder, purpose, why
-  agent      start|end: name, role, change, stage, pid; on end: turns, minutes, usd, tokens, exit
-  approval   created|approved|denied|done|stale|failed: approval, kind, change
+  agent      start|request|end|stop-request: name, role, change, stage; on end: turns, minutes, tokens, exit
   denial     a hook or classifier denied an action: source, rule, command (truncated)
   drift      record != observation: change, field, recorded, observed
   deploy     image, integration, result (ok|rollback), seconds

@@ -43,7 +43,7 @@ QA (`server-qa`) runs only the upstream gate.
    `gameval_search`; load with ToolSearch) and cite the page section or cache entry. Commit it to `docs`, set
    `hd log <slug> "spec committed: accuracy/<slug>.md"`, and go on coding: the review is not a wait. The orchestrator reads specs
    from the log and can veto one; a decision only you can't take (the PR split, an upstream overlap, a conflicting
-   source) is the one thing you stop for: `hd fail <slug> "decision needed: ..."` (a decision hold the user answers from the dashboard) if nothing else can proceed.
+   source) is the one thing you stop for: `hd fail <slug> "decision needed: ..."` (a decision hold the console asks the user in chat) if nothing else can proceed.
 2. **Analyse** what you need: `server-probe`; `reverse` (Ghidra `-readOnly` on `re/ghidra`, Ghidra = ELF +
    0x100000) for the client's side of the protocol (docs/android-protocol.md).
 3. **Build** each change as `content/<slug>` or `fix/<slug>` (no numbers) off `upstream/main`; `local/*` only for

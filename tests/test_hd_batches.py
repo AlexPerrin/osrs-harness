@@ -167,9 +167,10 @@ class QueueTest(unittest.TestCase):
         b["step"] = "published"
         store.rec_save("batches", b["id"], b)
         self.assertIsNone(batches.release_due(store.index()), "those six are covered")
-        open(os.path.join(self.d, "harness", "state", "release.request"), "w").close()
+        with open(os.path.join(self.d, "harness", "state", "release.request"), "w") as f:
+            f.write('{"tag": "v9.9.9"}')
         self.assertEqual(batches.release_due(store.index()), [])
-        batches.new_release([])
+        self.assertEqual(batches.new_release([])["tag"], "v9.9.9")   # the request's tag travels on the batch
         self.assertFalse(os.path.exists(os.path.join(self.d, "harness", "state", "release.request")))
         self.assertEqual([s["id"] for s in batches.status()], [b["id"].replace("-1", "-2")])
 

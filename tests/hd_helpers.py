@@ -12,6 +12,19 @@ sys.path.insert(0, ROOT)
 ENV_KEYS = ("HD_HARNESS_DIR", "HD_STATE_DIR", "HD_EVENTS", "HD_POLICY", "HD_LOCK_DIR", "HD_EVIDENCE_DIR", "HD_NO_FETCH", "HD_NO_RECOUNT")
 
 
+def write_test_policy(dest):
+    """The real policy's structure with the numeric knobs the tests rely on pinned, so a change of the live values
+    (slots, caps) never changes a test: client 1 dev slot, server 2, harness 1, at most 3 agents running."""
+    import yaml
+    with open(os.path.join(ROOT, "harness", "policy.yaml")) as f:
+        pol = yaml.safe_load(f)
+    for name, slots in (("client", 1), ("server", 2), ("harness", 1)):
+        pol["tracks"][name]["dev_slots"] = slots
+    pol["agents"]["max_concurrent"] = 3
+    with open(dest, "w") as f:
+        yaml.safe_dump(pol, f)
+
+
 def sandbox(test):
     """A temp harness dir with the real policy copied in; environment pointed at it for the test's duration."""
     d = tempfile.mkdtemp(prefix="hd-test-")
@@ -21,7 +34,7 @@ def sandbox(test):
     os.makedirs(os.path.join(harness, "state"))
     os.makedirs(os.path.join(d, "locks"))
     os.makedirs(os.path.join(d, "evidence"))
-    shutil.copy(os.path.join(ROOT, "harness", "policy.yaml"), os.path.join(harness, "policy.yaml"))
+    write_test_policy(os.path.join(harness, "policy.yaml"))
     old = {k: os.environ.get(k) for k in ENV_KEYS}
     os.environ.update(HD_HARNESS_DIR=harness, HD_STATE_DIR=os.path.join(harness, "state"),
                       HD_EVENTS=os.path.join(harness, "state", "events.jsonl"),

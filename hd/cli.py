@@ -1,4 +1,4 @@
-"""hd: the harness v3 command line (python3 tools/harness/hd.py <command>).
+"""hd: the harness v4 command line (python3 tools/harness/hd.py <command>).
 
 Changes
   new --track t --slug s --title "..." [--prio P2] [--dod "item"]... [--deps a,b] [--branch b] [--spec n] [--network]
@@ -13,22 +13,24 @@ Changes
   resolve <batch> "note" [--decision]     the integrator recorded a resolution and the train resumes; --decision: nothing
                                           recorded, the user decides (no resume)
   check <slug>                            run the hand-over check now and print it
-  brief <slug> [--stage dev|gate]         the spawn brief      dispatch <slug> [--print]   spawn now
+  brief <slug> [--stage dev|gate]         the spawn brief      dispatch <slug>   book a run now (the console spawns it)
   note "text" [--kind user|upstream|...]  a note event (the console records the user's messages as kind user)
-  agents [--all]                          running agents: usage so far, `claude --resume <session>` to open the chat
-  tail <name> [--turns 5]                 the last turns of an agent's log as text
-  run-end <name> [--exit ok] [--turns n] [--tokens n] [--minutes m]   console mode: the session reports an Agent-tool run ended
-  run-link <name> <agent-id>              console mode: the Agent-tool id of a run (for TaskStop on a stop-request)
+  agents [--all]                          agent runs: role, change, stage, tokens so far, linked or not
+  run-link <name> <agent-id>              the console: the Agent-tool id of a spawned run
+  run-end <name> [--exit ok] [--turns n] [--tokens n] [--minutes m]   the console: the run ended
+  run-stopped <name>                      the console: the stopped run's agent was TaskStopped
+Console
+  drive [--json]                          the console's work list: spawns, stops, user OKs, decisions, exceptions
+  actions [--json]                        upstream actions and releases that need the user's OK (observed, never recorded)
 Daemon
   status [--json]   tick [--dry-run]   run [--interval 60] [--once]   start [--interval]   stop   (the tick loop)
-  serve [--port 7790] [--detach]   serve-stop   (the dashboard: its own process, never restarted with the loop)
   daemon-status     digest
 Resources
   lease grant <res> <who> [--minutes n] [--once]   lease take <res> <who> "what" [--pid n] [--container c]
   lease heartbeat <res> <who>   lease release <res> <who>   lease reclaim <res> "why"   lease revoke <res> <who>
   lease status [<res>]   lease holds <res> <who>   lease drain <res>   lease undrain <res>
-Approvals, batches, events
-  approvals   approve <id> [--note]   deny <id> --note "..."   batches   train [--now]   resume <batch>
+Batches, events
+  batches   train [--now]   resume <batch>
   release-request <tag>   events [--kind k] [--change s] [--limit n]   kpi
 """
 import argparse
@@ -252,39 +254,29 @@ def cmd_dispatch(a):
     ex = a.stage or stages.next_executor(ch) or "dev"
     role = policy.role_for(ch["track"], ex)
     inst = policy.track(ch["track"]).get("instances" if ex == "dev" else "qa_instances", [])
-    if a.print:
-        os.environ["HD_SPAWN"] = "print"
     r = agents.spawn(ch, role, ex, inst)
-    print(f"{r.get('name')} ({role}) -> {ch['slug']} ({ex}); pid {r.get('pid')}; log {r.get('log')}")
+    print(f"{r.get('name')} ({role}) -> {ch['slug']} ({ex}); booked, `hd drive` lists it for the console; brief {r.get('log')}")
 
 
 def cmd_agents(a):
-    from . import agents
-    rows = agents.running() if not a.all else store.rec_all("runs")
+    rows = store.rec_all("runs") if a.all else agents_running()
     if not rows:
         print("no running agents")
     for r in rows:
-        res = agents._result(r["log"]) or {}
-        tok = agents._tokens(res) or 0
+        state = f"ended {str(r.get('exit'))[:30]}" if r.get("ended") else ("running" if r.get("agent_id") else "booked, not spawned")
         print(f"{r['name']:5} {r['role']:11} {str(r.get('change')):34} {r.get('stage'):5} since {local(r.get('started'))}  "
-              f"turns {res.get('num_turns') or 0:<4} tokens {tok:<9} {'ended ' + str(r.get('exit'))[:30] if r.get('ended') else 'running'}")
-        if r.get("session"):
-            print(f"      open the chat: claude --resume {r['session']}    log: {r['log']}")
-        else:
-            print(f"      log: {r['log']}  (hd tail {r['name']})")
+              f"tokens {r.get('tokens') or 0:<9} {state}")
+        print(f"      brief: {r['log']}")
 
 
-def cmd_tail(a):
+def agents_running():
     from . import agents
-    r = store.rec_load("runs", a.name)
-    if not r:
-        sys.exit(f"hd: no run {a.name}")
-    print(agents.transcript(r["log"], a.turns))
+    return agents.running()
 
 
 def cmd_run_end(a):
     from . import agents
-    r = agents.end_console(a.name, a.exit, a.turns, a.tokens, a.minutes, a.result or "")
+    r = agents.end(a.name, a.exit, a.turns, a.tokens, a.minutes, a.result or "")
     print(f"{a.name}: {r.get('exit') if r else 'no such run'}")
 
 
@@ -292,6 +284,31 @@ def cmd_run_link(a):
     from . import agents
     agents.link(a.name, a.agent_id)
     print(f"{a.name} <- {a.agent_id}")
+
+
+def cmd_run_stopped(a):
+    from . import agents
+    r = agents.mark_stopped(a.name)
+    print(f"{a.name}: {'stop done' if r else 'no such run'}")
+
+
+def cmd_drive(a):
+    from . import drive
+    w = drive.work(_obs())
+    print(json.dumps(w, indent=1, default=str) if a.json else drive.render(w))
+
+
+def cmd_actions(a):
+    from . import actions
+    rows = actions.pending_actions(_obs())
+    if a.json:
+        print(json.dumps(rows, indent=1, default=str))
+        return
+    if not rows:
+        print("no actions need the user's OK")
+    for r in rows:
+        print(actions.render(r))
+        print()
 
 
 def cmd_lint(a):
@@ -326,23 +343,39 @@ def cmd_lint(a):
     return 1 if bad else 0
 
 
+def status_view():
+    """The status as a dict: changes with why they wait, open batches, leases, agent runs, daemon."""
+    from . import batches, daemon
+    waiting = (store.rec_load("view", "waiting") or {}).get("waiting", {})
+    return {"changes": [{"slug": c["slug"], "track": c["track"], "stage": c.stage, "hold": c.hold, "owner": c.get("owner"),
+                         "prio": c.get("prio"), "waiting": waiting.get(c["slug"]), "title": c.get("title")}
+                        for c in store.all_changes()],
+            "batches": [{k: b.get(k) for k in ("id", "kind", "step", "includes", "exception")} for b in batches.open_batches()],
+            "leases": {r: {"holder": st.get("holder"), "purpose": st.get("purpose"), "drain": bool(st.get("drain"))}
+                       for r, st in leases.status_all().items()},
+            "runs": [{k: r.get(k) for k in ("name", "role", "change", "stage", "agent_id")} for r in agents_running()],
+            "daemon": daemon.status()}
+
+
 def cmd_status(a):
-    from . import dashboard
-    try:
-        v = dashboard.view()
-    except NotImplementedError:
-        v = None
+    v = status_view()
     if a.json:
         print(json.dumps(v, indent=1, default=str))
         return
-    if v is None:
-        waiting = (store.rec_load("view", "waiting") or {}).get("waiting", {})
-        for ch in store.all_changes():
-            print(fmt(ch, waiting.get(ch["slug"])))
-        for r, st in leases.status_all().items():
-            print(f"lease {r:12} {st.get('holder') or 'free':10} {st.get('purpose') or ''}")
-        return
-    print(dashboard.text(v))
+    d = v["daemon"]
+    print(f"harnessd {'alive' if d.get('alive') else 'not running'}; last tick {d.get('last_tick_local') or '-'}")
+    from .stages import terminal
+    for ch in store.all_changes():
+        if ch.stage == terminal(ch):
+            continue
+        print(fmt(ch, next((c["waiting"] for c in v["changes"] if c["slug"] == ch["slug"]), None)))
+    for b in v["batches"]:
+        print(f"batch {b['id']:18} {b['kind']:8} {b['step']:10} {', '.join(b.get('includes') or []) or '-'}"
+              + (f"  exception: {str(b['exception'])[:80]}" if b.get("exception") else ""))
+    for r, st in v["leases"].items():
+        print(f"lease {r:12} {st.get('holder') or ('draining' if st['drain'] else 'free'):10} {st.get('purpose') or ''}")
+    for r in v["runs"]:
+        print(f"run {r['name']:5} {r['role']:11} {r['change']} ({r['stage']})" + ("" if r.get("agent_id") else "  [not spawned: hd drive]"))
 
 
 def cmd_tick(a):
@@ -358,10 +391,7 @@ def cmd_run(a):
 
 def cmd_start(a):
     from . import daemon
-    pid = daemon.start(a.interval, a.port)
-    sv = daemon.server_status()
-    print(f"harnessd started (pid {pid})" + (f"; dashboard http://127.0.0.1:{sv.get('port')}/" if sv.get("alive")
-                                              else "; dashboard not running: hd serve --detach"))
+    print(f"harnessd started (pid {daemon.start(a.interval)}); the console runs `hd drive`")
 
 
 def cmd_stop(a):
@@ -369,30 +399,9 @@ def cmd_stop(a):
     print(daemon.stop())
 
 
-def cmd_serve(a):
-    from . import daemon
-    if a.detach:
-        pid = daemon.start_server(a.port)
-        print(f"dashboard server started (pid {pid}); http://127.0.0.1:{a.port}/")
-        return
-    s = daemon.serve(a.port)
-    print(f"serving http://127.0.0.1:{a.port}/ (Ctrl-C to stop)")
-    try:
-        import time
-        while True:
-            time.sleep(3600)
-    except KeyboardInterrupt:
-        s.shutdown()
-
-
-def cmd_serve_stop(a):
-    from . import daemon
-    print(daemon.stop_server()["text"])
-
-
 def cmd_daemon_status(a):
     from . import daemon
-    print(json.dumps({"loop": daemon.status(), "server": daemon.server_status()}, indent=1))
+    print(json.dumps(daemon.status(), indent=1))
 
 
 def cmd_digest(a):
@@ -432,29 +441,6 @@ def cmd_lease(a):
     if act == "undrain":
         leases.undrain(a.res); print(f"{a.res} open"); return 0
     sys.exit(f"hd lease: unknown action {act}")
-
-
-def cmd_approvals(a):
-    from . import approvals
-    rows = approvals.all_() if a.all else approvals.pending()
-    if not rows:
-        print("no pending approvals")
-    for r in rows:
-        try:
-            print(approvals.render(r))
-        except NotImplementedError:
-            print(json.dumps(r, indent=1))
-        print()
-
-
-def cmd_approve(a):
-    from . import approvals
-    print(approvals.approve(a.id, a.note or ""))
-
-
-def cmd_deny(a):
-    from . import approvals
-    print(approvals.deny(a.id, a.note))
 
 
 def cmd_batches(a):
@@ -521,29 +507,26 @@ def main(argv=None):
     s = sp.add_parser("resolve"); s.add_argument("batch"); s.add_argument("note"); s.add_argument("--decision", action="store_true", help="nothing recorded: the user decides; no resume"); s.set_defaults(f=cmd_resolve)
     s = sp.add_parser("check"); s.add_argument("slug"); s.set_defaults(f=cmd_check)
     s = sp.add_parser("brief"); s.add_argument("slug"); s.add_argument("--stage", default="dev"); s.set_defaults(f=cmd_brief)
-    s = sp.add_parser("dispatch"); s.add_argument("slug"); s.add_argument("--stage"); s.add_argument("--print", action="store_true"); s.set_defaults(f=cmd_dispatch)
+    s = sp.add_parser("dispatch"); s.add_argument("slug"); s.add_argument("--stage"); s.set_defaults(f=cmd_dispatch)
     sp.add_parser("lint").set_defaults(f=cmd_lint)
     s = sp.add_parser("agents"); s.add_argument("--all", action="store_true"); s.set_defaults(f=cmd_agents)
-    s = sp.add_parser("tail"); s.add_argument("name"); s.add_argument("--turns", type=int, default=5); s.set_defaults(f=cmd_tail)
     s = sp.add_parser("run-end"); s.add_argument("name"); s.add_argument("--exit", default="ok"); s.add_argument("--turns", type=int)
     s.add_argument("--tokens", type=int); s.add_argument("--minutes", type=float); s.add_argument("--result"); s.set_defaults(f=cmd_run_end)
+    s = sp.add_parser("run-stopped"); s.add_argument("name"); s.set_defaults(f=cmd_run_stopped)
+    s = sp.add_parser("drive"); s.add_argument("--json", action="store_true"); s.set_defaults(f=cmd_drive)
+    s = sp.add_parser("actions"); s.add_argument("--json", action="store_true"); s.set_defaults(f=cmd_actions)
     s = sp.add_parser("run-link"); s.add_argument("name"); s.add_argument("agent_id"); s.set_defaults(f=cmd_run_link)
     s = sp.add_parser("status"); s.add_argument("--json", action="store_true"); s.set_defaults(f=cmd_status)
     s = sp.add_parser("tick"); s.add_argument("--dry-run", action="store_true"); s.set_defaults(f=cmd_tick)
     s = sp.add_parser("run"); s.add_argument("--interval", type=int, default=60); s.add_argument("--once", action="store_true"); s.set_defaults(f=cmd_run)
-    s = sp.add_parser("start"); s.add_argument("--interval", type=int, default=60); s.add_argument("--port", type=int, default=7790); s.set_defaults(f=cmd_start)
+    s = sp.add_parser("start"); s.add_argument("--interval", type=int, default=60); s.set_defaults(f=cmd_start)
     sp.add_parser("stop").set_defaults(f=cmd_stop)
-    s = sp.add_parser("serve"); s.add_argument("--port", type=int, default=7790); s.add_argument("--detach", action="store_true"); s.set_defaults(f=cmd_serve)
-    sp.add_parser("serve-stop").set_defaults(f=cmd_serve_stop)
     sp.add_parser("daemon-status").set_defaults(f=cmd_daemon_status)
     sp.add_parser("digest").set_defaults(f=cmd_digest)
     s = sp.add_parser("lease"); s.add_argument("action", choices=["grant", "take", "heartbeat", "release", "reclaim", "revoke", "status", "holds", "drain", "undrain"])
     s.add_argument("res", nargs="?"); s.add_argument("who", nargs="?"); s.add_argument("what", nargs="?")
     s.add_argument("--minutes", type=int); s.add_argument("--once", action="store_true"); s.add_argument("--pid", type=int); s.add_argument("--container")
     s.set_defaults(f=cmd_lease)
-    s = sp.add_parser("approvals"); s.add_argument("--all", action="store_true"); s.set_defaults(f=cmd_approvals)
-    s = sp.add_parser("approve"); s.add_argument("id"); s.add_argument("--note"); s.set_defaults(f=cmd_approve)
-    s = sp.add_parser("deny"); s.add_argument("id"); s.add_argument("--note", required=True); s.set_defaults(f=cmd_deny)
     s = sp.add_parser("batches"); s.add_argument("--all", action="store_true"); s.set_defaults(f=cmd_batches)
     s = sp.add_parser("train"); s.add_argument("--now", action="store_true"); s.set_defaults(f=cmd_train)
     s = sp.add_parser("resume"); s.add_argument("batch"); s.set_defaults(f=cmd_resume)
@@ -551,7 +534,7 @@ def main(argv=None):
     s = sp.add_parser("events"); s.add_argument("--kind"); s.add_argument("--change"); s.add_argument("--limit", type=int, default=50); s.set_defaults(f=cmd_events)
     sp.add_parser("kpi").set_defaults(f=cmd_kpi)
     sp.add_parser("recount").set_defaults(f=cmd_recount)
-    sp.add_parser("version").set_defaults(f=lambda a: print("hd 3.0"))
+    sp.add_parser("version").set_defaults(f=lambda a: print("hd 4.0"))
     a = p.parse_args(argv)
     try:
         rc = a.f(a)

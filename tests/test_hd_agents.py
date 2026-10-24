@@ -1,5 +1,4 @@
-"""hd agents (BR-G1..G4): the brief, spawn (HD_SPAWN=fake), poll of an ended run, stop, lingering and budget."""
-import json
+"""hd agents (BR-G1..G4): the brief, spawn (a booked console run), run-link, run-end, stop, lingering."""
 import os
 import unittest
 
@@ -14,7 +13,6 @@ HD = agents.HD
 class AgentsTest(unittest.TestCase):
     def setUp(self):
         self.d = H.sandbox(self)
-        H.env(self, HD_SPAWN="fake", HD_WORKTREE="0")
         self.addCleanup(util.freeze, None)
 
     def test_brief_dev(self):
@@ -52,19 +50,18 @@ class AgentsTest(unittest.TestCase):
         self.assertIn("Instances granted to you: none.", b)
         self.assertIn(f"Work from the OpenRune fork clone {agents.fork_clone()}", b)
 
-    def test_integrator_runs_in_the_fork_clone(self):
+    def test_integrator_is_booked_for_its_batch(self):
         store.rec_save("batches", "int-2", {"id": "int-2", "kind": "train", "step": "exception", "exception": "x"})
         rec = agents.spawn(store.rec_load("batches", "int-2"), "integrator", "train", [])
-        self.assertEqual(rec["cwd"], agents.fork_clone())
-        self.assertNotEqual(agents.fork_clone(), agents.ROOT)
-        self.assertEqual(agents.spawn(H.change("feat", "server"), "server-dev", "dev")["cwd"], agents.ROOT)
+        self.assertEqual((rec["stage"], rec["batch"], rec["role"]), ("train", "int-2", "integrator"))
+        self.assertIn(f"Work from the OpenRune fork clone {agents.fork_clone()}", open(rec["log"]).read())
 
-    def test_spawn_fake(self):
+    def test_spawn_books_a_console_run(self):
         ch = H.change("feat", "server")
         rec = agents.spawn(ch, "server-dev", "dev")
         self.assertEqual(rec["name"], "sd31")
-        self.assertEqual((rec["instances"], rec["pid"], rec["fake"]), (["desktop"], None, True))
-        self.assertEqual(rec["budget"], {"usd": 25, "minutes": 240})
+        self.assertEqual((rec["instances"], rec["console"], rec.get("agent_id")), (["desktop"], True, None))
+        self.assertNotIn("budget", rec)
         self.assertIn("sd31", leases.status("desktop")["grants"])
         self.assertEqual(leases.status("desktop")["grants"]["sd31"]["change"], "feat")
         back = store.load("feat")
@@ -73,10 +70,11 @@ class AgentsTest(unittest.TestCase):
         self.assertEqual(store.rec_load(agents.RUNS, "sd31")["change"], "feat")
         with open(rec["log"]) as f:
             self.assertTrue(f.read().startswith("Harness change `feat`"))
-        ev = events.read(kinds=["agent"])[-1]
-        self.assertEqual((ev["action"], ev["name"], ev["stage"]), ("start", "sd31", "dev"))
-        self.assertEqual(agents.running(), [])   # a fake run has no process
-        self.assertEqual([r["name"] for r in agents._open()], ["sd31"])
+        ev = [e for e in events.read(kinds=["agent"]) if e["action"] == "start"][-1]
+        self.assertEqual((ev["name"], ev["stage"]), ("sd31", "dev"))
+        req = [e for e in events.read(kinds=["agent"]) if e["action"] == "request"][-1]
+        self.assertEqual((req["name"], req["role"], req["worktree"], req["log"]), ("sd31", "server-dev", False, rec["log"]))
+        self.assertEqual([r["name"] for r in agents.running()], ["sd31"])   # counts against the cap and the slots
 
     def test_spawn_gate_instances_and_failed_hold_kept(self):
         ch = H.change("feat", "server", stage="live", commit=SHA)
@@ -91,63 +89,42 @@ class AgentsTest(unittest.TestCase):
         self.assertEqual(rec["name"], "cd48")
         self.assertIn("cd48", leases.status("device")["grants"])
 
-    def write_run(self, name, pid, result=None, **kw):
-        log = os.path.join(os.environ["HD_STATE_DIR"], "runs", f"{name}.log")
-        os.makedirs(os.path.dirname(log), exist_ok=True)
-        with open(log, "w") as f:
-            f.write('{"type":"system","subtype":"init"}\n{"type":"assistant","message":{}}\n')
-            if result:
-                f.write(json.dumps(result) + "\n")
-        rec = {"name": name, "role": "server-dev", "change": "feat", "stage": "dev", "pid": pid, "pgid": pid,
-               "started": util.iso(), "cwd": "/x", "log": log, "budget": {"usd": 25, "minutes": 240},
-               "instances": ["desktop"], "ended": None, "exit": None}
-        rec.update(kw)
-        store.rec_save(agents.RUNS, name, rec)
-        return rec
-
-    def test_poll_parses_result_and_frees(self):
-        ch = H.change("feat", "server", stage="dev", owner="sd5")
-        leases.grant("desktop", "sd5", 60, change="feat")
-        leases.take("desktop", "sd5", "ab test")
-        result = {"type": "result", "subtype": "success", "is_error": False, "num_turns": 42, "duration_ms": 1500000,
-                  "total_cost_usd": 3.456, "usage": {"input_tokens": 1000, "output_tokens": 200,
-                                                     "cache_read_input_tokens": 5000}, "result": "handed over"}
-        self.write_run("sd5", H.dead_pid(), result)
-        ended = agents.poll()
-        self.assertEqual([r["name"] for r in ended], ["sd5"])
-        r = store.rec_load(agents.RUNS, "sd5")
-        self.assertEqual((r["exit"], r["turns"], r["minutes"], r["usd"], r["tokens"]), ("ok", 42, 25.0, 3.46, 6200))
-        self.assertTrue(r["ended"])
+    def test_run_end_books_cost_and_frees(self):
+        ch = H.change("feat", "server")
+        rec = agents.spawn(ch, "server-dev", "dev")
+        leases.take("desktop", rec["name"], "ab test")
+        agents.link(rec["name"], "agent-1")
+        r = agents.end(rec["name"], "ok", turns=42, tokens=6200, minutes=25.0, result="handed over")
+        self.assertEqual((r["exit"], r["turns"], r["tokens"], r["agent_id"]), ("ok", 42, 6200, "agent-1"))
         back = store.load("feat")
-        self.assertEqual(back["cost"], {"runs": 1, "turns": 42, "minutes": 25.0, "usd": 3.46})
+        self.assertEqual(back["cost"], {"runs": 1, "turns": 42, "tokens": 6200, "minutes": 25.0})
         self.assertIsNone(back["owner"])
-        self.assertIn("run sd5 ended: 42 turns, 25.0 min, $3.46, exit ok", back.body)
+        self.assertIn(f"run {rec['name']} ended: 42 turns, 6200 tokens, exit ok", back.body)
         ev = events.read(kinds=["agent"])[-1]
-        self.assertEqual((ev["action"], ev["name"], ev["usd"], ev["exit"]), ("end", "sd5", 3.46, "ok"))
+        self.assertEqual((ev["action"], ev["tokens"], ev["exit"]), ("end", 6200, "ok"))
         self.assertIsNone(leases.status("desktop")["holder"])
-        self.assertNotIn("sd5", leases.status("desktop")["grants"])
-        self.assertEqual(agents.poll(), [])   # ended once
+        self.assertNotIn(rec["name"], leases.status("desktop")["grants"])
+        self.assertEqual(agents.running(), [])
+        again = agents.end(rec["name"], "error")   # ended once
+        self.assertEqual(again["exit"], "ok")
+        self.assertIsNone(agents.end("nobody"))
 
-    def test_poll_no_result_and_error(self):
-        H.change("feat", "server", stage="dev")
-        self.write_run("sd6", H.dead_pid())
-        self.write_run("sd7", H.dead_pid(), {"type": "result", "is_error": True, "num_turns": 3, "duration_ms": 60000,
-                                             "total_cost_usd": 0.5, "result": "budget"})
-        exits = {r["name"]: r["exit"] for r in agents.poll()}
-        self.assertEqual(exits, {"sd6": "no-result", "sd7": "error"})
-        self.assertEqual(store.load("feat")["cost"]["runs"], 2)
-
-    def test_stop_fake_run(self):
+    def test_stop_books_the_end_and_asks_the_console(self):
         ch = H.change("feat", "server")
         rec = agents.spawn(ch, "server-dev", "dev")
         r = agents.stop(rec["name"], "test")
         self.assertEqual(r["exit"], "stopped:test")
         self.assertTrue(store.rec_load(agents.RUNS, rec["name"])["ended"])
         self.assertEqual(events.read(kinds=["agent"])[-1]["exit"], "stopped:test")
-        self.assertEqual(agents._open(), [])
+        self.assertEqual(agents.running(), [])
         self.assertIsNone(agents.stop("nobody", "x"))
+        sr = [e for e in events.read(kinds=["agent"]) if e["action"] == "stop-request"]
+        self.assertEqual((sr[-1]["name"], sr[-1]["why"]), (rec["name"], "test"))
+        self.assertFalse(store.rec_load(agents.RUNS, rec["name"]).get("stop_done"))
+        agents.mark_stopped(rec["name"])
+        self.assertTrue(store.rec_load(agents.RUNS, rec["name"])["stop_done"])
 
-    def test_lingering_after_grace(self):
+    def test_lingering_on_the_owner_field_alone(self):
         util.freeze("2026-10-21T01:00:00Z")
         ch = H.change("feat", "server")
         rec = agents.spawn(ch, "server-dev", "dev")
@@ -165,9 +142,6 @@ class AgentsTest(unittest.TestCase):
         util.freeze("2026-10-21T01:30:00Z")
         self.assertNotIn(rec2["name"], [r["name"] for r, _ in agents.lingering(store.index())])
         agents.stop(rec2["name"], "test")
-        self.assertEqual(agents.over_budget(), [])
-        util.freeze("2026-10-21T06:00:00Z")
-        self.assertEqual(agents.over_budget(), [])   # minutes never stop a run (feedback-atomic-not-time)
 
     def test_lingering_gate_and_train(self):
         util.freeze("2026-10-21T01:00:00Z")
@@ -200,32 +174,5 @@ if __name__ == "__main__":
     unittest.main()
 
 
-class ConsoleModeTest(unittest.TestCase):
-    def setUp(self):
-        H.sandbox(self)
-        os.environ["HD_SPAWN"] = "console"
-        self.addCleanup(os.environ.pop, "HD_SPAWN", None)
-
-    def test_request_run_end_and_stop(self):
-        ch = H.change("feat", "server")
-        rec = agents.spawn(ch, "server-dev", "dev")
-        self.assertTrue(rec["console"])
-        self.assertIsNone(rec["pid"])
-        self.assertIn(rec["name"], [r["name"] for r in agents.running()])   # counts against the cap and slots
-        ev = [e for e in events.read(kinds=["agent"]) if e["action"] == "request"]
-        self.assertEqual((ev[0]["name"], ev[0]["role"], ev[0]["worktree"]), (rec["name"], "server-dev", False))
-        self.assertIn("Harness change `feat`", open(rec["log"]).read())
-        agents.link(rec["name"], "agent-123")
-        self.assertEqual(agents.poll(), [])   # never ends on its own
-        r = agents.end_console(rec["name"], "ok", turns=12, tokens=500000, minutes=7.5)
-        self.assertEqual((r["exit"], r["turns"], r["tokens"]), ("ok", 12, 500000))
-        self.assertEqual(store.load("feat")["cost"]["tokens"], 500000)
-        self.assertEqual(agents.running(), [])
-        # a stop on a console run asks the session to TaskStop it
-        ch2 = H.change("feat2", "server")
-        rec2 = agents.spawn(ch2, "server-dev", "dev")
-        agents.link(rec2["name"], "agent-456")
-        agents.stop(rec2["name"], "lingering")
-        ev = [e for e in events.read(kinds=["agent"]) if e["action"] == "stop-request"]
-        self.assertEqual((ev[0]["name"], ev[0]["agent_id"]), (rec2["name"], "agent-456"))
-        self.assertTrue(store.rec_load("runs", rec2["name"])["exit"].startswith("stopped:"))
+if __name__ == "__main__":
+    unittest.main()

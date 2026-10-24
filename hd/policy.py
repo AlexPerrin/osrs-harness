@@ -60,11 +60,6 @@ def prio_order(p):
     return get().get("priorities", {}).get(p, 9)
 
 
-def budget(role_name):
-    a = get()["agents"]
-    return {"usd": a.get("budget_usd", {}).get(role_name), "minutes": a.get("budget_minutes", {}).get(role_name)}
-
-
 def branch_track(branch):
     """The track a branch name belongs to by its prefix, or None."""
     for name, t in get()["tracks"].items():

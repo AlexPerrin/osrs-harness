@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """SubagentStop / Stop hook for the stage executors (harness v3): an agent spawned for a change cannot finish while
 its result is not on disk. The change slug and the agent's name come from its brief in the transcript
-("Harness change `<slug>`", "Your name is `<name>`"; HD_AGENT when spawned headless).
+("Harness change `<slug>`", "Your name is `<name>`"; HD_AGENT when set).
 
   dev   : the change is still at `dev` with this agent as owner and no hand-over (no commit) and no hold
           -> `hd handover|block|fail`
