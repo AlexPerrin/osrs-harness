@@ -26,15 +26,22 @@ networking), `docs/plugin-host.md`, `docs/offsets.md` (ELF addresses; Ghidra = E
 
 ## The release gate (client-qa; the track's only QA step)
 Full client QA on `master` at the exact commit, stopping at the first failure; the dev's runs are evidence, yours
-count. A release is `vX.Y.Z` (semver; `-dev` suffix = GitHub pre-release), with the full repacked APK attached.
+count. A release is `vX.Y.Z` (semver; `-dev` suffix = GitHub pre-release), with the single universal APK `re/out/osrs-runelite.apk` attached.
 - A device regression: core and pinned hub plugins, scripted through the devtools bridge where possible, the
   plugin-host table updated; `ab-test` where plugins draw.
 - `network-qa` (every release); sign-in (LOCAL_AUTH); the privacy patches present in the build's `repack.sh` log.
 - `reverse` for native claims (offsets, patched bytes, the telemetry rewrites' match counts and xrefs).
 - `pr-text-review` on the release notes; the attached APK carries no secrets or personal data.
 - **Artifacts**: your worktree is removed when you end. Copy the release build into `re/evidence/<batch-id>/` in the
-  main checkout first: `base.apk`, `split.apk` from your `re/out`, `THIRD_PARTY_NOTICES.md`, the repack log; the
-  record's files table lists those copies (sha256), since the release attaches them.
+  main checkout first: `re/out/osrs-runelite.apk`, `THIRD_PARTY_NOTICES.md`, the repack log; the record's files table
+  lists those copies (sha256), since the release attaches them.
+- **On the single APK**: one `adb install` on a device or emulator without the original game (an installed official
+  copy gives `INSTALL_FAILED_UPDATE_INCOMPATIBLE`: uninstall first); hooks load, the host starts, sign-in against the
+  test server; `THIRD_PARTY_NOTICES.md` is embedded as an asset (`unzip -l`) and equals the committed file;
+  `apksigner verify` and `zipalign -c`; the privacy and network checks; arm64-v8a only.
+- **Emulator quirks**: Chrome needs `pm grant com.android.chrome android.permission.ACCESS_LOCAL_NETWORK` for
+  10.0.2.2; close the first-run OneTrust dialog with its X; a shell-pushed `files/plugins` dir needs `chmod 777`;
+  after a force-stop the server holds the session for a while.
 - **Record** `qa/client-<version>.md` (the publish hook reads it before a tag), beginning exactly:
 
 ```
