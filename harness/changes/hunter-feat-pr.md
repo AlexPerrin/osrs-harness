@@ -4,7 +4,7 @@ track: server
 title: 'One upstream feat: PR for the completed hunter work'
 prio: P1
 role: server-dev
-stage: gate
+stage: contribute
 hold: null
 deps: []
 branch: feat/hunter
@@ -26,7 +26,7 @@ cost:
   tokens: 0
   minutes: 0
 created: '2026-10-25T02:32:09Z'
-updated: '2026-10-25T03:52:48Z'
+updated: '2026-10-25T03:53:02Z'
 ---
 ## Change
 One upstream feat: PR for the completed hunter work
@@ -52,3 +52,4 @@ One upstream feat: PR for the completed hunter work
 - 2026-10-25T03:52:37Z QA aggregate FAIL at fbfdb9eac (7 finding(s)): CI infra failure (openrs2 500 x2), raw ids in ImplingLootTables, no in-game, quirks/rsprox gaps
 - 2026-10-25T03:52:45Z in train int-20261025-6: integration ed23f075c pushed; gate, image and deploy pending
 - 2026-10-25T03:52:48Z run sq66 ended: ? turns, ? tokens, exit stopped:lingering: gate recorded
+- 2026-10-25T03:53:02Z gate -> contribute: observed
