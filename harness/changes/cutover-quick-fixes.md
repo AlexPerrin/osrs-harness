@@ -5,7 +5,10 @@ title: Quick fixes found during the cutover period, applied now (batch)
 prio: P0
 role: harness-dev
 stage: ready
-hold: null
+hold:
+  kind: decision
+  reason: 'needs you: a dev run was already booked for exactly this head (none) and these findings; booking another would repeat it'
+  since: '2026-10-25T01:41:13Z'
 deps: []
 branch: null
 commit: null
@@ -19,7 +22,7 @@ cost:
   tokens: 0
   minutes: 0
 created: '2026-10-25T01:30:56Z'
-updated: '2026-10-25T01:40:23Z'
+updated: '2026-10-25T01:41:13Z'
 ---
 ## Change
 Quick fixes found during the cutover period, applied now (batch)
@@ -41,3 +44,4 @@ Quick fixes found during the cutover period, applied now (batch)
 - 2026-10-25T01:39:25Z dod ticked: 1, 2, 3, 4, 5, 6, 7
 - 2026-10-25T01:39:57Z run hd23 ended: ? turns, ? tokens, exit ok
 - 2026-10-25T01:40:23Z dev -> ready: run hd23 ended without a hand-over
+- 2026-10-25T01:41:13Z hold decision: needs you: a dev run was already booked for exactly this head (none) and these findings; booking another would repeat it
