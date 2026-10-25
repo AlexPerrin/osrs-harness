@@ -11,14 +11,19 @@ branch: feat/hunter
 commit: fbfdb9eac0c512510ce0c8808f31f15331d4ee20
 repo: /home/alex/src/openrune-work/agents/sd85/or
 local_only: false
-owner: sd85
+owner: null
 evidence: /home/alex/osrs-plugins-reverse/re/evidence/hunter-feat-pr
 summary: 'One Hunter feat PR: traps, bird houses, Herbiboar, butterflies, implings, Hunters'' Rumours; one commit off upstream main, no tests or comments; compile, spotless, gameval check pass; not verified
   in game (draft); kebbit tracking out'
 booked:
   dev: '|da39a3ee5e6b'
+cost:
+  runs: 1
+  turns: 0
+  tokens: 0
+  minutes: 0
 created: '2026-10-25T02:32:09Z'
-updated: '2026-10-25T02:55:08Z'
+updated: '2026-10-25T02:55:34Z'
 ---
 ## Change
 One upstream feat: PR for the completed hunter work
@@ -37,3 +42,4 @@ One upstream feat: PR for the completed hunter work
 - 2026-10-25T02:55:06Z dod ticked: 1, 2
 - 2026-10-25T02:55:08Z dev -> gate: hand-over recorded
 - 2026-10-25T02:55:08Z handover feat/hunter@fbfdb9eac: One Hunter feat PR: traps, bird houses, Herbiboar, butterflies, implings, Hunters' Rumours; one commit off upstream main, no tests or comments; compile, spotless, gameval check pass; not verified in game (draft); kebbit tracking out
+- 2026-10-25T02:55:34Z run sd85 ended: ? turns, ? tokens, exit ok
