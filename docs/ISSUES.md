@@ -2,6 +2,32 @@
 
 One short entry per issue, newest first: symptom, root cause, evidence, fix, how to recognise it again.
 
+## 2026-10-25 Audit of the v6 code: open defects (v7 inputs)
+
+Found by reading the code; none reproduced live. Nothing is fixed yet.
+
+- **Contribution publishes an unapproved commit.** `hd/tracks/server/contribute.py` `run` checks `refusal(ch, approved)`
+  once; each pass reloads the change, so a hand-over during the CI wait makes the next pass push, comment and ready the
+  new commit. Fix: call `refusal` on every pass. Recognise: a PR head commit with no QA record or approval.
+- **Lost change-file updates.** The tick works on `Ctx.idx` (loaded at tick start) and `hd handover`, `dod`, `log` do
+  load, edit, save on the whole file; only `batches.lock` locks. A handover's commit or a `dod` tick can vanish, or
+  `heal._dead_runs` can send a handed-over change back to `ready`. Fix: one `flock` around reload-edit-save.
+  Recognise: a hand-over event with no commit on the change.
+- **Hooks are best-effort.** `hooks/deny_publish.py` matches text: `git "push"`, `git p''ush`, `gh workflow run` and
+  `gh secret set` on upstream are allowed, and commands inside scripts are invisible. Fix: agent sessions get no
+  upstream-write credential; add the missing `gh` verbs. Recognise: a `denial`-free upstream write by an agent.
+- **Broken change files disappear.** `store.all_changes` skips a file with bad YAML or no front matter without an event.
+  Fix: emit an `error` event and count them in `hd status`. Recognise: a change absent from `hd status`.
+- **Reused pids look alive.** `pid_alive` (`os.kill(pid, 0)`) backs leases and batch health; after a WSL restart a
+  recycled pid keeps a lock or batch "in use". Fix: record the process start time with the pid.
+- **A failed fetch counts as fresh.** `Observer.fetch` sets `_fetched` first and ignores return codes, so stale refs
+  derive stages. Fix: a failed fetch makes ref facts unknown for the tick.
+- **`heal` removes starting containers.** `_containers` runs `docker rm -f` on every `qa-or-*` / `hd-boot-*` whose status
+  does not start with "up" (`Restarting`, `Paused`, `Created`). Fix: remove only `exited` and `dead`.
+- **Minor.** `train/deploy.sh` and `image.sh` default `STATE` to the client checkout (the daemon passes `HD_STATE_DIR`);
+  `daemon._server_json` is unused; `.claude/worktrees/agent-ada2833…` is a finished worktree; `tests/test_hooks.py:312`
+  leaves files open; the co-author line is hard-coded in `hd/ship.py` and `train/integrate.py`.
+
 ## 2026-10-25 The OpenRS2 cache download failed the Hunter gate
 
 - **Symptom.** Fork CI run 40158597103 for `hunter-feat-pr` failed in "Generate cache and gameval sources" twice, and the
