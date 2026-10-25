@@ -4,17 +4,25 @@ track: harness
 title: hd contribute posts the prepared status comment (pr-texts/<slug>.comment), never the raw hand-over summary
 prio: P1
 role: harness-dev
-stage: dev
+stage: live
 hold: null
 deps: []
-branch: null
-commit: null
+branch: main
+commit: 58c48ec794726bb4c0e95922600580fc16f24e53
 local_only: false
-owner: hd28
+owner: null
+evidence: /home/alex/osrs-harness/docs
+summary: 'Merged into main: the comment source order and the short fallback.'
+live_commit: 58c48ec794726bb4c0e95922600580fc16f24e53
 booked:
   dev: '|da39a3ee5e6b'
+cost:
+  runs: 1
+  turns: 0
+  tokens: 0
+  minutes: 0
 created: '2026-10-25T02:37:09Z'
-updated: '2026-10-25T02:38:38Z'
+updated: '2026-10-25T02:40:23Z'
 ---
 ## Change
 hd contribute posts the prepared status comment (pr-texts/<slug>.comment), never the raw hand-over summary
@@ -29,3 +37,7 @@ hd contribute posts the prepared status comment (pr-texts/<slug>.comment), never
 - 2026-10-25T02:37:09Z ready -> dev: dispatched to hd28
 - 2026-10-25T02:37:09Z run hd28 started (harness-dev, stage dev)
 - 2026-10-25T02:38:38Z dod ticked: 1, 2
+- 2026-10-25T02:39:33Z run hd28 ended: ? turns, ? tokens, exit ok
+- 2026-10-25T02:39:51Z dev -> gate: hand-over recorded
+- 2026-10-25T02:39:51Z handover main@58c48ec79: Merged into main: the comment source order and the short fallback.
+- 2026-10-25T02:40:23Z gate -> live: observed
