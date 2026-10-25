@@ -193,7 +193,8 @@ Steps of the harness itself, first in every pass; each repair is one event; noth
 ## 10. Run and test
 
 ```
-~/.config/systemd/user/hd-tick.service:  [Service] Type=oneshot  ExecStart=/usr/bin/python3 %h/osrs-harness/hd.py tick
+~/.config/systemd/user/hd-tick.service:  [Service] Type=oneshot  KillMode=process  ExecStart=/usr/bin/python3 %h/osrs-harness/hd.py tick
+                                          (KillMode=process: the train the pass starts outlives the tick)
 ~/.config/systemd/user/hd-tick.timer:    [Timer] OnBootSec=1min  OnUnitActiveSec=1min   [Install] WantedBy=timers.target
 loginctl enable-linger alex && systemctl --user enable --now hd-tick.timer
 python3 ~/osrs-harness/hd.py                    # the console's list
