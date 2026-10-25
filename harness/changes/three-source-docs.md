@@ -4,13 +4,16 @@ track: harness
 title: 'Docs: PROBLEM, PRD and ARCHITECTURE as the three minimal sources of truth'
 prio: P0
 role: harness-dev
-stage: ready
+stage: live
 hold: null
 deps: []
-branch: null
-commit: null
+branch: main
+commit: 44a3779726e32548fe591e2938bccc117575a22c
 local_only: false
 owner: null
+evidence: /home/alex/osrs-harness/docs
+summary: 'Merged into main (894f121): PROBLEM, PRD and ARCHITECTURE as the three sources of truth.'
+live_commit: 44a3779726e32548fe591e2938bccc117575a22c
 booked:
   dev: '|da39a3ee5e6b'
 cost:
@@ -19,7 +22,7 @@ cost:
   tokens: 0
   minutes: 0
 created: '2026-10-25T02:01:29Z'
-updated: '2026-10-25T02:06:09Z'
+updated: '2026-10-25T02:07:11Z'
 ---
 ## Change
 Docs: PROBLEM, PRD and ARCHITECTURE as the three minimal sources of truth
@@ -40,3 +43,6 @@ Docs: PROBLEM, PRD and ARCHITECTURE as the three minimal sources of truth
 - 2026-10-25T02:05:30Z dod ticked: 1, 2, 3, 4, 5
 - 2026-10-25T02:05:52Z run hd25 ended: ? turns, ? tokens, exit ok
 - 2026-10-25T02:06:09Z dev -> ready: run hd25 ended without a hand-over
+- 2026-10-25T02:06:15Z ready -> gate: hand-over recorded
+- 2026-10-25T02:06:15Z handover main@44a377972: Merged into main (894f121): PROBLEM, PRD and ARCHITECTURE as the three sources of truth.
+- 2026-10-25T02:07:11Z gate -> live: observed
