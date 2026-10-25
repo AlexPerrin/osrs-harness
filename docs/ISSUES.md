@@ -2,6 +2,29 @@
 
 One short entry per issue, newest first: symptom, root cause, evidence, fix, how to recognise it again.
 
+## 2026-10-25 The OpenRS2 cache download failed the Hunter gate
+
+- **Symptom.** Fork CI run 40158597103 for `hunter-feat-pr` failed in "Generate cache and gameval sources" twice, and the
+  local `freshCache` failed the same way: archive.openrs2.org `disk.zip` returned HTTP 500; the suite never ran.
+- **Root cause.** The cache host was down; the gate keeps no copy of the cache.
+- **Fix.** None: rerun `hd gate-ci hunter-feat-pr` when the host answers (v7 input).
+- **Recognise.** "Generate cache and gameval sources" failing with an HTTP 5xx while Formatting is green.
+
+## 2026-10-25 The integrator reset the server tools branch
+
+- **Symptom.** `local/server-tools` moved to an unintended commit during an integrator run.
+- **Root cause.** The integrator's reset ran on the shared tools clone, whose head the train pins as the tools commit.
+- **Fix.** The branch was restored by hand; nothing prevents it yet (v7 input).
+- **Recognise.** A batch's `tools` commit that is not on `local/server-tools`.
+
+## 2026-10-25 A client change was pushed with no change file
+
+- **Symptom.** Branch `client/client-contributing-file` (af26042, "move Contributing section to CONTRIBUTING.md") is on
+  the client origin, unmerged, and no change names it.
+- **Root cause.** The branch was made outside the change store, so no track observes it.
+- **Fix.** None yet: register the change or drop the branch (v7 input).
+- **Recognise.** A `client/*` branch on origin that no `harness/changes/*.md` names.
+
 ## 2026-10-24 The contribution comment was the hand-over summary
 
 - **Symptom.** The comments on two upstream PRs were the dev's hand-over summary.
