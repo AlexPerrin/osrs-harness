@@ -5,13 +5,13 @@ commit is read from the dev's clone (`repo`).
 
 Steps, each an observed fact, so a re-run resumes at the first one that is not true:
   1 scratch clone has the commit and upstream main      3 the scratch branch is on the fork at the merge commit
-  2 the merge is clean (else result `conflict`)         4 a CI run exists at that commit, then its conclusion
+  2 the merge is clean (else result `conflict`)         4 a CI run and a Formatting run exist at that commit, then their conclusions
 
 The result is the local file `gate-ci.json` in the change's evidence dir: {commit, upstream_main, scratch, result
-(success|failure|pending|conflict), url, findings}. `findings` are the machine-found defects of the net diff against
+(success|failure|pending|conflict: the CI workflow), format (success|failure: the Formatting workflow), findings}. `findings` are the machine-found defects of the net diff against
 upstream main (a test file, an added comment line: upstream AGENTS.md); the gate record lists them with its own.
-`hd gate PASS` needs result `success` at the commit. The dispatched workflow and the run name that stands for the upstream
-checks are the policy's `tracks.server.ci_equivalence`. A new commit voids the file (the commit is its key).
+`hd gate PASS` needs result and format `success` at the commit. The dispatched workflows and the run names that stand for
+the upstream checks are the policy's `tracks.server.ci_equivalence`. A new commit voids the file (the commit is its key).
 
   run(ch, obs, git, gh, wait, poll, sleep) -> (rc, lines)   rc 0 success, 1 failure/conflict, 2 still running (no wait)
   scan(diff) -> [finding]                                     the diff scan alone
@@ -24,7 +24,7 @@ import time
 
 from ... import fork_clone, policy, state_dir
 from ...util import atomic_write
-from ..base import evidence_path
+from ..base import evidence_path, sync_evidence
 from . import qa
 
 TEST_PATH = re.compile(r"(^|/)src/(test|androidTest)/|(^|/)[^/]*Tests?\.kt$")
@@ -92,6 +92,7 @@ def run(ch, obs, git="git", gh=None, wait=True, poll=30, sleep=time.sleep):
     commit, slug = ch.get("commit"), ch["slug"]
     if not commit:
         return 1, ["no hand-over: the change has no commit"]
+    sync_evidence(ch)
     branch = f"gate/{slug}"
     lines = []
     prev = qa.read_ci(ch)
@@ -126,28 +127,33 @@ def run(ch, obs, git="git", gh=None, wait=True, poll=30, sleep=time.sleep):
             lines.append(f"scratch {scratch[:9]} pushed to fork {branch}")
             _save(ch, data)
         scratch = data["scratch"]
-        state = obs.fork_ci(branch, scratch)
-        if state is None:
-            raise RuntimeError("CI could not be read (gh failed)")
-        if state == "none":
-            rp = policy.repos()
-            eq = policy.track("server").get("ci_equivalence") or {}
-            _must(subprocess.run([gh, "workflow", "run", eq.get("fork_workflow", "ci.yml"), "-R", rp["fork"], "--ref", branch],
-                                 capture_output=True, text=True), "dispatch ci.yml")
-            lines.append(f"CI dispatched ({eq.get('fork_workflow', 'ci.yml')})")
-        while state in ("none", "pending"):
+        eq = policy.track("server").get("ci_equivalence") or {}
+        flows = (("result", eq.get("fork_workflow", "ci.yml"), eq.get("fork_workflow_name", "CI")),
+                 ("format", eq.get("format_workflow", "Formatting"), eq.get("format_workflow_name", "Formatting")))
+        states = {}
+        for key, workflow, name in flows:
+            states[key] = obs.fork_ci(branch, scratch, name)
+            if states[key] is None:
+                raise RuntimeError(f"{name} could not be read (gh failed)")
+            if states[key] == "none":
+                _must(subprocess.run([gh, "workflow", "run", workflow, "-R", policy.repos()["fork"], "--ref", branch],
+                                     capture_output=True, text=True), f"dispatch {workflow}")
+                lines.append(f"{name} dispatched ({workflow})")
+        while any(st in ("none", "pending") for st in states.values()):
             if not wait:
                 return 2, lines + ["CI still running at the scratch commit: run `hd gate-ci` again"]
             sleep(poll)
             obs.reset()
-            state = obs.fork_ci(branch, scratch)
-        if state is None:
-            raise RuntimeError("CI could not be read (gh failed)")
-        data["result"] = "success" if state == "success" else "failure"
+            for key, _, name in flows:
+                states[key] = obs.fork_ci(branch, scratch, name)
+                if states[key] is None:
+                    raise RuntimeError(f"{name} could not be read (gh failed)")
+        for key, _, name in flows:
+            data[key] = "success" if states[key] == "success" else "failure"
+            lines.append(f"{name} {data[key]} at {scratch[:9]}")
         _save(ch, data)
-        lines.append(f"CI {data['result']} at {scratch[:9]}")
         for f in data["findings"]:
             lines.append(f"finding: {f}")
-        return (0 if state == "success" else 1), lines
+        return (0 if all(st == "success" for st in states.values()) else 1), lines
     except RuntimeError as e:
         return 1, lines + [f"gate-ci stopped: {e}"]

@@ -69,6 +69,23 @@ class HandoverTest(unittest.TestCase):
             self.hand_over()
         self.assertIn("unticked", str(e.exception))
 
+    def test_an_unticked_contribution_item_does_not_block_the_hand_over(self):
+        self.write("accuracy.md", "pr-title.txt", "pr-body.md")
+        ch = store.load("feat"); ch.body += "- [ ] the contribution step: PR opened upstream\n"; store.save(ch)
+        rc, out = self.hand_over()
+        self.assertEqual(store.load("feat").stage, "gate")
+
+    def test_a_recorded_evidence_dir_is_copied_into_the_slug_dir(self):
+        from hd.tracks.base import evidence_path, sync_evidence
+        self.write("accuracy.md", "pr-title.txt", "pr-body.md")
+        other = os.path.join(os.path.dirname(evidence_path(store.load("feat"))), "content-feat")
+        os.makedirs(other)
+        open(os.path.join(other, "pr-body.md"), "w").write("b")
+        ch = store.load("feat"); ch["evidence"] = other
+        sync_evidence(ch)
+        self.assertTrue(os.path.exists(os.path.join(evidence_path(ch), "pr-body.md")))
+        self.assertEqual(evidence_path(ch), os.path.join(os.path.dirname(other), "feat"))
+
     def test_complete_hand_over_moves_to_gate_and_records_the_clone(self):
         self.write("accuracy.md", "pr-title.txt", "pr-body.md")
         rc, out = self.hand_over()
@@ -151,7 +168,7 @@ class StatefulObs(FakeObserver):
     """CI state of the scratch branch, switchable per test."""
     states = ["pending"]
 
-    def fork_ci(self, branch, sha):
+    def fork_ci(self, branch, sha, workflow=None):
         return self.states.pop(0) if len(self.states) > 1 else self.states[0]
 
 
@@ -223,6 +240,20 @@ class GateCiTest(unittest.TestCase):
         self.assertIn("does not merge with upstream main", r["findings"][0])
         self.assertIn("server/B.kt", r["findings"][0])
 
+    def test_the_formatting_workflow_is_dispatched_and_a_red_one_fails_the_gate(self):
+        class Fmt(StatefulObs):
+            seen = []
+
+            def fork_ci(self, b, s, w=None):
+                if w != "Formatting":
+                    return "success"
+                self.seen.append(1)
+                return "none" if len(self.seen) == 1 else "failure"
+        rc, lines = gateci.run(store.load("feat"), Fmt(), gh=self.gh, poll=0, sleep=lambda s: None)
+        self.assertEqual(rc, 1, lines)
+        self.assertEqual((self.result()["result"], self.result()["format"]), ("success", "failure"))
+        self.assertIn("workflow run Formatting -R AlexPerrin/OpenRune-Server --ref gate/feat", open(self.gh_log).read())
+
     def test_red_ci_is_a_failure_result(self):
         (rc, _), _ = self.run_ci("failure")
         self.assertEqual((rc, self.result()["result"]), (1, "failure"))
@@ -251,7 +282,7 @@ class GateCiTest(unittest.TestCase):
 
     def test_unreadable_ci_stops_instead_of_waiting_forever(self):
         class Dead(StatefulObs):
-            def fork_ci(self, b, s):
+            def fork_ci(self, b, s, w=None):
                 return None
         rc, lines = gateci.run(store.load("feat"), Dead(), gh=self.gh, poll=0, sleep=lambda s: None)
         self.assertEqual(rc, 1)
@@ -283,7 +314,6 @@ class World:
 
     def __init__(self, commit):
         self.commit, self.pushed, self.pr, self.comments, self.ci, self.calls = commit, False, None, [], "pending", []
-        self.reviewers = []
 
     def sh(self, argv, what):
         if "fetch" in argv:
@@ -292,15 +322,13 @@ class World:
         if "push" in argv:
             self.pushed = True
         elif argv[1:3] == ["pr", "create"]:
-            self.pr = {"number": 7, "state": "open", "draft": "--draft" in argv, "head": self.commit, "reviewers": []}
+            self.pr = {"number": 7, "state": "open", "draft": "--draft" in argv, "head": self.commit}
             return "https://github.com/OpenRune/OpenRune-Server/pull/7"
         elif argv[1:3] == ["pr", "comment"]:
             self.comments.append({"id": "c1", "author": "AlexPerrin", "body": open(argv[argv.index("--body-file") + 1]).read(),
                                   "kind": "comment"})
         elif argv[1:3] == ["pr", "ready"]:
             self.pr["draft"] = False
-        elif argv[1:3] == ["pr", "edit"]:
-            self.pr["reviewers"] = argv[argv.index("--add-reviewer") + 1].split(",")
         return ""
 
     def obs(self):
@@ -404,25 +432,11 @@ class ContributeTest(unittest.TestCase):
 
     def test_an_existing_ready_pr_is_not_reopened_and_gets_the_comment(self):
         self.w.pushed = True
-        self.w.pr = {"number": 7, "state": "open", "draft": False, "head": SHA, "reviewers": []}
+        self.w.pr = {"number": 7, "state": "open", "draft": False, "head": SHA}
         self.w.ci = "success"
         ch = store.load("feat"); ch["upstream_pr"] = 7; store.save(ch)
         rc, _ = self.go()
         self.assertEqual((rc, self.w.calls), (0, ["comment"]))
-
-    def test_reviewers_are_requested_when_configured(self):
-        import yaml
-        from hd import policy
-        path = os.environ["HD_POLICY"]
-        pol = yaml.safe_load(open(path))
-        pol["tracks"]["server"]["reviewers"] = ["maintainer"]
-        yaml.safe_dump(pol, open(path, "w"))
-        policy._cache.clear()
-        self.w.ci = "success"
-        rc, _ = self.go()
-        self.assertEqual(rc, 0)
-        self.assertEqual(self.w.pr["reviewers"], ["maintainer"])
-        self.assertEqual(self.w.calls[-1], "request review")
 
     def test_only_a_server_change_not_local_is_contributed(self):
         H.change("loc", "server", stage="contribute", commit=SHA, branch="local/loc", local_only=True)

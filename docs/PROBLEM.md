@@ -71,9 +71,9 @@ upstream PR branch (fast-forward or merge commit, never force), wait for green C
 draft. If CI does not go green the sequence stops before the comment and reports.
 
 **CI equivalence.** Each check runs once, at the fork on the scratch branch merged with current upstream `main`; a
-green fork run satisfies its upstream twin (policy `tracks.server.ci_equivalence`: the fork workflow, the required
+green fork run satisfies its upstream twin (policy `tracks.server.ci_equivalence`: the fork CI and Formatting workflows, the required
 upstream checks, the advisory ones). After the push the contribution only confirms the required twins: it never re-runs
-a check and never waits on an advisory one. A red fork check means not ready for upstream.
+a check and never waits on an advisory one. A red fork check, Formatting included, means not ready for upstream.
 
 **Harness.** Features and fixes are built in a worktree, merged by the daemon and deployed autonomously, then
 reported. A major revision is deployed (merge and daemon restart) only after the user's yes.
@@ -99,7 +99,7 @@ here.
 - **BR-C6 Scope.** One quest, feature or fix per change; a fix found on the way is its own change; no change
   contains a commit of another open upstream PR (no stacking). Upstream diffs carry no test file unless a rule has
   several cases or a reviewer asked.
-- **BR-C7 Local-only.** `local/*` changes end at the test server; they are never gated or published.
+- **BR-C7 Local-only.** Changes with a `local/*` branch or `local_only` end at the test server; they are never gated or published.
 - **BR-C8 Merged means dropped.** When upstream `main` contains the change's commit the next re-pin removes the
   branch from integration and the change is `merged`.
 
@@ -124,7 +124,7 @@ here.
 - **BR-S6 Ready means mergeable.** A PR leaves draft only when reported defects are fixed in its head, CI is green at
   that commit, the gate passed there, the PR text is true and no deferral wording ("its own PR", "later") is in it.
 - **BR-S7 Gate scope.** The gate checks the exact commit merged with current upstream `main` in a scratch clone:
-  accuracy against the spec, CI on a fork scratch branch, one change, upstream AGENTS.md and CONTRIBUTING, PR text,
+  accuracy against the spec, CI and Formatting on a fork scratch branch, one change, upstream AGENTS.md and CONTRIBUTING, PR text,
   gameval ids, in game on its own client. Fork actions (scratch branches, fork PRs, docs branch, fork CI) are
   part of the gate and need no approval. Dev and QA run locally only the tests of the touched modules plus
   spotlessCheck on them; the full suite is the fork CI run, and the record's `Tests` line names both.
@@ -176,7 +176,7 @@ here.
 - **BR-R3 Lock-checked tools.** Tools that drive a locked resource (deploy, the integration push) refuse without it.
 - **BR-R4 Own client.** A client instance (emulator, desktop RuneLite) is not locked: every agent starts its own with
   its own profile, port and account state and stops it when done.
-- **BR-R5 Capacity.** One machine budget as data (policy `capacity`): the classes `agent`, `build`, `client` (2) and
+- **BR-R5 Capacity.** One machine budget as data (policy `capacity`): the classes `agent`, `build`, `client` (desktop clients, 2), `device` (the Android app, 0 until BlueStacks is up; `client-dev` holds it) and
   `image`. A role and a train step declare the classes they use; dispatch books a run only while every class it uses
   has a free slot, counted from runs not ended and batches at a step that uses one.
 - **BR-G1 Agents.** One change, one stage, a fresh context, a brief generated from the change; roles `client-dev`,

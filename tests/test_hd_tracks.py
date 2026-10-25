@@ -83,9 +83,10 @@ class CoreIsolationTest(unittest.TestCase):
         from hd import policy
         srv = policy.track("server")
         self.assertIn("ci_equivalence", srv)
-        self.assertIn("reviewers", srv)
+        self.assertNotIn("reviewers", srv)
         self.assertEqual(sorted(srv["ci_equivalence"]),
-                         ["fork_workflow", "fork_workflow_name", "upstream_advisory", "upstream_required"])
+                         ["fork_workflow", "fork_workflow_name", "format_workflow", "format_workflow_name", "upstream_advisory",
+                          "upstream_required"])
         self.assertNotIn("reviewers", policy.repos())
 
 

@@ -479,6 +479,35 @@ class TrainTest(unittest.TestCase):
         b = batches.resume(b["id"])
         self.assertEqual(b["step"], "imaged")
 
+    def test_deploy_failure_resume_rebuilds_when_the_tools_branch_moved(self):
+        batches.enqueue(self.handed("ta", "fix/a"))
+        batches.enqueue(self.handed("tb", "content/b"))
+        batches.advance(self.obs, now=True)
+        self.run_to("imaged")
+        take_deploy_leases()
+        os.environ["STUB_DEPLOY_RESULT"] = "rollback"
+        b = self.run_to("exception")
+        del os.environ["STUB_DEPLOY_RESULT"]
+        old_integration = b["integration"]
+        git(self.seed, "fetch", "-q", self.fork, "local/integration-tools")
+        git(self.seed, "checkout", "-q", "-B", "local/integration-tools", "FETCH_HEAD")
+        lst = git(self.seed, "show", "HEAD:integration.txt")
+        commit_file(self.seed, "integration.txt", batches.remove_from_list(lst + "\n", "content/b"), "drop content/b")
+        git(self.seed, "checkout", "-q", "main")
+        git(self.seed, "push", "-q", self.fork, "local/integration-tools")
+        b = batches.resume(b["id"])
+        self.assertEqual(b["step"], "gating", b.get("exception"))
+        self.assertNotEqual(b["integration"], old_integration)
+        self.assertEqual(b["includes"], ["ta"])
+
+    def test_includes_list_each_change_once(self):
+        batches.enqueue(self.handed("ta", "fix/a"))
+        ch = store.load("ta")
+        ch.update(branch="content/b", commit=self.sha["content/b"])
+        batches.enqueue(ch)
+        self.assertEqual([e["slug"] for e in batches.read_queue()["entries"]], ["ta"])
+        self.assertEqual(batches._new("train", ["ta", "tb", "ta"])["includes"], ["ta", "tb"])
+
     # --- BR-B5: re-pin -----------------------------------------------------------------------------------------------
 
     def test_repin_drops_merged_branch_and_starts_a_train(self):

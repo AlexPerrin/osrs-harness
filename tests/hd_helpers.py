@@ -14,11 +14,11 @@ ENV_KEYS = ("HD_HARNESS_DIR", "HD_STATE_DIR", "HD_EVENTS", "HD_POLICY", "HD_EVID
 
 def write_test_policy(dest):
     """The real policy's structure with the numeric knobs the tests rely on pinned, so a change of the live values
-    (capacity) never changes a test: 3 agents, 2 builds, 2 clients, 1 image."""
+    (capacity) never changes a test: 3 agents, 2 builds, 2 clients, 1 device, 1 image."""
     import yaml
     with open(os.path.join(ROOT, "harness", "policy.yaml")) as f:
         pol = yaml.safe_load(f)
-    pol["capacity"] = {"agent": 3, "build": 2, "client": 2, "image": 1}
+    pol["capacity"] = {"agent": 3, "build": 2, "client": 2, "device": 1, "image": 1}
     with open(dest, "w") as f:
         yaml.safe_dump(pol, f)
 
@@ -126,7 +126,7 @@ def write_gate(slug, commit, verdict="PASS", findings=(), ci="success", **kw):
         f.write(gate_text(commit, verdict, findings, **kw))
     if ci:
         with open(os.path.join(d, "gate-ci.json"), "w") as f:
-            json.dump({"commit": commit, "result": ci, "scratch": "s" * 40, "upstream_main": "m" * 40, "findings": []}, f)
+            json.dump({"commit": commit, "result": ci, "format": ci, "scratch": "s" * 40, "upstream_main": "m" * 40, "findings": []}, f)
 
 
 def evidence_dir_for(slug):

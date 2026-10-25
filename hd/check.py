@@ -15,11 +15,12 @@ def items(ch, obs):
     if not (branch and commit):
         return [(False, "branch or commit missing")]
     out.append((True, f"branch {branch} at {commit[:9]}"))
-    unticked = ch.dod_unticked()
+    track = tracks.of(ch)
+    unticked = [t for t in ch.dod_unticked() if not track.checked_later(t)]
     out.append((False, f"definition of done has {len(unticked)} unticked item(s)") if unticked
                else (True, "definition of done ticked"))
     ev = ch.get("evidence") or os.path.join(evidence_dir(), ch["slug"])
-    return out + tracks.of(ch).check_items(ch, obs, ev, obs.evidence_files(ev))
+    return out + track.check_items(ch, obs, ev, obs.evidence_files(ev))
 
 
 def run(ch, obs):

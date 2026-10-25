@@ -8,7 +8,7 @@ from contextlib import redirect_stdout
 import hd_helpers as H
 from hd_helpers import SHA
 
-from hd import agents, cli, drive, store
+from hd import agents, cli, drive, events, store
 from hd.tracks import FakeObserver
 
 OBS = FakeObserver(upstream_prs={}, docs={}, records=[])
@@ -43,6 +43,24 @@ class DriveTest(unittest.TestCase):
         (s,) = drive.work(OBS)["stop"]
         self.assertEqual((s["name"], s["agent_id"], s["why"]), (rec["name"], "a-2", "lingering: x"))
         agents.mark_stopped(rec["name"])
+        self.assertEqual(drive.work(OBS)["stop"], [])
+
+    def test_a_stop_request_of_an_agent_that_ended_on_its_own_clears_without_run_stopped(self):
+        rec = agents.spawn(H.change("f3", "client"), "client-dev", "dev")
+        agents.link(rec["name"], "a-3")
+        agents.stop(rec["name"], "lingering: x")
+        self.assertEqual(len(drive.work(OBS)["stop"]), 1)
+        agents.end(rec["name"], "ok")   # the console's run-end after the agent's own final message
+        self.assertEqual(drive.work(OBS)["stop"], [])
+
+    def test_the_daemon_clears_a_stop_request_once_the_hand_back_is_recorded(self):
+        rec = agents.spawn(H.change("f4", "client"), "client-dev", "dev")
+        agents.link(rec["name"], "a-4")
+        agents.stop(rec["name"], "lingering: x")
+        self.assertEqual(agents.settle_stops(), [], "no hand-back yet: the agent may still be running")
+        self.assertEqual(len(drive.work(OBS)["stop"]), 1)
+        events.emit("handover", change="f4")
+        self.assertEqual(agents.settle_stops(), [rec["name"]])
         self.assertEqual(drive.work(OBS)["stop"], [])
 
     def test_decisions_and_exceptions_follow_the_holds(self):

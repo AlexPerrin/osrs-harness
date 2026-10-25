@@ -2,6 +2,26 @@
 
 One short entry per issue, newest first: symptom, root cause, evidence, fix, how to recognise it again.
 
+## 2026-10-25 Cutover defects found while handing contributions over
+
+- **Symptom.** Records written by QA were not found (the dev had recorded `re/evidence/<branch-name>`); a train listed one
+  change twice; an imaging or deploy failure after the integrator's fix rebuilt on the old clone; a `local/` branch
+  without `local_only` got a QA run; a hand-contributed change needed its DoD contribution items ticked before
+  hand-over; `hd gate-ci` never ran the Formatting workflow; `hd drive` kept stop requests of agents that had ended; QA
+  desktop clients and client-dev shared one `client` class.
+- **Root cause.** The evidence path followed the recorded value, the queue deduplicated by branch only, `resume`
+  rebuilt only for a gating failure, fork-only was read from the flag alone, and the capacity class mixed Android and
+  desktop clients.
+- **Fix.** The evidence dir is the slug dir (the recorded dir is copied); queue and `includes` keep one entry per change;
+  `resume` rebuilds on a moved tools branch for gating, imaging and deploying; `Change.fork_only` also reads the
+  `local/` branch; contribution DoD items do not block hand-over; `gate-ci` dispatches and waits for the Formatting
+  workflow and `hd gate` needs it green; class `device` (0) for client-dev; stop requests clear on run-end or a recorded
+  hand-back.
+- **Platform limit.** GitHub refuses a review request by the fork's author on the upstream PR (404), so the reviewer
+  step and `tracks.server.reviewers` are removed; the CODEOWNERS request on ready stands.
+- **Recognise.** `gate.md` in a dir other than `re/evidence/<slug>/`; a `queue`/`includes` slug twice; a batch at
+  `exception` after imaging whose `tools` is not the tools branch head.
+
 ## 2026-10-25 A resolved gate failure was re-gated on the old tree
 
 - **Symptom.** The integrator fixed a gate failure by changing `integration.txt` and the pins; after `hd resolve` the

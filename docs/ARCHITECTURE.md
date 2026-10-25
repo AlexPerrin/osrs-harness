@@ -79,11 +79,11 @@ flowchart LR
 |---|---|---|---|
 | client | `tracks/client.py` (on `target.py`) | `backlog ready dev gate live`: `master` contains the commit; build evidence at hand-over; the release flow stays in the core | `tracks.client` |
 | harness | `tracks/harness.py` (on `target.py`) | `backlog ready dev gate live`: this repo's `main` contains the commit | `tracks.harness` |
-| server | `tracks/server/` | `backlog ready dev gate contribute review merged` (`local/*`: `... gate live`) | `tracks.server`: `reviewers`, `ci_equivalence` |
+| server | `tracks/server/` | `backlog ready dev gate contribute review merged` (`local/*`: `... gate live`) | `tracks.server`: `ci_equivalence` |
 
 Server track modules: `__init__` (the track), `qa` (QA's record and its checks), `gateci` (`hd gate-ci`: the scratch
 merge with upstream main, the fork's `gate/<slug>`, CI observed, the diff scan), `cards` (the approval card, the
-draft card), `contribute` (`hd contribute`: push, open, CI, comment, ready, review as observed steps), `review` (maintainer
+draft card), `contribute` (`hd contribute`: push, open, CI, comment, ready as observed steps), `review` (maintainer
 findings filed once as review-fix changes), `github` (the PR bucket and the fork's CI as observer mixins, the
 CI-equivalence table), `hooks` (the hook rules). `tracks.Observer` / `FakeObserver` are the core observers with the
 mixins. Releases, trains and the observer's fork and docs reads are still the core's.
@@ -137,8 +137,8 @@ erDiagram
     string pid
   }
 ```
-Per change, in its evidence dir `re/evidence/<slug>/`: the track's evidence (server: `gate.md`, QA's record bound to the
-commit; `gate-ci.json`, the scratch merge's CI result and diff findings; `accuracy.md`; `pr-title.txt`, `pr-body.md`,
+Per change, in its evidence dir `re/evidence/<slug>/` (always the slug dir; a different dir recorded at hand-over is copied into it): the track's evidence (server: `gate.md`, QA's record bound to the
+commit; `gate-ci.json`, the scratch merge's CI and Formatting results and diff findings; `accuracy.md`; `pr-title.txt`, `pr-body.md`,
 `pr-comment.md`). Server-track change keys: `upstream_pr`, `finding`, `review_seen`.
 State files: `events.jsonl` (append-only), `leases/<res>.json` (the locks), `runs/<name>.json` + `<name>.log` (the brief),
 `batches/<id>.json`, `queue.json` (train queue), `live.json` (what the live server runs), `images/`, `deploys/`,
@@ -238,7 +238,8 @@ sequenceDiagram
   D->>S: next tick: ship / train / QA booked from the stage gate
 ```
 A run whose change no longer names it (owner cleared, batch step moved) is `lingering`; heal stops it (`agent
-stop-request` event, run ended `stopped:<why>`) and `hd drive` lists the TaskStop for the console.
+stop-request` event, run ended `stopped:<why>`) and `hd drive` lists the TaskStop for the console, until `hd run-stopped`, a `run-end` of the same run, or heal sees the
+change's hand-back (a hand-over, gate, block or fail event since the run started; a batch past the step) and marks it done.
 
 ## 7. The console driver loop
 `hd drive` prints, from run records, change files, batches and observed state: (a) spawns (booked runs with no
@@ -304,7 +305,7 @@ is dead; heal reclaims it with that evidence. `run-end` and `stop` free what the
 Dispatch waits on capacity classes only (section 10a); client instances are not locks (skill `test-instances`). A deploy restarts the live server without waiting for any client.
 
 ### 10a. Capacity and priority
-Policy `capacity` names the classes and their slots (`agent`, `build`, `client`, `image`); `agents.roles.<role>.uses` and
+Policy `capacity` names the classes and their slots (`agent`, `build`, `client`, `device`, `image`); `agents.roles.<role>.uses` and
 `batches.uses.<step>` name what a run or a train step holds. `capacity.used` counts runs not ended and open batches at a
 step that uses a class; `capacity.full(role, ...)` names the first full class of a role. A candidate whose role does not
 fit stays unbooked and shows as stalled; nothing is queued or locked. `hd lint` reports a class a role or step uses

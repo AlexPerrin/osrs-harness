@@ -105,8 +105,9 @@ def record_problems(text, commit, verdict, ci=None):
             out.append("PASS with failed checks: " + ", ".join(failed))
         if rec["findings"]:
             out.append(f"PASS with {len(rec['findings'])} finding(s)")
-        if not ((ci or {}).get("result") == "success" and same_commit((ci or {}).get("commit"), commit)):
-            out.append(f"no green CI result for this commit in {CI_FILE} (run `hd gate-ci <slug>`)")
+        ci = ci or {}
+        if not (ci.get("result") == "success" and ci.get("format") == "success" and same_commit(ci.get("commit"), commit)):
+            out.append(f"no green CI and Formatting result for this commit in {CI_FILE} (run `hd gate-ci <slug>`)")
     elif not rec["findings"]:
         out.append("FAIL without a finding under `## Findings`")
     return out

@@ -205,7 +205,11 @@ def _end(r, exit_, turns=None, tokens=None, minutes=None, result=""):
 def end(name, exit_="ok", turns=None, tokens=None, minutes=None, result=""):
     """`hd run-end`: the console session reports that an Agent-tool run ended."""
     r = store.rec_load(RUNS, name)
-    if not r or r.get("ended"):
+    if not r:
+        return r
+    if r.get("ended"):
+        if str(r.get("exit") or "").startswith("stopped:") and not r.get("stop_done"):
+            return mark_stopped(name)   # the agent ended on its own: nothing is left to TaskStop
         return r
     return _end(r, exit_, turns, tokens, minutes, result)
 
@@ -260,6 +264,28 @@ def lingering(idx):
         left = _left_stage(r, idx)
         if left:
             out.append((r, f"lingering: {left[0]}"))
+    return out
+
+
+HAND_BACK = ("handover", "gate", "block", "fail")
+
+
+def handed_back(r):
+    """A stopped run's subject recorded its hand-back: a hand-over, gate, block or fail event of its change since the
+    run started, or its batch no longer at the step the run served."""
+    if r.get("batch"):
+        return _left_stage(r, {}) is not None
+    return any(e["kind"] in HAND_BACK and e.get("ts", "") >= (r.get("started") or "")
+               for e in events.read(change=r.get("change")))
+
+
+def settle_stops():
+    """Mark done the stop requests whose agent already handed back (nothing left to TaskStop): the run names."""
+    out = [r["name"] for r in store.rec_all(RUNS)
+           if r.get("ended") and str(r.get("exit") or "").startswith("stopped:") and r.get("agent_id")
+           and not r.get("stop_done") and handed_back(r)]
+    for name in out:
+        mark_stopped(name)
     return out
 
 

@@ -12,10 +12,11 @@ tracks:
     branch_prefixes: [content/, fix/, local/]
     dev_role: server-dev
     qa_role: server-qa
-    reviewers: []                    # requested by `hd contribute`; empty: the upstream's CODEOWNERS request on ready
     ci_equivalence:                  # what stands for what in CI: upstream PR checks <-> the gate's fork scratch run
       fork_workflow: ci.yml          # dispatched on the fork's gate/<slug> branch
       fork_workflow_name: CI         # its run name; one green run covers every required upstream check
+      format_workflow: Formatting    # dispatched on the same branch; the gate needs it green too
+      format_workflow_name: Formatting
       upstream_required: [build, gameval]   # check names (substring) an upstream PR must show green
       upstream_advisory: [advisory]         # shown, never required
   harness:
@@ -39,7 +40,8 @@ resources:                           # locks on shared resources only (BR-R1); c
 capacity:                            # BR-R5: the machine budget; dispatch waits for a free slot in every class a role uses
   agent: 3                           # running agents in total
   build: 2                           # gradle and APK builds
-  client: 2                          # RuneLite clients, each with its own port and account
+  client: 2                          # desktop RuneLite clients, each with its own port and account
+  device: 0                          # the Android app (BlueStacks): client-dev holds it; raise to 1 when BlueStacks is up
   image: 1                           # an image build and its boot check
 
 batches:
@@ -50,7 +52,7 @@ settle_first: true                   # BR-C5: a change that settles an open PR (
 
 agents:
   roles:                             # uses: the capacity classes a run holds while it is alive
-    client-dev:  {track: client, stage: dev,  worktree: true,  pushes: [], uses: [agent, client, build]}
+    client-dev:  {track: client, stage: dev,  worktree: true,  pushes: [], uses: [agent, device, build]}
     server-dev:  {track: server, stage: dev,  worktree: false, pushes: [fork], uses: [agent, build]}
     client-qa:   {track: client, stage: gate, worktree: true,  pushes: [], uses: [agent, client, build]}
     server-qa:   {track: server, stage: gate, worktree: false, pushes: [fork-docs, fork-gate], uses: [agent, client, build]}

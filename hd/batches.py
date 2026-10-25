@@ -176,10 +176,10 @@ def enqueue(ch):
         raise ValueError(f"{ch.get('slug')} has no branch and full commit")
     with queue_lock():
         q = read_queue()
-        same = [e for e in q["entries"] if e["branch"] == branch]
-        if same and same[0]["commit"] == commit and same[0]["slug"] == ch.slug:
+        same = [e for e in q["entries"] if e["branch"] == branch or e["slug"] == ch.slug]
+        if len(same) == 1 and same[0]["branch"] == branch and same[0]["commit"] == commit and same[0]["slug"] == ch.slug:
             return same[0]
-        q["entries"] = [e for e in q["entries"] if e["branch"] != branch]
+        q["entries"] = [e for e in q["entries"] if e["branch"] != branch and e["slug"] != ch.slug]
         entry = {"slug": ch.slug, "branch": branch, "commit": commit, "queued": iso()}
         q["entries"].append(entry)
         write_queue(q)
@@ -228,7 +228,7 @@ def _new_id(kind):
 
 def _new(kind, includes, **extra):
     bid = _new_id(kind)
-    b = {"id": bid, "kind": kind, "includes": list(includes), "step": None, "steps": [], "integration": None,
+    b = {"id": bid, "kind": kind, "includes": list(dict.fromkeys(includes)), "step": None, "steps": [], "integration": None,
          "tools": None, "gate_dir": None, "image": None, "image_id": None, "rollback": None, "pid": None,
          "log": None, "evidence": os.path.join(evidence_dir(), bid), "created": iso(), "exception": None}
     b.update(extra)
@@ -695,9 +695,9 @@ def resume(batch_id):
     if not ok:
         raise RuntimeError(msg)
     b["exception"] = None
-    rebuild = failed in ("queued", "pinning", "rebuilding") or (failed == "gating" and _tools_moved(b))
+    rebuild = failed in ("queued", "pinning", "rebuilding") or (failed in ("gating", "imaging", "deploying") and _tools_moved(b))
     if rebuild:
-        if failed in ("rebuilding", "gating"):
+        if failed in ("rebuilding", "gating", "imaging", "deploying"):
             _drop_unlisted(b)
         if not try_train_lock():
             leases.release("integration", leases.DAEMON)
@@ -767,7 +767,7 @@ def merged_branches(obs):
     listed = set(obs.integration_list())
     for ch in store.all_changes():
         b = ch.get("branch")
-        if ch.get("track") != "server" or not b or b not in listed or ch.get("local_only"):
+        if ch.get("track") != "server" or not b or b not in listed or ch.fork_only:
             continue
         pr = obs.upstream_pr(ch.get("upstream_pr") or b)
         if (pr and pr.get("merged")) or (ch.get("commit") and obs.contains("upstream", "main", ch["commit"])):
