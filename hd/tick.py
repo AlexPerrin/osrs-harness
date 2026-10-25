@@ -109,7 +109,7 @@ def repairs(ctx, dry=False):
                 sh(["docker", "rmi", img], timeout=120)
                 store.event("repair", what="image", name=img)
     if not dry:
-        for repo in (ctx.cfg["paths"]["client"], store.HD_HOME):
+        for repo in (ctx.cfg["paths"]["client"], ctx.cfg["paths"]["fork"], store.HD_HOME):
             F.git(repo, "worktree", "prune")
     return out
 
