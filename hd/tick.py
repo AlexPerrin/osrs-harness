@@ -76,7 +76,7 @@ def repairs(ctx, dry=False):
         elif not F.alive(r.get("console_pid"), r.get("console_start")):
             out.append(f"run {r['name']}: console died; ended")
             if not dry:
-                r.update(ended=store.now(), record=None, last="console died")
+                r.update(ended=store.now(), record=None, last="console died", reason="console-died")
                 store.save_run(r)
                 store.event("run", action="end", run=r["name"], change=r.get("change"), reason="console-died")
     t = steps.train_state()

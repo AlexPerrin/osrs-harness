@@ -311,7 +311,12 @@ def _open_pr(ctx, ch):
 
 def _ci_state(ctx, ch):
     pr = _pr(ctx, ch)
-    return None if not pr else ctx.F.pr_checks(pr["number"], head(ctx, ch))
+    if not pr:
+        return None
+    h = head(ctx, ch)
+    if pr.get("head") and pr["head"] != h and ctx.F.contains(ctx.cfg["paths"]["fork"], pr["head"], h):
+        return "success"   # the PR moved on past this head (a finding's commit): its CI is that change's step
+    return ctx.F.pr_checks(pr["number"], h)
 
 
 def _ci_done(ctx, ch):
@@ -499,6 +504,8 @@ def _repeat(ctx, ch, step, role):
     """The ended run of this role that worked on the same input: head, definition and step (a hand-over at X and a gate
     fix at X are different inputs)."""
     last = _last_run(ctx, ch["slug"], role)
+    if last and last.get("reason") == "console-died":   # the agent did not fail: the console under it exited
+        return None
     same = last and last.get("head") == run_head(ctx, ch, step) and last.get("def_hash") == ch["hash"] \
         and (last.get("step") or step.name) == step.name
     return last if same else None

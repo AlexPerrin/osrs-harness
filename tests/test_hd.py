@@ -374,6 +374,16 @@ class ServerTrack(Sandbox):
         F.f["comments"][7].append({"id": "p", "author": "alexperrin", "body": f"Pushed `{C[:9]}`", "at": "t", "kind": "comment"})
         self.assertIn(("s", "ready", "script"), names(self.ctx(F)))                       # answered: out of draft again
 
+    def test_a_pr_moved_past_the_head_and_a_dead_console(self):
+        self.change("s", track="server")
+        F = Fake(refs={"fork/dev/s": A, "origin/main": B}, anc={(C, A)},
+                 prs={"content/s": {"number": 7, "state": "open", "draft": False, "head": C, "merged": False, "branch": "content/s"}})
+        self.assertEqual(steps._ci_state(self.ctx(F), self.ctx(F).by_slug["s"]), "success")
+        h = self.ctx(F).by_slug["s"]["hash"]
+        self.store.save_run({"name": "s-1", "agent_id": "x", "role": "server-dev", "change": "s", "head": A, "def_hash": h,
+                             "step": "handover", "ended": "t", "last": "console died", "reason": "console-died"})
+        self.assertIsNone(steps._repeat(self.ctx(F), self.ctx(F).by_slug["s"], steps.HANDOVER, "server-dev"))
+
     def test_a_squash_merged_pr_is_done(self):
         self.change("s", track="server")
         F = Fake(refs={"fork/dev/s": A, "origin/main": B},
