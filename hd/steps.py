@@ -343,8 +343,7 @@ def _comments(ctx, ch):
 
 
 def _comment_done(ctx, ch):
-    """Done when one of our comments names the head, or when there is nothing to say: no prepared pr-comment.md and
-    nobody but us has commented."""
+    """Done when one of our comments names the head: every PR has one before it is marked for review (the user's rule)."""
     cs = _comments(ctx, ch)
     if cs is None:
         return None
@@ -352,9 +351,8 @@ def _comment_done(ctx, ch):
     if not h:
         return False
     ours = [c["body"] for c in cs if (c["author"] or "").lower() == owner]
-    others = [c for c in cs if (c["author"] or "").lower() != owner and not c.get("bot")]
     marks = (MARK.format(h[:12]), f"<!-- hd-contribute:{h[:12]} -->", h[:9])   # v6 wrote the sha in prose
-    return any(m in body for body in ours for m in marks) or (not others and not _texts(ch)["comment"])
+    return any(m in body for body in ours for m in marks)
 
 
 def _comment_actor(ctx, ch):

@@ -427,17 +427,15 @@ class ServerTrack(Sandbox):
         self.assertIn(("s", "pr", "script"), names(self.ctx(F)))
         F.f["prs"] = {"content/s": {"number": 7, "state": "open", "draft": True, "head": A, "merged": False, "branch": "content/s"}}
         F.f["checks"] = {(7, A): "success"}
-        self.assertIn(("s", "ready", "script"), names(self.ctx(F)))          # nobody to update and nothing prepared
+        self.assertIn(("s", "comment", "server-dev"), names(self.ctx(F)))    # no comment yet and none prepared: the dev writes it
         self.evidence("s", "pr-comment.md")
-        self.assertIn(("s", "comment", "script"), names(self.ctx(F)))        # a prepared comment is always posted
-        os.remove(os.path.join(self.ev, "s", "pr-comment.md"))
+        self.assertIn(("s", "comment", "script"), names(self.ctx(F)))        # every PR gets a comment before ready
         F.f["comments"] = {7: [{"id": "m", "author": "maint", "body": "x", "at": "t", "kind": "comment"}]}
-        self.assertIn(("s", "comment", "server-dev"), names(self.ctx(F)))    # a maintainer spoke, no pr-comment.md
         F.f["comments"][7].append({"id": "o", "author": "alexperrin", "body": f"Pushed `{A[:9]}`", "at": "t", "kind": "comment"})
         self.assertIn(("s", "ready", "script"), names(self.ctx(F)))          # our comment names the commit
         F.f["comments"] = {7: [{"id": "b", "author": "github-actions", "bot": True, "body": "x", "at": "t", "kind": "comment"},
                               {"id": "g", "author": None, "body": "x", "at": "t", "kind": "comment"}]}
-        self.assertIn(("s", "comment", "server-dev"), names(self.ctx(F)))    # a bot is nobody; a deleted account still counts
+        self.assertIn(("s", "comment", "script"), names(self.ctx(F)))        # a bot's or a deleted account's comment is not ours
         F.f["refs"]["fork/dev/s"] = ""
         self.assertFalse(steps._comment_done(self.ctx(F), self.ctx(F).by_slug["s"]))   # no head: nothing can name it
 
