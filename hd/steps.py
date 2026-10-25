@@ -172,6 +172,15 @@ def _merge_done(ctx, ch):
     return live(ctx, ch)
 
 
+def _merge_conflict(ctx, ch):
+    s = ctx.rec(ch, "step") or {}
+    return s.get("step") == "merge" and s.get("head") == head(ctx, ch) and (s.get("detail") or "").startswith("merge: conflict")
+
+
+def _merge_actor(ctx, ch):
+    return _dev(ctx, ch) if _merge_conflict(ctx, ch) else "script"
+
+
 def _merge(ctx, ch):
     """Merge the head into the target branch in the checkout and push (client: master -> origin/main)."""
     repo, F, h = ctx.repo(ch), ctx.F, head(ctx, ch)
@@ -426,7 +435,7 @@ def _measure_done(ctx, goal):
 
 HANDOVER = Step("handover", _handover_done, _dev)
 GATE = Step("gate", _gate_done, _gate_actor, _run_gate)
-MERGE = Step("merge", _merge_done, "script", _merge)
+MERGE = Step("merge", _merge_done, _merge_actor, _merge)
 QUEUE = Step("queue", live, _queue_actor, _queue)
 REVIEW = Step("review", _review_done, _review_actor)
 APPROVE = Step("approve", _approve_done, "user")
@@ -598,6 +607,9 @@ def brief(ctx, ch, step, name):
         lines += ["## The review failed at this head"] + [f"- {f}" for f in v.get("findings") or []] + [""]
     if step is CI and role == _dev(ctx, ch):
         lines += ["## Upstream CI failed at this head", f"PR #{(_pr(ctx, ch) or {}).get('number')}", ""]
+    if step is MERGE and role == _dev(ctx, ch):
+        lines += [f"## The merge into {ctx.track(ch)['base']} conflicted at this head",
+                  (ctx.rec(ch, "step") or {}).get("detail", ""), "Merge the current base into your branch and resolve.", ""]
     if step in (PR, COMMENT) and role == _dev(ctx, ch):
         lines += ["## Missing PR text in the evidence dir",
                   "pr-title.txt and pr-body.md" if step is PR else "pr-comment.md: what changed for the maintainers since their last look", ""]
@@ -607,7 +619,7 @@ def brief(ctx, ch, step, name):
     owed = {HANDOVER: f"hd handover {ch['slug']} <sha> --summary \"...\"", REVIEW: f"hd verdict {ch['slug']} {h} PASS|FAIL [findings...]",
             MEASURE: f"hd measure {ch['slug']} <value> --evidence <report>, then `hd new` for each change that closes a gap",
             QUEUE: "a resolution pushed to fork local/integration-tools (a recorded rr-cache or a dropped branch, with `hd ask` on it)"}
-    if step in (GATE, CI) or (step is REVIEW and role == _dev(ctx, ch)):
+    if step in (GATE, CI, MERGE) or (step is REVIEW and role == _dev(ctx, ch)):
         owed[step] = f"a new commit on the dev ref, then hd handover {ch['slug']} <sha>"
     if step in (PR, COMMENT):
         owed[step] = f"the PR text in the evidence dir, then hd handover {ch['slug']} {h}"

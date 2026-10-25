@@ -136,7 +136,7 @@ def run(F=None, dry=False):
                 out.append(f"{ch['slug']} {step.name}: would run")
                 continue
             detail = step.do(ctx, ch)
-            store.write({"step": step.name, "detail": detail[:300], "ts": store.now()}, ch["slug"], "step.json")
+            store.write({"step": step.name, "head": steps.head(ctx, ch), "detail": detail[:300], "ts": store.now()}, ch["slug"], "step.json")
             store.event("step", change=ch["slug"], step=step.name, detail=detail[:300])
             out.append(f"{ch['slug']} {step.name}: {detail}")
         if not dry:

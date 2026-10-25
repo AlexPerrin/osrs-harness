@@ -60,6 +60,16 @@ class R2Flow(Sandbox):
         F.f["anc"] = {(B, A)}
         self.assertEqual(names(self.ctx(F)), [])
 
+    def test_a_merge_conflict_is_the_devs_step(self):
+        self.change("c1")
+        self.store.save_record("c1", "handover", {"head": A, "base": B, "evidence": "e"})
+        self.store.save_record("c1", "gate", {"head": A, "base": B, "ok": True, "detail": ""})
+        F = Fake(refs={"origin/client/c1": A, "origin/main": B})
+        self.assertEqual(names(self.ctx(F)), [("c1", "merge", "script")])
+        self.store.write({"step": "merge", "head": A, "detail": "merge: conflict: X.java"}, "c1", "step.json")
+        self.assertEqual(names(self.ctx(F)), [("c1", "merge", "client-dev")])
+        self.assertIn("conflicted", steps.brief(self.ctx(F), self.ctx(F).by_slug["c1"], steps.MERGE, "c1-2"))
+
     def test_deps_gate_dispatch(self):
         self.change("srv", track="server")
         self.change("cli", deps=["srv"])
