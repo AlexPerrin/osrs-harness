@@ -18,11 +18,6 @@ changes were migrated from v6: handed-over commits are the `dev/<slug>` and `cli
 review-stage PRs carry gate, verdict and approval records at their PR head. Upstream main moved since, so the gate of
 every handed-over server change reruns on a fresh scratch merge.
 
-## Leftovers to stop by hand
-Two v6 processes the console could not stop (the auto-mode classifier denies `kill`): `python3 hd.py serve --detach`
-(pid 217615, the v6 view on port 7790) and a `train/deploy.sh int-t-1` leaked from a v6 test (pid 791045, loops on a
-`/tmp/hd-test-*` state dir). Both are harmless; kill them.
-
 ## Open decisions for the user
 - The six `fin/*` and `acc/*` fork branches not named by a change: drop or convert.
 - Hunter #408: the review-fix work continues as the v7 change `hunter-feat-pr`.
