@@ -2,7 +2,8 @@
 """The server gate (ARCHITECTURE 4): gates/server.py <slug> <head> <base> <evidence>. Exit 0 ok, 1 fail, 2 pending.
 
   1. the evidence dir holds the accuracy spec (accuracy*.md); the PR texts are the publish steps' concern
-  2. the scratch merge <head> + upstream main (<base>) in state/gates/<slug>/or, pushed to the fork's gate/<slug>; the
+  2. a change whose PR is at <head>: GitHub's own merge state and the checks on the PR head (no scratch merge); else
+     the scratch merge <head> + upstream main (<base>) in state/gates/<slug>/or, pushed to the fork's gate/<slug>; the
      merge commit on the fork with those two parents is reused
   3. the net diff scanned: added test files and comment lines are printed for the reviewer
   4. the fork's CI and Formatting workflows at the scratch commit: dispatched when absent, pending while they run, ok
@@ -15,7 +16,7 @@ import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from hd import store  # noqa: E402
+from hd import steps, store  # noqa: E402
 from hd.facts import Facts, sh  # noqa: E402
 
 WORKFLOWS = (("ci.yml", "CI"), ("Formatting", "Formatting"))
@@ -61,6 +62,19 @@ def main(slug, head, base, ev):
     if not glob.glob(os.path.join(ev, "accuracy*.md")):
         print("missing accuracy*.md in the evidence dir")
         return 1
+    F = Facts(cfg)
+    ch = next((c for c in store.changes() if c["slug"] == slug), None)
+    pr = F.pr(steps.public_branch(ch)) if ch else None
+    if pr and pr.get("head") == head and pr["state"] == "open":   # GitHub already merges and checks the PR head
+        if pr.get("mergeable") == "CONFLICTING":
+            print(f"PR #{pr['number']} does not merge with upstream main")
+            return 1
+        if pr.get("mergeable") != "MERGEABLE":
+            print(f"PR #{pr['number']}: merge state not computed yet")
+            return 2
+        checks = F.pr_checks(pr["number"], head)
+        print(f"PR #{pr['number']} mergeable; upstream checks at {head[:9]}: {checks}")
+        return {"success": 0, "failure": 1}.get(checks, 2)
     branch = f"gate/{slug}"
     path = scratch_clone(cfg, slug)
     if git(path, "fetch", "-q", "fork", head, f"refs/heads/{branch}").returncode != 0 and git(path, "fetch", "-q", "fork", head).returncode != 0:
@@ -89,7 +103,6 @@ def main(slug, head, base, ev):
     print(f"scratch {scratch[:9]} = {head[:9]} + upstream main {base[:9]} on fork {branch}")
     for line in scan(git(path, "diff", "--unified=0", f"{base}...{head}").stdout):
         print(f"for the reviewer: {line}")
-    F = Facts(cfg)
     ok, pending = True, False
     for wf, name in WORKFLOWS:
         state = F.fork_ci(branch, scratch, name)

@@ -117,6 +117,8 @@ def write(data, *parts):
 def event(kind, **fields):
     line = {"ts": now(), "kind": kind, **fields}
     os.makedirs(state_dir(), exist_ok=True)
+    if os.path.exists(path("events.jsonl")) and os.path.getsize(path("events.jsonl")) > 20_000_000:
+        os.replace(path("events.jsonl"), path("events.1.jsonl"))   # one generation kept
     with open(path("events.jsonl"), "a") as f:
         f.write(json.dumps(line, sort_keys=True) + "\n")
     return line

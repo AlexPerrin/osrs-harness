@@ -397,6 +397,15 @@ class ServerTrack(Sandbox):
                 mock.patch("sys.stdout", new_callable=io.StringIO) as out:
             self.assertEqual(gate.main("s", A, B, os.path.join(self.ev, "s")), 2)
         self.assertIn("dispatched", out.getvalue())
+        self.change("p", track="server", branch="content/p")
+        self.evidence("p", "accuracy.md")
+        pr = {"number": 9, "state": "open", "draft": True, "head": A, "merged": False, "branch": "content/p", "mergeable": "MERGEABLE"}
+        with mock.patch.object(gate.Facts, "pr", lambda self, b: pr), mock.patch.object(gate.Facts, "pr_checks", lambda self, n, s: "success"), \
+                mock.patch.object(gate, "scratch_clone", side_effect=AssertionError("no scratch merge for a PR")), \
+                mock.patch("sys.stdout", new_callable=io.StringIO):
+            self.assertEqual(gate.main("p", A, B, os.path.join(self.ev, "p")), 0)
+            pr["mergeable"] = "CONFLICTING"
+            self.assertEqual(gate.main("p", A, B, os.path.join(self.ev, "p")), 1)
 
     def test_list_and_pins(self):
         text = "# Upstream fixes\nfix/a\n# Content\ncontent/b\n# Local only\nlocal/c\n"
@@ -421,3 +430,6 @@ class ServerTrack(Sandbox):
         new = self.ctx(F).by_slug["s-fic1"]
         self.assertEqual((new["priority"], new["pr"], new["branch"], new["finding"]), ("P0", 7, "content/s", "IC_1"))
         self.assertEqual(server.findings(self.ctx(F)), [])
+        F.f["comments"][7] += [{"id": "IC_3", "author": "maint", "body": "more", "at": "2026-10-25T12:00:00Z", "kind": "comment"},
+                               {"id": "IC_4", "author": "alexperrin", "body": "done", "at": "2026-10-25T12:30:00Z", "kind": "comment"}]
+        self.assertEqual(server.findings(self.ctx(F)), [])                   # answered by our later comment

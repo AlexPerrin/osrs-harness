@@ -12,17 +12,6 @@
         ]
       }
     ],
-    "SubagentStart": [
-      {
-        "matcher": "client-dev|client-qa|server-dev|server-qa|integrator|harness-dev|orchestrator",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/hooks/hook.py"
-          }
-        ]
-      }
-    ],
     "SubagentStop": [
       {
         "matcher": "client-dev|client-qa|server-dev|server-qa|integrator|harness-dev|orchestrator",

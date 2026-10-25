@@ -79,11 +79,11 @@ class Facts:
         return self._m(("gh", args), f)
 
     def pr(self, branch):
-        """The upstream PR whose head is the fork's `branch`: {number, state, draft, head, merged, branch}, {} when none,
+        """The upstream PR whose head is the fork's `branch`: {number, state, draft, head, merged, branch, mergeable}, {} when none,
         None when gh failed."""
         owner = self.cfg["repos"]["fork"].split("/")[0]
         prs = self.gh("pr", "list", "-R", self.cfg["repos"]["upstream"], "--head", branch, "--state", "all", "--limit",
-                      "10", "--json", "number,state,isDraft,headRefOid,mergedAt,headRefName,headRepositoryOwner")
+                      "10", "--json", "number,state,isDraft,headRefOid,mergedAt,headRefName,headRepositoryOwner,mergeable")
         if prs is None:
             return None
         prs = [p for p in prs if (p.get("headRepositoryOwner") or {}).get("login") == owner]
@@ -92,7 +92,8 @@ class Facts:
             return {}
         p = prs[0]
         return {"number": p["number"], "state": p["state"].lower(), "draft": bool(p.get("isDraft")),
-                "head": p.get("headRefOid"), "merged": bool(p.get("mergedAt")), "branch": p.get("headRefName")}
+                "head": p.get("headRefOid"), "merged": bool(p.get("mergedAt")), "branch": p.get("headRefName"),
+                "mergeable": p.get("mergeable")}
 
     def pr_checks(self, number, sha):
         """'success' | 'failure' | 'pending' | 'none' (the PR head is not `sha`, or no checks yet) | None."""

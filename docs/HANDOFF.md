@@ -38,8 +38,9 @@ The user's rules are the memory files in `/home/alex/.claude/projects/-home-alex
 - v7: `project_v7_agents_via_agent_tool.md`, `project_v7_cutover.md`.
 
 ## Gotchas
-- Hooks are read at session start: after a change to `.claude/settings.json`, restart the console. The hook program
-  itself (`hooks/hook.py`) is read on every event, so its edits apply at once.
+- Hooks are read at session start: after a change to `.claude/settings.json`, restart the console (the SubagentStart
+  hook was removed on 2026-10-25; a console started before that still runs it, harmlessly). The hook program itself
+  (`hooks/hook.py`) is read on every event, so its edits apply at once.
 - A run ends when its agent calls SubagentHandback; a stop without one is a pause (background build). An agent that
   dies without a hand-back stays `running` in the list: end it by deleting `harness/state/runs/<name>.json`.
 - The auto-mode classifier denies the console `kill` and deleting pushes even where the guard allows them; the user

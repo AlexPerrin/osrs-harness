@@ -4,7 +4,7 @@ filing maintainer findings as changes.
   pin(ctx, ch)          the change's dev ref is listed in integration.txt and pinned at its head in integration.lock
                         on fork `local/integration-tools` (commit and push only when something changed)
   start_train(ctx)      train/train.sh detached, once per pass; it writes train.json itself
-  findings(ctx)         a maintainer comment or review on a ready PR, newer than the approval and carried by no change,
+  findings(ctx)         a maintainer comment or review on a ready PR, newer than our last comment on it (or the approval) and carried by no change,
                         becomes a P0 change on the same branch and PR, keyed by the comment id; committed
 """
 import os
@@ -110,10 +110,11 @@ def findings(ctx):
         cs = steps._comments(ctx, ch)
         if not pr or cs is None:
             continue
-        for c in cs:
+        since = max([c.get("at") or "" for c in cs if str(c.get("author") or "").lower() == steps._owner(ctx)] + [appr["ts"]])
+        for c in cs:   # a maintainer comment older than our last one was answered by it
             who = str(c.get("author") or "").lower()
             if not c.get("id") or not c["body"].strip() or who == steps._owner(ctx) or c.get("bot") \
-                    or c["kind"] in SKIP or (c.get("at") or "") < appr["ts"] or str(c["id"]) in carried:
+                    or c["kind"] in SKIP or (c.get("at") or "") < since or str(c["id"]) in carried:
                 continue
             carried.add(str(c["id"]))
             slug = f"{ch['slug']}-f{re.sub('[^a-z0-9]', '', str(c['id']).lower())[-6:]}"

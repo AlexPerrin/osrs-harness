@@ -104,7 +104,7 @@ The core knows three step kinds and reads the lists below; only the server list 
 | `approve` | `approval.json.head == head` | **user**: a card with head, verdict, texts and the command |
 | `push`, `pr`, `comment`, `ready` | the fact on GitHub at `head`; `comment` holds when nobody else has commented or a comment of ours names `head`; `ready` holds when the PR is a draft exactly while a finding filed on it is unanswered (not yet pushed and commented) | **script**, one per pass; the dev when the PR text the step posts is missing in the evidence dir |
 | `ci` | the PR's checks green at `head` | **wait**; failed: the **dev** |
-| `merged` | the PR is merged or upstream `main` contains `head` | **wait**; a maintainer finding newer than the approval files a P0 change on the same `pr` |
+| `merged` | the PR is merged or upstream `main` contains `head` | **wait**; a maintainer finding newer than our last comment on the PR (or the approval) files a P0 change on the same `pr` |
 | `release` | the release `version` exists | **script**: `gh release create` with the APK from the evidence dir |
 | `measure` | an open change serves the goal, or `measure.json` is bound to the track's live tip with `value ≥ target` | **agent** orchestrator |
 
@@ -150,9 +150,8 @@ One program, `hooks/hook.py`, on three events (`hook_event_name`), wired in `.cl
 
 | Event | Does |
 |---|---|
-| `SubagentStart` | writes `runs/<name>.json` from the brief's first line, the agent id, the role, the console pid and its start time; binds from the parent transcript when the subagent's is not on disk yet; an agent the start event could not bind (its transcript not yet written) is bound by the guard at its first command |
 | `SubagentStop` | writes `ended`, `record` (the role's record exists and is newer than the start), `last` and `usage` from the transcript; binds from the transcript when the start saw nothing; runs `hd tick`. A stop cannot be refused; a stop without a `SubagentHandback` call in the agent's transcript is a pause for background work and changes nothing |
-| `PreToolUse: Bash` (every role and the console) | **deny by default** for OpenRune: a `git` or `gh` command naming the upstream repo passes only as a read; fork and client pushes and `gh` writes only to the role's refs in `hd.yaml`; forced and deleting pushes denied to every role (but `gate/*`), the console free on our repos; tags, releases, the train scripts and docker writes on the live stack denied to all; `hd approve` only from the console; a write the parser cannot see (`$(...)`, a bare `git push`) denied. Every denial is an event |
+| `PreToolUse: Bash` (every role and the console) | first binds the run of an agent of a role that has none yet (`runs/<name>.json` from the brief's first line in its transcript, the agent id, the role, the console pid and its start time), then **deny by default** for OpenRune: a `git` or `gh` command naming the upstream repo passes only as a read; fork and client pushes and `gh` writes only to the role's refs in `hd.yaml`; forced and deleting pushes denied to every role (but `gate/*`), the console free on our repos; tags, releases, the train scripts and docker writes on the live stack denied to all; `hd approve` only from the console; a write the parser cannot see (`$(...)`, a bare `git push`) denied. Every denial is an event |
 
 ## 7. Train
 
@@ -271,7 +270,7 @@ sequenceDiagram
   participant R as Repo
   T->>T: deps live, first unmet step is handover: list the spawn
   C->>D: Agent tool with the brief
-  H->>H: SubagentStart writes the run
+  H->>H: the first command binds the run
   D->>D: build, check on a real client, push the dev ref
   D->>T: hd handover (refused if incomplete)
   D-->>H: stop

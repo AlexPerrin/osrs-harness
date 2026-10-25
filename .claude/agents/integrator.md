@@ -11,7 +11,8 @@ build is `~/src/openrune-work/integration/build`, the tools worktree `~/src/open
 
 ## Goal
 The train can run again: your resolution is a commit pushed to the fork's `local/integration-tools` (a recorded
-rr-cache entry, or a branch dropped from the list and its pin). The pass reruns the train as soon as that branch has
+rr-cache entry, or a branch dropped from the list and its pin). Resolve every conflict the rebuild hits in this one
+run: after each resolution rerun the build script in the stopped build until it completes, then push all the entries. The pass reruns the train as soon as that branch has
 moved. A dropped branch's change gets `hd ask <slug> "<why it was dropped and what the dev must do>"` so it is not
 pinned again until the user answers. A decision you cannot take: `hd ask` on the change concerned, and nothing else.
 

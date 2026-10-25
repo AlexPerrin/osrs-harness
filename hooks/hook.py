@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""The one hook program (ARCHITECTURE 6), on three Claude Code events read from the input's `hook_event_name`:
+"""The one hook program (ARCHITECTURE 6), on two Claude Code events read from the input's `hook_event_name`:
 
-  SubagentStart     writes runs/<name>.json from the brief's first line
-                    (``Harness change `<slug>` run `<name>` head `<sha>` def `<hash>` step `<step>` ``), the agent id, its role and the
-                    console pid with its start time. Without that line nothing is written.
+  PreToolUse (Bash) binds the run first: an agent of a role with no run yet gets runs/<name>.json from its transcript's first
+                    line (``Harness change `<slug>` run `<name>` head `<sha>` def `<hash>` step `<step>` ``), the agent id,
+                    its role and the console pid with its start time. Without that line nothing is written. Then the guard.
   SubagentStop      when the agent handed back (a SubagentHandback call in its transcript): writes `ended`, `record` (the
                     role's record exists and is newer than the start), `last` and the token usage; binds the run from the
                     transcript when the start saw no prompt; then runs `hd tick`. A stop without a hand-back is a pause
                     for background work and changes nothing. A stop cannot be refused.
-  PreToolUse (Bash) the guard (R4), deny by default for OpenRune: a `git` or `gh` command naming the upstream repo passes
+  The guard (R4):   deny by default for OpenRune: a `git` or `gh` command naming the upstream repo passes
                     only as a read; fork pushes and gh writes only to the role's refs (hd.yaml `roles`); forced pushes,
                     tags, releases, the train scripts and docker writes on the live stack denied to all; `hd approve`
                     only from the console. A write the parser cannot see is denied. Every denial is an event.
@@ -93,20 +93,6 @@ def first_prompt(path):
     return ""
 
 
-def prompt_from_parent(data):
-    """Fallback: the latest Agent tool call of this agent type in the parent transcript whose prompt is a brief."""
-    found = ""
-    for e in _lines(data.get("transcript_path")):
-        if e.get("type") != "assistant":
-            continue
-        for b in (e.get("message") or {}).get("content") or []:
-            if isinstance(b, dict) and b.get("type") == "tool_use" and b.get("name") == "Agent":
-                inp = b.get("input") or {}
-                if inp.get("subagent_type") == data.get("agent_type") and BRIEF.search(inp.get("prompt") or ""):
-                    found = inp["prompt"]
-    return found
-
-
 def usage(path):
     out = {"input": 0, "output": 0, "cache_read": 0, "cache_creation": 0, "turns": 0}
     keys = {"input_tokens": "input", "output_tokens": "output", "cache_read_input_tokens": "cache_read",
@@ -132,7 +118,7 @@ def handed_back(path):
 
 
 def _bind(data):
-    m = BRIEF.search(first_prompt(transcript_of(data))) or BRIEF.search(prompt_from_parent(data))
+    m = BRIEF.search(first_prompt(transcript_of(data)))
     return m.groups() if m else None
 
 
