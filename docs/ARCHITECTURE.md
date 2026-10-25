@@ -376,7 +376,7 @@ nothing.
 | `task_stop.py` | harness-dev, integrator, server-qa | cannot end without a hand-over / QA aggregate / resolution on disk |
 | `slot_stop.py` | no role file | stops an agent ending while holding a lock |
 | `qa_write_scope.py` | client-qa, server-qa | QA writes only its records |
-| `publish_gate.py`, `github_scope.py` | every session, when wired in `.claude/settings.json` | client release tags need their record; the server track's rules (`tracks/server/hooks.py`): `hd contribute` needs QA's record at the commit and an approval naming it, a direct upstream PR needs the record; other upstream writes and pushes to a fork branch backing an open PR prompt the user; fork actions (`gate/*` pushes, fork CI) never prompt |
+| `publish_gate.py`, `github_scope.py` | every session, when wired in `.claude/settings.json` | client releases need a PASS record (`qa/client-<version>.md` or an evidence `client-record.md`) at the released commit (`--target`); the server track's rules (`tracks/server/hooks.py`): `hd contribute` needs QA's record at the commit and an approval naming it, a direct upstream PR needs the record; other upstream writes and pushes to a fork branch backing an open PR prompt the user; fork actions (`gate/*` pushes, fork CI) never prompt |
 The console session does not load `deny_publish.py`: it can publish, which is why it asks the user in chat first.
 
 ## 12. Run and test

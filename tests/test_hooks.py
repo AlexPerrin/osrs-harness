@@ -296,6 +296,36 @@ class PublishGateTest(unittest.TestCase):
         return subprocess.run([sys.executable, os.path.join(HOOKS, "publish_gate.py")], input=data, capture_output=True,
                               text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=t, **env)).stdout
 
+    def release(self, cmd, record=None, where="evidence", verdict="PASS"):
+        """Run the gate on a release command in a client repo with one commit; the record (the commit, a sha, or
+        None) is written under qa/ or the evidence tree."""
+        from helpers import commit_file
+        base = tempdir(self)
+        root = init_repo(os.path.join(base, "client"))
+        sha = commit_file(root, "a.txt", "a\n")
+        ev = os.path.join(base, "ev")
+        if record:
+            c = sha if record == "head" else record
+            path = (os.path.join(root, "qa", "client-1.2.3.md") if where == "qa"
+                    else os.path.join(ev, "rel-1", "client-record.md"))
+            os.makedirs(os.path.dirname(path))
+            open(path, "w").write(f"- Commit: `{c}`\n\n## Verdict: **{verdict}**\n")
+        return sha, self.run_gate(cmd.replace("SHA", sha), HD_CLIENT_ROOT=root, HD_EVIDENCE_DIR=ev)
+
+    def test_release_target_flag_and_evidence_record(self):
+        for cmd in ("gh release create v1.2.3 --target SHA", "gh release create v1.2.3 --target=SHA --title t"):
+            self.assertEqual(self.release(cmd, "head")[1], "")
+
+    def test_release_old_qa_record_and_positional_sha(self):
+        self.assertEqual(self.release("gh release create v1.2.3 SHA", "head", where="qa")[1], "")
+        self.assertEqual(self.release("git tag v1.2.3", "head", where="qa")[1], "")
+
+    def test_release_denied_without_a_passing_record_at_the_commit(self):
+        c = "gh release create v1.2.3 --target SHA"
+        self.assertIn("no release record", self.release(c)[1])
+        self.assertIn("no record passes", self.release(c, "head", verdict="FAIL")[1])
+        self.assertIn("no record passes", self.release(c, "d" * 40)[1])
+
     def test_fork_pr_not_gated(self):
         self.assertEqual(self.run_gate("gh pr create -R AlexPerrin/OpenRune-Server --head AlexPerrin:fix/x --title t"), "")
         self.assertEqual(self.run_gate("gh pr create --title 'upstream gate notes' --body-file re/upstream-pr/b"), "")

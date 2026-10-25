@@ -167,3 +167,9 @@ One short entry per issue, newest first: symptom, root cause, evidence, fix, how
 - **Root cause.** Every agent of a session shares the scratchpad; two agents wrote the same file name at its top level.
 - **Fix.** Scripts and temp files go under `<scratchpad>/<your-name>/` (the brief's rules).
 - **Recognise.** A script at the scratchpad's top level that another agent also wrote.
+
+## 2026-10-24 The release gate denied a release with a PASS record
+- **Symptom.** A client release with `--target <sha>` was denied: no `qa/client-0.1.2.md`.
+- **Root cause.** The gate read the target only as a positional sha and looked for the record only in the client repo's `qa/`; client-qa writes `client-record.md` in the evidence tree.
+- **Fix.** The gate takes `--target` and accepts a PASS record at the released commit from either place.
+- **Recognise.** A release denied "no release record" while `re/evidence/*/client-record.md` says PASS.
