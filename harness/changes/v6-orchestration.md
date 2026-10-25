@@ -5,7 +5,10 @@ title: 'v6: one pipeline, three track profiles; the console driver renders one '
 prio: P1
 role: harness-dev
 stage: ready
-hold: null
+hold:
+  kind: decision
+  reason: 'needs you: a dev run was already booked for exactly this head (none) and these findings; booking another would repeat it'
+  since: '2026-10-25T03:10:21Z'
 deps: []
 branch: null
 commit: null
@@ -19,7 +22,7 @@ cost:
   tokens: 0
   minutes: 0
 created: '2026-10-24T22:59:05Z'
-updated: '2026-10-25T03:10:09Z'
+updated: '2026-10-25T03:10:21Z'
 ---
 ## Change
 v6: one pipeline, three track profiles; the console driver renders one 'needs you' list
@@ -54,3 +57,4 @@ v6: one pipeline, three track profiles; the console driver renders one 'needs yo
 - 2026-10-25T00:33:20Z dod ticked: 1, 2, 3
 - 2026-10-25T03:09:31Z run hd19 ended: ? turns, ? tokens, exit ok
 - 2026-10-25T03:10:09Z dev -> ready: run hd19 ended without a hand-over
+- 2026-10-25T03:10:21Z hold decision: needs you: a dev run was already booked for exactly this head (none) and these findings; booking another would repeat it
