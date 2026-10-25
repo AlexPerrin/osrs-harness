@@ -59,6 +59,9 @@ class R2Flow(Sandbox):
                        mock.ANY, A), [c[:7] + (c[7],) if len(c) > 7 else c for c in F.calls])
         F.f["anc"] = {(B, A)}
         self.assertEqual(names(self.ctx(F)), [])
+        F.f["refs"]["origin/main"] = C                                         # main moves on after the merge
+        F.f["anc"].add((C, A))
+        self.assertEqual(names(self.ctx(F)), [])                               # no re-gate of a merged change
 
     def test_a_merge_conflict_is_the_devs_step(self):
         self.change("c1")

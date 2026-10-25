@@ -486,7 +486,7 @@ def next_steps(ctx):
     out, seen = [], set()
     for ch in ctx.goals + ctx.changes:
         try:
-            if "target" not in ch and not deps_live(ctx, ch):
+            if "target" not in ch and (not deps_live(ctx, ch) or done(ctx, ch) is True):   # a done change has no step left
                 continue
             for steps in lists(ctx, ch):
                 u = first_unmet(ctx, ch, steps)
