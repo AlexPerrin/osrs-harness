@@ -7,8 +7,8 @@ role: client-dev
 stage: ready
 hold:
   kind: decision
-  reason: 'user 2026-10-25: wrap up and hand off to v7; no new dispatch until the fresh console starts'
-  since: '2026-10-25T04:05:50Z'
+  reason: 'user 2026-10-25: wrap up and hand off to v7; no new dispatch'
+  since: '2026-10-25T04:06:19Z'
 deps: []
 branch: null
 commit: null
@@ -23,7 +23,7 @@ cost:
   usd: 0
   tokens: 0
 created: '2026-10-20T04:39:08Z'
-updated: '2026-10-25T04:06:14Z'
+updated: '2026-10-25T04:06:19Z'
 ---
 ## Change
 Stretch goal: 117 HD on the Android app (feasibility)
@@ -49,3 +49,4 @@ Stretch goal: 117 HD on the Android app (feasibility)
 - 2026-10-25T04:05:40Z run cd56 ended: 0 turns, 0 tokens, exit ok
 - 2026-10-25T04:05:50Z hold decision: user 2026-10-25: wrap up and hand off to v7; no new dispatch until the fresh console starts
 - 2026-10-25T04:06:14Z dev -> ready: run cd56 ended without a hand-over
+- 2026-10-25T04:06:19Z hold decision: user 2026-10-25: wrap up and hand off to v7; no new dispatch

@@ -5,7 +5,10 @@ title: Ground item despawn times (OSRS Drop rules)
 prio: P2
 role: server-dev
 stage: dev
-hold: null
+hold:
+  kind: decision
+  reason: 'user 2026-10-25: wrap up and hand off to v7; no new dispatch'
+  since: '2026-10-25T04:06:19Z'
 deps:
 - cannon-review-354
 - genie-review-355
@@ -14,7 +17,7 @@ deps:
 branch: fix/ground-item-despawn-times
 commit: 7e3e0dc2bdaf04cbaca30dfc4fe4d9f4d5812e3f
 local_only: false
-owner: sd86
+owner: null
 evidence: /home/alex/osrs-plugins-reverse/re/evidence/ground-item-despawn-times
 spec: ground-item-despawn-times
 summary: spotlessApply on the touched modules (ObjRepository import order, Obj.kt blank line and HeldInteractions elvis spacing are all required by spotless); spotlessCheck clean on api:game-process, api:player,
@@ -24,13 +27,13 @@ booked:
   dev: 7e3e0dc2bdaf04cbaca30dfc4fe4d9f4d5812e3f|da39a3ee5e6b
 batch: int-20261024-1
 cost:
-  runs: 19
+  runs: 20
   turns: 88
   minutes: 40.2
   usd: 7.78
   tokens: 0
 created: '2026-10-20T01:42:40Z'
-updated: '2026-10-25T04:06:14Z'
+updated: '2026-10-25T04:06:19Z'
 ---
 ## Change
 Every player drop currently despawns after 200 ticks (constants.lootdrop_duration). Match OSRS Wiki 'Drop': tradeables become public after 60 s and despawn after a further 120 s (300 ticks total); untradeables 180 s; clue scrolls 61 min. Repro: ::item 10180 1, drop, gone 115 s later. Unblocks client: Clue Juggling Timers, Ground Items despawn (gen 44, scratchpad/g44/).
@@ -131,3 +134,5 @@ Ground items: keep the owner when an obj is copied (ObjRegistry.singleCopy, Zone
 - 2026-10-24T23:39:38Z gate PASS claimed: 7e3e0dc2b: CI+Formatting green on merge, spotless clean, 8 files (the record on docs is what counts)
 - 2026-10-25T04:06:14Z ready -> dev: dispatched to sd86
 - 2026-10-25T04:06:14Z run sd86 started (server-dev, stage dev)
+- 2026-10-25T04:06:19Z run sd86 ended: 0 turns, 0 tokens, exit ok
+- 2026-10-25T04:06:19Z hold decision: user 2026-10-25: wrap up and hand off to v7; no new dispatch
