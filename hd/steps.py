@@ -353,14 +353,27 @@ def _comment(ctx, ch):
     return "commented" if r is not None and r.returncode == 0 else f"comment failed: {(r.stderr if r else '')[-300:]}"
 
 
-def _ready_done(ctx, ch):
+def _unanswered(ctx, ch):
+    """The findings filed on this PR whose answer is not yet pushed and commented: planned work the maintainers can see."""
     pr = _pr(ctx, ch)
-    return None if pr is None else bool(pr) and not pr["draft"]
+    if not pr:
+        return []
+    return [c for c in ctx.changes if c.get("finding") and c.get("pr") == pr["number"]
+            and not (_handover_done(ctx, c) and _pushed(ctx, c) and _comment_done(ctx, c))]
+
+
+def _ready_done(ctx, ch):
+    """A PR is a draft exactly while a finding on it is unanswered."""
+    pr = _pr(ctx, ch)
+    return None if pr is None else bool(pr) and pr["draft"] == bool(_unanswered(ctx, ch))
 
 
 def _ready(ctx, ch):
-    r = sh(["gh", "pr", "ready", str(_pr(ctx, ch)["number"]), "-R", ctx.cfg["repos"]["upstream"]])
-    return "ready" if r is not None and r.returncode == 0 else f"ready failed: {(r.stderr if r else '')[-300:]}"
+    undo = bool(_unanswered(ctx, ch))
+    r = sh(["gh", "pr", "ready", str(_pr(ctx, ch)["number"]), "-R", ctx.cfg["repos"]["upstream"]] + (["--undo"] if undo else []))
+    if r is None or r.returncode != 0:
+        return f"ready failed: {(r.stderr if r else '')[-300:]}"
+    return "drafted: a finding on it is being answered" if undo else "ready"
 
 
 def _merged_done(ctx, ch):

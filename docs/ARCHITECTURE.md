@@ -102,7 +102,7 @@ The core knows three step kinds and reads the lists below; only the server list 
 | `queue` | `live.json.integration` contains `head` | **script**: pin on the tools branch, start `train.sh` when none is alive; a failed train: the **integrator** |
 | `review` | a valid verdict with `pass` | **agent** reviewer; `pass` false at this head: the **dev**, with the findings |
 | `approve` | `approval.json.head == head` | **user**: a card with head, verdict, texts and the command |
-| `push`, `pr`, `comment`, `ready` | the fact on GitHub at `head`; `comment` holds when nobody else has commented or a comment of ours names `head` | **script**, one per pass; the dev when the PR text the step posts is missing in the evidence dir |
+| `push`, `pr`, `comment`, `ready` | the fact on GitHub at `head`; `comment` holds when nobody else has commented or a comment of ours names `head`; `ready` holds when the PR is a draft exactly while a finding filed on it is unanswered (not yet pushed and commented) | **script**, one per pass; the dev when the PR text the step posts is missing in the evidence dir |
 | `ci` | the PR's checks green at `head` | **wait**; failed: the **dev** |
 | `merged` | the PR is merged or upstream `main` contains `head` | **wait**; a maintainer finding newer than the approval files a P0 change on the same `pr` |
 | `release` | the release `version` exists | **script**: `gh release create` with the APK from the evidence dir |

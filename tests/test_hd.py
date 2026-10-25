@@ -292,6 +292,28 @@ class R7Visibility(Sandbox):
 
 
 class ServerTrack(Sandbox):
+    def test_a_pr_is_a_draft_while_a_finding_on_it_is_unanswered(self):
+        self.change("s", track="server")
+        for k, d in (("handover", {"evidence": "e"}), ("gate", {"ok": True, "detail": ""}), ("verdict", {"pass": True, "findings": []})):
+            self.store.save_record("s", k, {"head": A, "base": B, **d})
+        self.store.save_record("s", "approval", {"head": A})
+        F = Fake(refs={"fork/dev/s": A, "fork/dev/s-f1": C, "origin/main": B, "fork/content/s": A, "fork/local/integration-tools": D}, anc={(A, A)},
+                 prs={"content/s": {"number": 7, "state": "open", "draft": False, "head": A, "merged": False, "branch": "content/s"}},
+                 checks={(7, A): "success"}, comments={7: [{"id": "m", "author": "maint", "body": "x", "at": "t", "kind": "comment"},
+                                                          {"id": "o", "author": "alexperrin", "body": f"Pushed `{A[:9]}`", "at": "t", "kind": "comment"}]})
+        self.assertIn(("s", "merged", "wait"), names(self.ctx(F)))
+        self.change("s-f1", track="server", finding="IC_1", pr=7, branch="content/s")
+        self.assertIn(("s", "ready", "script"), names(self.ctx(F)))                       # planned work: back to draft
+        with mock.patch.object(steps, "sh", return_value=R(0)) as sh:
+            self.assertIn("drafted", steps.READY.do(self.ctx(F), self.ctx(F).by_slug["s"]))
+        self.assertIn("--undo", sh.call_args[0][0])
+        F.f["prs"]["content/s"]["draft"] = True
+        self.assertIn(("s", "merged", "wait"), names(self.ctx(F)))
+        self.store.save_record("s-f1", "handover", {"head": C, "base": B, "evidence": "e"})
+        F.f["anc"].add((A, C))
+        F.f["comments"][7].append({"id": "p", "author": "alexperrin", "body": f"Pushed `{C[:9]}`", "at": "t", "kind": "comment"})
+        self.assertIn(("s", "ready", "script"), names(self.ctx(F)))                       # answered: out of draft again
+
     def test_a_squash_merged_pr_is_done(self):
         self.change("s", track="server")
         F = Fake(refs={"fork/dev/s": A, "origin/main": B},
