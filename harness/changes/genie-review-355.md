@@ -11,13 +11,13 @@ branch: content/genie
 commit: 07f629a8e6d01c0d644b6871ed8926d012d91a79
 repo: /home/alex/src/openrune-work/agents/sd45/or
 local_only: false
-owner: null
+owner: sd84
 evidence: /home/alex/osrs-plugins-reverse/re/evidence/genie-review-355
 network: true
 summary: 'Clean Genie tip 57887e5c8 on upstream main 5c4c9c106 (4 Genie files, comments removed), merge 07f629a8e6d01c0d644b6871ed8926d012d91a79 onto #355 head 1d9b6fa49. Ran only :content:events:random-events
   spotlessCheck, test and integration (2 tests); gameval check clean.'
 booked:
-  gate: 07f629a8e6d01c0d644b6871ed8926d012d91a79
+  dev: 07f629a8e6d01c0d644b6871ed8926d012d91a79|61fcf0670b66
 cost:
   runs: 21
   turns: 0
@@ -25,7 +25,7 @@ cost:
   usd: 0
   tokens: 0
 created: '2026-10-24T19:31:52Z'
-updated: '2026-10-25T01:45:05Z'
+updated: '2026-10-25T01:45:31Z'
 ---
 ## Change
 Upstream #355 (draft) has two review findings from eaglepurerocketgrape (2026-10-22 11:42). Head content/genie 1d9b6fa49. Folds in the pending gate findings held on `genie`.
@@ -138,3 +138,7 @@ Upstream #355 (draft) has two review findings from eaglepurerocketgrape (2026-10
 - 2026-10-25T01:44:10Z QA aggregate FAIL at 07f629a8e (6 finding(s)): 6 findings: original GenieRandomEventTest (not justified by AGENTS.md), spawn/genieOf/consts public for the test, checklist ticks (tests, quirks.md, rsprox unverified); CI, Formatting, scope, accuracy, in game PASS
 - 2026-10-25T01:44:14Z run sq61 ended: ? turns, ? tokens, exit stopped:lingering: gate recorded
 - 2026-10-25T01:45:05Z gate -> contribute: observed
+- 2026-10-25T01:45:31Z QA AGGREGATE #2 (sq61, 2026-10-24) at the merge commit 07f629a8e: ci 40150903618, format 40151571755, scope (4 files), tests (random-events only), style, text-template all PASS; accuracy/in game carried over. FIX FIRST (user): (1) DROP GenieRandomEventTest.kt (two original tests from the #355 head) from the diff and the test-only build setup it alone needs in content/events/random-events/build.gradle.kts if any (check what the module's build file needs without it; keep what the main code needs), and make spawn(), genieOf() and the companion constants LIFETIME_TICKS / CALL_INTERVAL private again if the only reason they are public is that test (verify no other user); (2) PR text: the checklist ticks must be true: untick 'deviations noted in docs/quirks.md' (the base-level vs current-level XP deviation is in the notes only, quirks.md is not in the diff), tick 'Tests only cover complex logic and anything that moves items' only because no tests are included (as on #354 where the line is ticked with the notes stating no tests); the rsprox item: tick only if the spec's recordings 3056/1718 were actually compared in the spec audit, else leave it unticked with a plain note on what was checked; Type of change: tick Cache / gamevals / pack data because gamevals.toml is added; replace 'content area from #353' with accurate wording (it is an open issue, not a merged area); the non-admin ::randomevent refusal stays stated as checked in code only; checklist lines VERBATIM and in order via /home/alex/.claude/jobs/24c56aeb/tmp/normalise.py and template.md, explanations as plain notes with no checkboxes, no history; (3) rebuild the clean tip (new commit on 57887e5c8 with a fix: subject, or amend nothing already pushed: fork fix/genie-clean is a staging branch so a new commit on top is fine) and the contribution merge commit (tree = the new tip, parents = the #355 head 1d9b6fa49 and the new tip; fast-forward, no force-push) in /home/alex/src/openrune-work/agents/sd45/or, point local content/genie at it, update fork docs bodies (pr-texts/genie.upstream.body and genie-review-355.fork.body, and a fresh status comment pr-texts/genie.comment without history); (4) run only the random-events module's compile, spotlessCheck and any tests it still has (the full suite is the fork CI). Fork pushes need no approval; NEVER push content/genie or anything upstream; never edit the live #355 body or comment.
+- 2026-10-25T01:45:31Z hold failed: fix first (user): drop the two original tests, private helpers, true checklist ticks
+- 2026-10-25T01:45:31Z hold failed cleared: fix first dispatched
+- 2026-10-25T01:45:31Z run sd84 started (server-dev, stage dev)

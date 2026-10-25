@@ -22,7 +22,7 @@ cost:
   tokens: 0
   minutes: 0
 created: '2026-10-25T01:31:10Z'
-updated: '2026-10-25T01:39:24Z'
+updated: '2026-10-25T01:45:19Z'
 ---
 ## Change
 Fork tooling (local/server-tools): qa.sh gate runs targeted module tests by default; the shared cs2 volume is refreshed when stale; dev clones get fork and upstream remotes
@@ -41,3 +41,4 @@ Fork tooling (local/server-tools): qa.sh gate runs targeted module tests by defa
 - 2026-10-25T01:33:54Z dev -> gate: hand-over recorded
 - 2026-10-25T01:33:54Z handover local/server-tools@cebd3ba57: qa.sh targeted gate by default (--full), cs2-check/refresh-cs2, clone remotes local/fork/upstream with origin/main=upstream/main; README+QA.md
 - 2026-10-25T01:39:24Z run sd82 ended: ? turns, ? tokens, exit ok
+- 2026-10-25T01:45:19Z dropped from train int-20261025-3 by the integrator (local/server-tools not in integration.txt)
