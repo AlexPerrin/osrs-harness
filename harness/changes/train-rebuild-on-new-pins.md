@@ -16,7 +16,7 @@ summary: resume re-runs the train from pinning when the tools branch head differ
 booked:
   dev: '|da39a3ee5e6b'
 created: '2026-10-25T00:43:25Z'
-updated: '2026-10-25T00:45:09Z'
+updated: '2026-10-25T00:45:33Z'
 ---
 ## Change
 hd resume rebuilds the integration when the tools branch moved past the batch's pins (a gate-failure resolution that changes integration.txt or pins must take effect)
@@ -34,3 +34,4 @@ hd resume rebuilds the integration when the tools branch moved past the batch's 
 - 2026-10-25T00:45:04Z dod ticked: 1, 2, 3
 - 2026-10-25T00:45:09Z dev -> gate: hand-over recorded
 - 2026-10-25T00:45:09Z handover harness/train-rebuild-on-new-pins@1d3d4e8ed: resume re-runs the train from pinning when the tools branch head differs from the batch's tools commit (drops unlisted entries), else restarts the gate; 2 tests; 263 pass; nothing pruned
+- 2026-10-25T00:45:33Z ship: merged into main 6efb7d3

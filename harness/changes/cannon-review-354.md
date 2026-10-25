@@ -4,7 +4,7 @@ track: server
 title: 'Cannon #354: address maintainer review'
 prio: P0
 role: server-dev
-stage: gate
+stage: review
 hold: null
 deps: []
 branch: content/cannon
@@ -24,7 +24,8 @@ cost:
   usd: 0
   tokens: 0
 created: '2026-10-24T19:31:52Z'
-updated: '2026-10-25T00:45:14Z'
+updated: '2026-10-25T00:45:33Z'
+review_seen: '2026-10-25T00:45:33Z'
 ---
 ## Change
 Upstream #354 is CHANGES_REQUESTED (Mark7625 2026-10-22 07:57, eaglepurerocketgrape 11:42). Head content/cannon 9c08b42ca. Supersedes the BR-C1 fold decision on `cannon`: the fix goes on the PR head itself.
@@ -91,3 +92,4 @@ Upstream #354 is CHANGES_REQUESTED (Mark7625 2026-10-22 07:57, eaglepurerocketgr
 - 2026-10-25T00:40:45Z handover fix/cannon-drop-tests@0df5c63a0: Contributed to #354 (head 0df5c63a0): tests dropped, comment, body, ready; in review.
 - 2026-10-25T00:45:14Z gate -> gate: hand-over recorded
 - 2026-10-25T00:45:14Z handover content/cannon@0df5c63a0: Contributed to #354 (head 0df5c63a0): tests dropped, comment, body, ready; in review.
+- 2026-10-25T00:45:24Z gate -> review: observed
