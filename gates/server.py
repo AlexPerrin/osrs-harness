@@ -92,7 +92,7 @@ def main(slug, head, base, ev):
     for line in scan(git(path, "diff", "--unified=0", f"{base}...{head}").stdout):
         print(f"for the reviewer: {line}")
     F = Facts(cfg)
-    pending = False
+    ok, pending = True, False
     for wf, name in WORKFLOWS:
         state = F.fork_ci(branch, scratch, name)
         if state is None:
