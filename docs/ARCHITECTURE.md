@@ -373,8 +373,8 @@ nothing.
 | Hook | Loaded by | Enforces |
 |---|---|---|
 | `deny_publish.py` (`--fork-writes`, `--docs-writes`) | every agent role file | agents cannot push, write to GitHub, deploy or touch integration, nor run `hd contribute`; server-dev may write to the fork, server-qa to the fork's docs branch and `gate/*` only; pushes to OpenRune stay denied; image builds, deploys and docker or compose writes on the live stack (`osrs-openrune*`) are denied to every role; every denial is an event |
-| `task_stop.py` | harness-dev, integrator, server-qa | cannot end without a hand-over / QA aggregate / resolution on disk |
-| `slot_stop.py` | no role file | stops an agent ending while holding a lock |
+| `task_stop.py` | `SubagentStop` in `.claude/settings.json` (client-dev, client-qa, server-dev, server-qa); the role files of harness-dev, integrator, server-qa | cannot end without a hand-over / QA aggregate / resolution on disk |
+| `slot_stop.py` | `SubagentStop` in `.claude/settings.json` (client-dev, client-qa, server-dev, server-qa) | stops an agent ending while holding a lock |
 | `qa_write_scope.py` | client-qa, server-qa | QA writes only its records |
 | `publish_gate.py`, `github_scope.py` | every session, when wired in `.claude/settings.json` | client releases need a PASS record (`qa/client-<version>.md` or an evidence `client-record.md`) at the released commit (`--target`); the server track's rules (`tracks/server/hooks.py`): `hd contribute` needs QA's record at the commit and an approval naming it, a direct upstream PR needs the record unless it is a `--draft` with an explicit `--head AlexPerrin:<branch>` that exists; other upstream writes and pushes to a fork branch backing an open PR prompt the user; fork actions (`gate/*` pushes, fork CI) never prompt |
 The console session does not load `deny_publish.py`: it can publish, which is why it asks the user in chat first.
