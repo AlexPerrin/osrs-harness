@@ -4,36 +4,32 @@ The brief for a fresh console session. Read CLAUDE.md, docs/PROBLEM.md, docs/PRD
 docs/ISSUES.md before repeating anything. Live state is what `hd` prints; none of it is kept here.
 
 ## Start prompt
-Start the session in ~/osrs-harness on branch `v7`. Read CLAUDE.md and docs/HANDOFF.md, then the memory files named
-under Standing rules. Nothing is deployed, pushed upstream or released without the user's yes in chat.
+Start the session in ~/osrs-harness on branch `main`. Read CLAUDE.md and docs/HANDOFF.md, then the memory files named
+under Standing rules. Run `python3 hd.py` and follow skill `drive`. Nothing is pushed upstream or released without the
+user's yes in chat.
 
-## What is built (branch `v7`, not live)
-The v7 harness of docs/ARCHITECTURE.md: `hd/`, `gates/`, `hooks/hook.py`, `train/train.sh`, `hd.yaml`, the seven role
-files, the skills, one test class per requirement (`python3 -m unittest discover -s tests`). `main` is v6 and still
-runs the live harness (`hd start`/`hd stop` there). `docs/PROPOSAL.md` is the approved build plan; delete it at cutover.
+## What is live
+The v7 harness of docs/ARCHITECTURE.md, cut over on 2026-10-25: the pass runs from the systemd user timer
+`hd-tick.timer` (every minute) and after every agent run; `harness/state/` holds only v7 records. The v6 state is kept
+aside in `harness/state.v6/` (git-ignored) until the first server change has gone through a full pass; then delete it.
+The 51 open changes were migrated from v6: handed-over commits are the `dev/<slug>` and `client/<slug>` refs, the
+review-stage PRs carry gate, verdict and approval records at their PR head. Upstream main moved since, so the gate of
+every handed-over server change reruns; most fail on missing PR texts (`pr-comment.md`) in the v6 evidence, which puts
+them back to the dev with that finding. That is the mechanism, not a fault.
 
-## Cutover (needs the user's yes; nothing in flight on v6 first)
-1. Stop v6: `python3 ~/osrs-harness/hd.py stop` from a `main` checkout; no agent running.
-2. Reset the state: move `harness/state/` aside (v6 records have another shape); `mkdir -p harness/state evidence`.
-3. Definitions: `python3 harness/migrate-v6.py --apply` (deletes the done and v6-harness changes, keeps the open ones
-   with the definition keys only), then `python3 harness/migrate-v6.py --cutover --apply` (dev refs `dev/<slug>` and
-   `client/<slug>` at the handed-over commits, evidence copied to `evidence/<slug>/`, hand-over records; review-stage
-   changes also gate, verdict and approval records at their PR head; backlog changes get a question). Commit the
-   definitions; delete `harness/migrate-v6.py`.
-4. The goal: `harness/goals/client-api.md` (target 100, `measure: tools/api-probe.sh`); the probe does not exist yet,
-   so the orchestrator's first change builds it.
-5. Delete `hooks/guard.py` (the shim for consoles started with the v6 settings) and restart the console so
-   `.claude/settings.json` takes effect.
-6. `loginctl enable-linger alex`; the two systemd units of ARCHITECTURE section 10; `systemctl --user enable --now
-   hd-tick.timer`.
-7. Merge `v7` into `main` (`git merge --no-ff v7`), push; `python3 hd.py` from the console; follow skill `drive`.
-8. Fault injection per PRD acceptance 5 on the live system, one fault at a time, each repaired in one pass.
+## Leftovers to stop by hand
+Two v6 processes the console could not stop (the auto-mode classifier denies `kill`): `python3 hd.py serve --detach`
+(pid 217615, the v6 view on port 7790) and a `train/deploy.sh int-t-1` leaked from a v6 test (pid 791045, loops on a
+`/tmp/hd-test-*` state dir). Both are harmless; kill them.
 
 ## Open decisions for the user
+- The eleven v6 backlog changes carry the question "start this change?" (`hd answer <slug> yes|"drop it"`).
 - The six `fin/*` and `acc/*` fork branches not named by a change: drop or convert.
-- Hunter #408: the review-fix work continues as a v7 change (`hunter-feat-pr` carries its hand-over; the gate reruns CI).
+- Hunter #408: the review-fix work continues as the v7 change `hunter-feat-pr`.
 - Client decisions carried as open changes: Animation Smoothing and Camera host setters, hub plugins that contact a new
   host, the WorldEntity API.
+- The client API probe (`tools/api-probe.sh`, the measure of goal `client-api`) does not exist yet; the orchestrator's
+  first change builds it.
 
 ## Standing rules
 The user's rules are the memory files in `/home/alex/.claude/projects/-home-alex-osrs-harness/memory/` (index
@@ -50,6 +46,7 @@ The user's rules are the memory files in `/home/alex/.claude/projects/-home-alex
 - v7: `project_v7_agents_via_agent_tool.md`, `project_v7_cutover.md`.
 
 ## Gotchas
+- `systemctl --user` needs `XDG_RUNTIME_DIR=/run/user/1000` in a non-login shell (WSL); linger is enabled.
 - WSL to Windows interop (adb.exe, desktop bridge) times out intermittently: retry. The devtools MCP servers often do
   not connect; `tools/devtools_mcp.py --call` and the desktop bridge script work.
 - BlueStacks must be started on Windows after a reboot or WSL restart (`HD-Player.exe --instance Pie64`).
