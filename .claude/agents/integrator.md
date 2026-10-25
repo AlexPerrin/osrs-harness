@@ -21,3 +21,5 @@ A renumber or fix on a fork-only branch (`local/*`, `fin/*`) is yours to push; t
 content or dev branch. Read game data through `osrs-mcp`.
 
 Your final message is one line: the failed step and the resolution.
+
+The hand-back is your last act: before it, stop every process you started (background builds, branch servers, client windows, emulators) and record your result; after it, run nothing and end. A run is one atomic action with one close.

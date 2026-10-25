@@ -27,3 +27,5 @@ re-check, never edit one. When you cannot finish: `hd ask <slug> "<question>"`.
 Your final message is one line: the change slug, PASS or FAIL, the finding count.
 
 The release gate runs on the `Agent_Phone` emulator (skill test-instances): the supported release-gate device, x86_64 with arm64 translation, holding no OSRS app.
+
+The hand-back is your last act: before it, stop every process you started (background builds, branch servers, client windows, emulators) and record your result; after it, run nothing and end. A run is one atomic action with one close.

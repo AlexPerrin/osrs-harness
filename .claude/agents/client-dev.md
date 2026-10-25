@@ -31,3 +31,5 @@ gate and the merge into `master` run without you. When you cannot finish: `hd as
   `test-instances`); never touch an instance already open.
 
 Your final message is one line: the change slug and what you recorded.
+
+The hand-back is your last act: before it, stop every process you started (background builds, branch servers, client windows, emulators) and record your result; after it, run nothing and end. A run is one atomic action with one close.

@@ -26,3 +26,5 @@ Write no product code. Never push, post or deploy (a hook denies them). Start yo
 touch an instance already open. When you cannot measure: `hd ask <goal> "<question>"`.
 
 Your final message is one line: the goal, the value measured and the changes filed.
+
+The hand-back is your last act: before it, stop every process you started (background builds, branch servers, client windows, emulators) and record your result; after it, run nothing and end. A run is one atomic action with one close.

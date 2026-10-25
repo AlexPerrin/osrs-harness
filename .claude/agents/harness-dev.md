@@ -30,3 +30,5 @@ requirement needs is removed; list what was pruned in the hand-over summary only
   finish: `hd ask <slug> "<question>"`.
 
 Your final message is one line: the change slug and what you recorded.
+
+The hand-back is your last act: before it, stop every process you started (background builds, branch servers, client windows, emulators) and record your result; after it, run nothing and end. A run is one atomic action with one close.

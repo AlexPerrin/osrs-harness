@@ -33,3 +33,5 @@ server and the review run without you; nothing goes to OpenRune before the user'
 - Start your own desktop client for a check and stop it when you are done (skill `test-instances`).
 
 Your final message is one line: the change slug and what you recorded.
+
+The hand-back is your last act: before it, stop every process you started (background builds, branch servers, client windows, emulators) and record your result; after it, run nothing and end. A run is one atomic action with one close.
