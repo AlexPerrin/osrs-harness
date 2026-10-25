@@ -23,7 +23,7 @@ cost:
   usd: 0
   tokens: 0
 created: '2026-10-24T19:31:52Z'
-updated: '2026-10-25T00:15:15Z'
+updated: '2026-10-25T00:54:44Z'
 review_seen: '2026-10-25T00:10:04Z'
 ---
 ## Change
@@ -76,3 +76,4 @@ Upstream #367 review P2 (eaglepurerocketgrape 2026-10-22 11:42). Head content/go
 - 2026-10-25T00:09:36Z handover content/goblin-diplomacy@405e38601: Contributed upstream; in review.
 - 2026-10-25T00:09:59Z gate -> review: observed
 - 2026-10-25T00:15:15Z in train int-20261025-1: integration 7c62b8341 pushed; gate, image and deploy pending
+- 2026-10-25T00:54:44Z in train int-20261025-1: integration e5d0a43ba pushed; gate, image and deploy pending
