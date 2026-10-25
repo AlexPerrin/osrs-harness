@@ -9,7 +9,7 @@ description: "Rules for the test instances and data tools: starting your own cli
   you hand over, gate or end). It has its own profile, devtools port and account state, named after you
   (desktop RuneLite: your own window, never a shared one: `export DESKTOP_INSTANCE=$(~/osrs-harness/bench/multiclient/desktop.sh free)` takes the first instance nobody uses, no lock; on a new instance run `~/osrs-harness/bench/multiclient/desktop-build.sh` once to stage it; your own login account; `DESKTOP_DEVTOOLS_PORT=<free port>`,
   `~/osrs-harness/bench/multiclient/desktop.sh start|stop`; Android: your own emulator. BlueStacks has one instance (Pie64, the user's) and no command-line way to add one,
-  so start the Android Studio AVD read-only on a free even port: `emulator -avd Medium_Phone -read-only -port <5560..5598>`,
+  so start the Android Studio AVD read-only on a free even port: `env -u HOME emulator -avd Medium_Phone_API_37.0 -read-only -gpu swiftshader_indirect -port <5560..5598>` (from WSL: without `env -u HOME` it finds no AVD, without the GPU flag the game screen is black),
   `ANDROID_SERIAL=emulator-<port>`; read-only lets several agents run the same AVD at once). Never use another agent's client, profile or port,
   never touch an instance already open (the user's own BlueStacks), and never leave yours running.
 - Set the devtools up when you start the client (`device-test` step 3) and remove the test jars and the
