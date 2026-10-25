@@ -486,11 +486,14 @@ def dispatch(ctx):
     (that run is a question, see `questions`)."""
     busy = {r.get("change") for r in alive_runs(ctx)}
     free = ctx.cfg.get("agents", 3) - len(alive_runs(ctx))
+    single = {r.get("role") for r in alive_runs(ctx)} & {"integrator"}   # one train, so one integrator at a time
     out = []
     for ch, step in sorted(next_steps(ctx), key=lambda x: _order(x[0])):
         role = step.actor(ctx, ch)
-        if role in ("script", "user", WAIT) or ch["slug"] in busy or ctx.rec(ch, "ask"):
+        if role in ("script", "user", WAIT) or ch["slug"] in busy or ctx.rec(ch, "ask") or role in single:
             continue
+        if role == "integrator":
+            single.add(role)
         last = _last_run(ctx, ch["slug"], role)
         if last and last.get("head") == run_head(ctx, ch, step) and last.get("def_hash") == ch["hash"]:
             continue

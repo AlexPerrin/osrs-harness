@@ -199,6 +199,15 @@ class R5Recovery(Sandbox):
         F.f["refs"]["fork/local/integration-tools"] = C
         self.assertEqual(steps.QUEUE.actor(self.ctx(F), self.ctx(F).by_slug["s"]), "script")
 
+    def test_one_failed_train_is_one_integrator(self):
+        F = Fake(refs={"fork/dev/s": A, "fork/dev/t": A, "origin/main": B, "fork/local/integration-tools": D})
+        for s in ("s", "t"):
+            self.change(s, track="server")
+            self.store.save_record(s, "handover", {"head": A, "base": B, "evidence": "e"})
+            self.store.save_record(s, "gate", {"head": A, "base": B, "ok": True, "detail": ""})
+        self.store.write({"pid": "7", "start": "1", "step": "rebuild", "tools": D, "failed_step": "rebuild", "ended": "t"}, "train.json")
+        self.assertEqual([(c["slug"], r) for c, s, r, n in steps.dispatch(self.ctx(F))], [("s", "integrator"), ("s", "server-qa"), ("t", "server-qa")])   # the review list runs beside it
+
     def test_orphans_removed_and_docker_down_is_one_alert(self):
         self.store.save_run({"name": "r1", "agent_id": "x", "role": "server-dev", "change": "s", "ended": "t"})
         os.makedirs(os.path.join(self.tmp, "work", "agents", "r1"))
