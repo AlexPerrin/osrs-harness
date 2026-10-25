@@ -4,7 +4,7 @@ track: client
 title: Public README for the client repo (shareable on media) and a demo video plan
 prio: P1
 role: client-dev
-stage: gate
+stage: live
 hold: null
 deps: []
 branch: client/client-public-readme
@@ -14,6 +14,7 @@ owner: null
 evidence: /home/alex/osrs-plugins-reverse/re/evidence/client-public-readme
 summary: Public README rewritten (10 sections, numbers from the generated progress block and plugin-host.md counts, observations cited, legal and safety, install true of the current build); demo video plan
   (9 shots) and capture.sh in the evidence dir; no clips recorded, docs/media not created (no real assets exist), no placeholder links; no dead links
+live_commit: bdf9b3b5b958b824c4bb6ad215e09fb44aee5182
 booked:
   dev: '|da39a3ee5e6b'
 cost:
@@ -22,7 +23,7 @@ cost:
   tokens: 0
   minutes: 0
 created: '2026-10-25T03:05:20Z'
-updated: '2026-10-25T03:13:18Z'
+updated: '2026-10-25T03:14:07Z'
 ---
 ## Change
 Public README for the client repo (shareable on media) and a demo video plan
@@ -43,3 +44,4 @@ Public README for the client repo (shareable on media) and a demo video plan
 - 2026-10-25T03:12:26Z handover client/client-public-readme@bdf9b3b5b: Public README rewritten (10 sections, numbers from the generated progress block and plugin-host.md counts, observations cited, legal and safety, install true of the current build); demo video plan (9 shots) and capture.sh in the evidence dir; no clips recorded, docs/media not created (no real assets exist), no placeholder links; no dead links
 - 2026-10-25T03:12:57Z run cd54 ended: ? turns, ? tokens, exit ok
 - 2026-10-25T03:13:18Z ship: merged into master 32b4573, pushed
+- 2026-10-25T03:14:07Z gate -> live: observed
