@@ -7,7 +7,7 @@ role: server-dev
 stage: gate
 hold: null
 deps: []
-branch: fix/cannon-drop-tests
+branch: content/cannon
 commit: 0df5c63a009b75fffb33f8ead897b432f55fcead
 repo: /home/alex/src/openrune-work/agents/sd76/or
 local_only: false
@@ -24,7 +24,7 @@ cost:
   usd: 0
   tokens: 0
 created: '2026-10-24T19:31:52Z'
-updated: '2026-10-25T00:40:45Z'
+updated: '2026-10-25T00:45:14Z'
 ---
 ## Change
 Upstream #354 is CHANGES_REQUESTED (Mark7625 2026-10-22 07:57, eaglepurerocketgrape 11:42). Head content/cannon 9c08b42ca. Supersedes the BR-C1 fold decision on `cannon`: the fix goes on the PR head itself.
@@ -89,3 +89,5 @@ Upstream #354 is CHANGES_REQUESTED (Mark7625 2026-10-22 07:57, eaglepurerocketgr
 - 2026-10-25T00:37:54Z run sd80 started (server-dev, stage dev)
 - 2026-10-25T00:40:45Z dev -> gate: hand-over recorded
 - 2026-10-25T00:40:45Z handover fix/cannon-drop-tests@0df5c63a0: Contributed to #354 (head 0df5c63a0): tests dropped, comment, body, ready; in review.
+- 2026-10-25T00:45:14Z gate -> gate: hand-over recorded
+- 2026-10-25T00:45:14Z handover content/cannon@0df5c63a0: Contributed to #354 (head 0df5c63a0): tests dropped, comment, body, ready; in review.
