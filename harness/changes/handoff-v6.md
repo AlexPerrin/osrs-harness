@@ -4,7 +4,7 @@ track: harness
 title: docs/HANDOFF.md rewritten as the brief for a fresh console session (current state, how to run, open work, standing rules)
 prio: P1
 role: harness-dev
-stage: gate
+stage: live
 hold: null
 deps: []
 branch: harness/handoff-v6
@@ -16,6 +16,7 @@ summary: 'HANDOFF.md rewritten as the fresh console brief (state, run, held deci
   fixed (slot_stop/task_stop are wired in settings.json SubagentStop); three dated ISSUES entries (OpenRS2 cache 500, integrator reset of tools branch, unregistered client-contributing-file). Audit: every
   BR id in code/tests/docs exists in the PRD; no other statement found untrue. Pruned from the old open list: items 3 and 4 (hooks now wired), already-fixed cutover defects. Not mine: lint reports 15 fin/*
   branch problems (the 12 decision holds), unchanged.'
+live_commit: ae42c760ebcc47a9cb45c39ba3bbdb8aeac165d0
 booked:
   dev: '|da39a3ee5e6b'
 cost:
@@ -24,7 +25,7 @@ cost:
   tokens: 0
   minutes: 0
 created: '2026-10-25T01:16:56Z'
-updated: '2026-10-25T04:08:57Z'
+updated: '2026-10-25T04:09:17Z'
 ---
 ## Change
 docs/HANDOFF.md rewritten as the brief for a fresh console session (current state, how to run, open work, standing rules)
@@ -54,3 +55,4 @@ docs/HANDOFF.md rewritten as the brief for a fresh console session (current stat
 - 2026-10-25T04:08:31Z handover harness/handoff-v6@ae42c760e: HANDOFF.md rewritten as the fresh console brief (state, run, held decisions, v7 section first with the listed inputs, standing rules by memory file name, start prompt); ARCHITECTURE hook table fixed (slot_stop/task_stop are wired in settings.json SubagentStop); three dated ISSUES entries (OpenRS2 cache 500, integrator reset of tools branch, unregistered client-contributing-file). Audit: every BR id in code/tests/docs exists in the PRD; no other statement found untrue. Pruned from the old open list: items 3 and 4 (hooks now wired), already-fixed cutover defects. Not mine: lint reports 15 fin/* branch problems (the 12 decision holds), unchanged.
 - 2026-10-25T04:08:40Z run hd32 ended: 0 turns, 0 tokens, exit ok
 - 2026-10-25T04:08:57Z ship: merged into main 70f9fa1
+- 2026-10-25T04:09:17Z gate -> live: observed
