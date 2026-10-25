@@ -5,7 +5,7 @@ description: "Test on the Android device (BlueStacks) against the OpenRune test 
 # Device test (BlueStacks, adb 127.0.0.1:5555, app uid 10071)
 
 1. **Instance.** Your own client (skill `test-instances`); no lock. Client repo paths below are under `~/osrs-plugins-reverse` (docs, tools, re/).
-2. **Backup.** `~/osrs-plugins-reverse/tools/device-restore-check.sh pre /tmp/osrs-slot/<name>` before touching anything.
+2. **Backup.** `~/osrs-harness/bench/device-restore-check.sh pre /tmp/osrs-slot/<name>` before touching anything.
 3. **Set up.** Push test jars to the plugins dir; for the `osrs-devtools` MCP push `devtools.jar`,
    `adb shell setprop debug.osrsrl.devtools 1` and restart the app (~/osrs-plugins-reverse/docs/plugin-host.md).
 4. **Sign in.** Screenshot first; tap only "Sign in with Email / Username" (LOCAL_AUTH). After a force-stop the
@@ -17,7 +17,7 @@ description: "Test on the Android device (BlueStacks) against the OpenRune test 
    repeated chat lines by screenshot (`get_chat_history` under-reports repeats). `osrs-mcp` gives ids and game data.
 6. **Restore.** Remove what you added BY NAME, each in a plain `adb -s 127.0.0.1:5555 shell rm <path>` call of its
    own (no wildcards, loops or `bash -c`); clear the debug props; log in at 3219,3222.
-7. **Check.** `~/osrs-plugins-reverse/tools/device-restore-check.sh check /tmp/osrs-slot/<name>` until every line is OK.
+7. **Check.** `~/osrs-harness/bench/device-restore-check.sh check /tmp/osrs-slot/<name>` until every line is OK.
 
 Tester account: never `::empty` it, keep its GE offer (lobster), drop only items you spawned. More gotchas:
 ~/osrs-plugins-reverse/docs/client-state.md "Gotchas".

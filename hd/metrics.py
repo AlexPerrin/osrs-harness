@@ -1,5 +1,4 @@
-"""Metrics are derived, never typed (BR-H5): the client numbers from tools/progress.py --dry-run, the server parity
-from tools/harness/server_parity.py when it exists; each a `metric` event {name, value, total, pct}. The tick
+"""Metrics are derived, never typed (BR-H5): the client numbers from the client's tools/progress.py --dry-run; each a `metric` event {name, value, total, pct}. The tick
 recounts on a fact: a client change went live, a deploy or a re-pin happened, or none was ever recorded; `hd recount`
 does it now. HD_NO_RECOUNT=1 skips (tests)."""
 import os
@@ -38,14 +37,4 @@ def recount(why="scheduled"):
             out.append(name.strip())
     except (OSError, subprocess.TimeoutExpired) as e:
         events.emit("error", step="recount", error=repr(e))
-    tool = os.path.join(ROOT, "tools", "harness", "server_parity.py")
-    if os.path.exists(tool):
-        try:
-            r = subprocess.run(["python3", tool, "--json"], capture_output=True, text=True, timeout=900, cwd=ROOT)
-            import json
-            for name, d in (json.loads(r.stdout or "{}") or {}).items():
-                events.emit("metric", name=name, value=d.get("value"), total=d.get("total"), pct=d.get("pct"), why=why)
-                out.append(name)
-        except Exception as e:   # the parity tool is optional
-            events.emit("error", step="recount-parity", error=repr(e))
     return out

@@ -12,7 +12,7 @@
     },
     "osrs-devtools-desktop": {
       "type": "stdio",
-      "command": "/home/alex/osrs-plugins-reverse/tools/multiclient/desktop-devtools-mcp.sh",
+      "command": "/home/alex/osrs-harness/bench/multiclient/desktop-devtools-mcp.sh",
       "args": []
     }
   }

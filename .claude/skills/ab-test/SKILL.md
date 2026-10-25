@@ -5,7 +5,7 @@ description: "Compare the same plugin or feature on desktop RuneLite and the And
 # A/B test
 
 Procedure: ~/osrs-plugins-reverse/docs/multi-client.md "A/B recipe (desktop vs Android)". Desktop: the isolated RuneLite
-(`~/osrs-plugins-reverse/tools/multiclient/desktop.sh start && desktop.sh login`, profile under C:\osrs-test only), driven with the
+(`~/osrs-harness/bench/multiclient/desktop.sh start && desktop.sh login`, profile under C:\osrs-test only), driven with the
 `osrs-devtools-desktop` MCP (your own instance, skill `test-instances`). Android: the `device-test` skill,
 driven with `osrs-devtools`.
 
