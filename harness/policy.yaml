@@ -1,5 +1,5 @@
-# Harness policy v4 (BR-P*): one versioned file read by the daemon, the hooks and the briefs. Rules, not prose.
-version: 4
+# Harness policy v6 (BR-P*): one versioned file read by the daemon, the hooks and the briefs. Rules, not prose.
+version: 6
 
 tracks:
   client:
@@ -7,13 +7,11 @@ tracks:
     branch_prefixes: [client/]
     dev_role: client-dev
     qa_role: client-qa
-    dev_slots: 0                     # concurrent client devs; 0 while BlueStacks is off and server-dev goes first (user 2026-10-24)
   server:
     live_target: integration         # pin = commit and the live server runs that integration (live.json)
     branch_prefixes: [content/, fix/, local/]
     dev_role: server-dev
     qa_role: server-qa
-    dev_slots: 0                     # new feature dispatch held (user 2026-10-24: settle open PRs first); `hd dispatch <slug>` books one run on demand
     reviewers: []                    # requested by `hd contribute`; empty: the upstream's CODEOWNERS request on ready
     ci_equivalence:                  # what stands for what in CI: upstream PR checks <-> the gate's fork scratch run
       fork_workflow: ci.yml          # dispatched on the fork's gate/<slug> branch
@@ -24,7 +22,6 @@ tracks:
     live_target: main                # this repo's main (not the client's master): a harness change is live when it contains the commit
     branch_prefixes: [harness/]
     dev_role: harness-dev
-    dev_slots: 1
 
 repos:
   ours: AlexPerrin/osrs-plugins-reverse
@@ -39,22 +36,26 @@ resources:                           # locks on shared resources only (BR-R1); c
   live-server: {kind: lock}          # a deploy
   ghidra:      {kind: lock}          # the one Ghidra project writer
 
+capacity:                            # BR-R5: the machine budget; dispatch waits for a free slot in every class a role uses
+  agent: 3                           # running agents in total
+  build: 2                           # gradle and APK builds
+  client: 2                          # RuneLite clients, each with its own port and account
+  image: 1                           # an image build and its boot check
+
 batches:
-  train_debounce_minutes: 10         # BR-B1
-  gate_timeout_minutes: 60
-  image_timeout_minutes: 30
-  deploy_ready_timeout_seconds: 300  # "Server ready in", else auto-rollback (BR-B3)
   release_after_live_changes: 6      # BR-B6: a release batch after N live client changes (or on demand)
+  uses: {gating: [build], imaging: [image]}   # the capacity classes a train step holds
+
+settle_first: true                   # BR-C5: a change that settles an open PR (a review fix) outranks every derived priority
 
 agents:
-  max_concurrent: 3                  # total running agents (the usage window, not dollars, is the constraint)
-  roles:
-    client-dev:  {track: client, stage: dev,  worktree: true,  pushes: []}
-    server-dev:  {track: server, stage: dev,  worktree: false, pushes: [fork]}
-    client-qa:   {track: client, stage: gate, worktree: true,  pushes: []}
-    server-qa:   {track: server, stage: gate, worktree: false, pushes: [fork-docs, fork-gate]}
-    integrator:  {track: server, stage: train, worktree: false, pushes: [fork-tools]}
-    harness-dev: {track: harness, stage: dev, worktree: true,  pushes: []}
+  roles:                             # uses: the capacity classes a run holds while it is alive
+    client-dev:  {track: client, stage: dev,  worktree: true,  pushes: [], uses: [agent, client, build]}
+    server-dev:  {track: server, stage: dev,  worktree: false, pushes: [fork], uses: [agent, build]}
+    client-qa:   {track: client, stage: gate, worktree: true,  pushes: [], uses: [agent, client, build]}
+    server-qa:   {track: server, stage: gate, worktree: false, pushes: [fork-docs, fork-gate], uses: [agent, client, build]}
+    integrator:  {track: server, stage: train, worktree: false, pushes: [fork-tools], uses: [agent, build]}
+    harness-dev: {track: harness, stage: dev, worktree: true,  pushes: [], uses: [agent]}
   names: {client-dev: cd, server-dev: sd, client-qa: cq, server-qa: sq, integrator: ig, harness-dev: hd}
 
 evidence:

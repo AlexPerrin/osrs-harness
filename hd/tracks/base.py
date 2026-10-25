@@ -48,6 +48,10 @@ class BaseTrack:
     def finding_set(self, ch):
         return []
 
+    def settles_first(self, ch):
+        """The change settles work already in front of an external party; policy `settle_first` ranks it first."""
+        return False
+
     def reconcile(self, ctx, slug, ch):
         pass
 

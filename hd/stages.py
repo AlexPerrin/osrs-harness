@@ -3,7 +3,7 @@ stages and the observed facts for the stages after `gate` (hd/tracks/); this mod
 
 `backlog -> ready -> dev` are recorded (dispatch); `hd handover` records `gate`; from `gate` on the facts decide, and a
 fact that could not be read never regresses a stage. Rules encoded here: BR-C2 (a new commit on the branch re-enters at
-ready and voids every later fact), BR-C4 (ready needs every dep live), BR-S2 (stages are observed), BR-S9 (no loops: a
+ready and voids every later fact), BR-C4 (ready needs every dep live; a change waiting on a dep is derived, not held), BR-S2 (stages are observed), BR-S9 (no loops: a
 dev or a verifier is booked only for a head or finding set not booked before).
 """
 import hashlib
@@ -87,10 +87,13 @@ def derive(ch, obs, idx):
     return stage, label + (f" ({waiting})" if label and waiting else waiting if not label else ""), moved
 
 
-def next_executor(ch):
+def next_executor(ch, idx=None):
     """Which agent role a change needs now, if any: dev (ready, or a `failed` hold from the gate on), else what the track
-    asks (`gate`). A `blocked`, `decision` or `exception` hold needs nothing."""
-    if ch.hold in ("blocked", "decision", "exception"):
+    asks (`gate`). A `decision` or `exception` hold needs nothing, nor does a change before `gate` with an open dep
+    (blocked is derived from `idx`, never held)."""
+    if ch.hold in ("decision", "exception"):
+        return None
+    if idx is not None and ch.stage in ("backlog", "ready", "dev") and not deps_met(ch, idx)[0]:
         return None
     if ch.stage == "ready" or (ch.hold == "failed" and ch.reached("gate")):
         return "dev"

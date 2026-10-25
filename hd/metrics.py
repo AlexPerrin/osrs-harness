@@ -1,13 +1,12 @@
 """Metrics are derived, never typed (BR-H5): the client numbers from tools/progress.py --dry-run, the server parity
 from tools/harness/server_parity.py when it exists; each a `metric` event {name, value, total, pct}. The tick
-recounts after a client change went live and when the last recount is older than a day; `hd recount` does it now.
-HD_NO_RECOUNT=1 skips (tests)."""
+recounts on a fact: a client change went live, a deploy or a re-pin happened, or none was ever recorded; `hd recount`
+does it now. HD_NO_RECOUNT=1 skips (tests)."""
 import os
 import re
 import subprocess
 
 from . import ROOT, events
-from .util import minutes_since
 
 LINE = re.compile(r"^(\S.*?)\s{2,}(\d+)/(\d+)\s+([\d.]+)%", re.M)
 
@@ -17,13 +16,16 @@ def last_recount():
     return evs[-1]["ts"] if evs else None
 
 
-def due(client_went_live=False):
+def why(actions):
+    """The fact that makes a recount due, from this tick's actions, or None."""
     if os.environ.get("HD_NO_RECOUNT"):
-        return False
-    if client_went_live:
-        return True
-    m = minutes_since(last_recount())
-    return m is None or m > 24 * 60
+        return None
+    for a in actions:
+        if a.endswith("-> live") and not a.startswith(("int-", "rel-")):
+            return "client live"
+        if a.startswith("re-pin") or ": live (" in a:
+            return "server deploy or re-pin"
+    return None if last_recount() else "first recount"
 
 
 def recount(why="scheduled"):

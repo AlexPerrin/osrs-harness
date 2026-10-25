@@ -12,7 +12,7 @@ through the integration train (the core's batches.py, fed here), and the contrib
   merged       the PR is merged, or upstream main contains the commit
 `live_commit` (the test server runs the commit) is observed separately and never gates the contribution. The only gate
 is the user's approval; QA's findings set no hold and book no dev. GitHub is read through `github.py` only.
-Settings: policy `tracks.server` (dev_slots, reviewers, ci_equivalence). Heavy modules are imported where used: the
+Settings: policy `tracks.server` (reviewers, ci_equivalence). Heavy modules are imported where used: the
 hooks import this package on every command."""
 import os
 
@@ -126,6 +126,10 @@ class ServerTrack(BaseTrack):
     def finding_set(self, ch):
         verdict, findings = qa.gate_state(ch)
         return list(findings if verdict == "FAIL" else []) + ([f"finding:{ch['finding']}"] if ch.get("finding") else [])
+
+    def settles_first(self, ch):
+        """A review-fix change settles a maintainer's finding on a PR that is open."""
+        return bool(ch.get("finding"))
 
     # --- tick hooks ---------------------------------------------------------------------------------------------------
 

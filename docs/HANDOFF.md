@@ -18,8 +18,7 @@ clones `agents/<name>/or`, `server-tools` = fork branch `local/server-tools`); r
 ## Open work
 1. Verify custom clientscript ids (10197-10198) against stock ids above 9999 (10000-10196 in 241.4): the desktop
    RuneLite instances can confirm the cache and quest list; Android tolerance needs a BlueStacks client test.
-2. Prune the remaining timed mechanisms (train debounce, gate/image/deploy-ready timeouts in policy `batches:`); replace with observed facts. Also dead hook
-   rules for ship.sh and integrate.py.
+2. Dead hook rules for ship.sh and integrate.py.
 3. Wire `slot_stop.py` and `task_stop.py` into every dev/QA role file (only harness-dev and integrator have
    `task_stop`; nobody has `slot_stop`), so every agent hands over before it ends.
 4. `.claude/settings.json` hook wiring for the console session (publish_gate, github_scope) in this repo.

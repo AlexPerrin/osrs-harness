@@ -104,13 +104,15 @@ class ReconcileTest(unittest.TestCase):
         ch = store.load("feat")
         self.assertEqual((ch.stage, ch["commit"]), ("review", SHA))
 
-    def test_deps_hold_set_and_cleared(self):
-        """BR-C4: a dep is done for the client when the test server runs it, whatever its upstream stage."""
+    def test_a_dep_blocks_without_a_hold_until_it_is_live(self):
+        """BR-C4: a dep is done for the client when the test server runs it, whatever its upstream stage; the wait is
+        derived each tick and never stored as a hold."""
         H.change("srv", "server", stage="gate", commit=SHA)
         H.change("cli", "client", deps=["srv"])
         tick.tick(FakeObserver(tips={("fork", "content/srv"): SHA}, pins={}, live={"integration": "c" * 40}))
         cli = store.load("cli")
-        self.assertEqual(cli.hold, "blocked")
+        self.assertIsNone(cli.hold)
+        self.assertIn("waiting for srv", store.rec_load("view", "waiting")["waiting"]["cli"])
         self.assertEqual([c for c in self.calls if c[0] == "spawn" and c[1] == "cli"], [])   # not dispatched while blocked
         tick.tick(FakeObserver(tips={("fork", "content/srv"): SHA}, pins={"content/srv": SHA}, live={"integration": "c" * 40},
                                contains={("fork", "c" * 40, SHA): True}))
@@ -314,15 +316,15 @@ class DispatchTest(unittest.TestCase):
         H.sandbox(self)
         self.calls = stub_modules(self)
 
-    def test_priority_and_slots(self):
-        """BR-C5 and BR-R5: P1 first; server has 2 dev slots, client 1; the rest are stalled."""
+    def test_priority_order_and_capacity_classes(self):
+        """BR-C5 and BR-R5: P1 first; builds are capped at 2 (server-dev and client-dev each use one), the rest stall."""
         H.change("s-p2", "server", prio="P2"); H.change("s-p1", "server", prio="P1"); H.change("s-p3", "server", prio="P3")
         H.change("c-a", "client"); H.change("c-b", "client")
         tick.tick(FakeObserver())
         spawned = [c[1] for c in self.calls if c[0] == "spawn"]
-        self.assertEqual(spawned, ["s-p1", "c-a", "s-p2"])
+        self.assertEqual(spawned, ["s-p1", "c-a"])
         t = events.read(kinds=["tick"])[-1]
-        self.assertEqual(sorted(t["stalled"]), ["c-b", "s-p3"])
+        self.assertEqual(sorted(t["stalled"]), ["c-b", "s-p2", "s-p3"])
 
     def test_dispatch_waits_only_on_slots(self):
         """No instance lock exists: a held shared-resource lock never stalls a dispatch."""

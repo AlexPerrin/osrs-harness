@@ -6,10 +6,10 @@ Changes
   list [--track t] [--stage s] [--all]      show <slug>      log <slug> "msg"      lint
   handover <slug> --branch b --commit sha [--evidence dir] [--summary "..."] [--repo dir]
                                           the dev's hand-over: runs the check now and refuses an incomplete one
-  block <slug> --by <other> ["why"]       a dep edge + a blocked hold (BR-C4)
+  block <slug> --by <other> ["why"]       a dep edge: the change waits for <other> (BR-C4); no hold
   fail <slug> "why"                       an agent that cannot finish: a decision hold
   gate <slug> PASS|FAIL ["note"]          the track's verifier record (server: QA's aggregate, checked against the commit)
-  hold <slug> blocked|decision|failed|exception "reason"   an operator's hold (never a stage: BR-S2);  unhold <slug>
+  hold <slug> decision|failed|exception "reason"   an operator's hold (never a stage: BR-S2);  unhold <slug>
   resolve <batch> "note" [--decision]     the integrator recorded a resolution and the train resumes; --decision: nothing
                                           recorded, the user decides (no resume)
   check <slug>                            run the hand-over check now and print it
@@ -41,7 +41,7 @@ import os
 import subprocess
 import sys
 
-from . import ROOT, events, leases, policy, store, tracks
+from . import ROOT, capacity, events, leases, policy, store, tracks
 from .util import iso, local, slug_ok
 
 T = "    "
@@ -150,7 +150,7 @@ def cmd_handover(a):
     before = ch.stage
     store.set_stage(ch, "gate", "hand-over recorded")
     if ch.hold == "failed":
-        store.clear_hold(ch, "handed over (BR-S3)")   # a blocked or decision hold is not the dev's to clear
+        store.clear_hold(ch, "handed over (BR-S3)")   # a decision hold is not the dev's to clear
     store.add_log(ch, f"handover {a.branch}@{sha[:9]}: {a.summary or ''}")
     store.save(ch)
     events.emit("handover", change=ch["slug"], branch=a.branch, commit=sha, owner=ch.get("owner"))
@@ -162,12 +162,12 @@ def cmd_block(a):
     ch = _load(a.slug)
     if a.by not in ch["deps"]:
         ch["deps"].append(a.by)
-    store.set_hold(ch, "blocked", f"waiting for {a.by}" + (f": {a.why}" if a.why else ""))
+    store.add_log(ch, f"blocked by {a.by}" + (f": {a.why}" if a.why else ""))
     ch["owner"], ch["booked"] = None, None
     if ch.stage == "dev":
         store.set_stage(ch, "ready", f"blocked by {a.by}")
     store.save(ch)
-    events.emit("hold", change=ch["slug"], hold="blocked", reason=a.by)
+    events.emit("block", change=ch["slug"], by=a.by, reason=a.why)
     if not store.exists(a.by):
         print(f"hd: note: {a.by} does not exist yet; create it with `hd new --track server --slug {a.by} ...`", file=sys.stderr)
     print(f"{ch['slug']}: blocked by {a.by}")
@@ -319,6 +319,13 @@ def cmd_actions(a):
 def cmd_lint(a):
     bad = 0
     idx = store.index()
+    classes = set(capacity.limits())
+    uses = [(f"role {r}", v.get("uses", [])) for r, v in policy.roles().items()]
+    uses += [(f"batch step {k}", v) for k, v in (policy.get().get("batches", {}).get("uses") or {}).items()]
+    for what, used in uses:
+        for c in used:
+            if c not in classes:
+                print(f"lint: {what} uses capacity class {c}, which policy `capacity` does not define"); bad += 1
     for ch in idx.values():
         for d in ch.get("deps") or []:
             if d not in idx:
@@ -359,6 +366,7 @@ def status_view():
             "leases": {r: {"holder": st.get("holder"), "purpose": st.get("purpose"), "since": st.get("since")}
                        for r, st in leases.status_all().items()},
             "runs": [{k: r.get(k) for k in ("name", "role", "change", "stage", "agent_id")} for r in agents_running()],
+            "stale": (store.rec_load("view", "stale") or {}).get("holds", []),
             "daemon": daemon.status()}
 
 
@@ -379,6 +387,8 @@ def cmd_status(a):
               + (f"  exception: {str(b['exception'])[:80]}" if b.get("exception") else ""))
     for r, st in v["leases"].items():
         print(f"lease {r:12} {st.get('holder') or 'free':10} {st.get('purpose') or ''}")
+    for t in v["stale"]:
+        print(f"stale {t}")
     for r in v["runs"]:
         print(f"run {r['name']:5} {r['role']:11} {r['change']} ({r['stage']})" + ("" if r.get("agent_id") else "  [not spawned: hd drive]"))
 
@@ -493,7 +503,7 @@ def main(argv=None):
     s.add_argument("--evidence"); s.add_argument("--summary"); s.add_argument("--repo"); s.set_defaults(f=cmd_handover)
     s = sp.add_parser("block"); s.add_argument("slug"); s.add_argument("--by", required=True); s.add_argument("why", nargs="?"); s.set_defaults(f=cmd_block)
     s = sp.add_parser("fail"); s.add_argument("slug"); s.add_argument("why"); s.set_defaults(f=cmd_fail)
-    s = sp.add_parser("hold"); s.add_argument("slug"); s.add_argument("kind", choices=["blocked", "decision", "failed", "exception"]); s.add_argument("reason"); s.set_defaults(f=cmd_hold)
+    s = sp.add_parser("hold"); s.add_argument("slug"); s.add_argument("kind", choices=["decision", "failed", "exception"]); s.add_argument("reason"); s.set_defaults(f=cmd_hold)
     s = sp.add_parser("unhold"); s.add_argument("slug"); s.add_argument("why", nargs="?"); s.set_defaults(f=cmd_unhold)
     s = sp.add_parser("gate"); s.add_argument("slug"); s.add_argument("verdict", choices=["PASS", "FAIL"]); s.add_argument("note", nargs="?"); s.set_defaults(f=cmd_gate)
     for t in tracks.every():

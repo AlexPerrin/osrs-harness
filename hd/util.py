@@ -65,11 +65,6 @@ def ago(t, ref=None):
     return f"{s / 86400:.1f} d"
 
 
-def minutes_since(t, ref=None):
-    t = parse(t)
-    return None if t is None else ((ref or now()) - t).total_seconds() / 60
-
-
 def atomic_write(path, text):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path), prefix=".tmp-")

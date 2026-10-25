@@ -12,12 +12,12 @@
 #      game.key, rsa.properties, game.yml and entrypoint.sh are COPY --from the live image only
 #   5. key hash: sha256sum of /app/.data/rsa.properties in both images, printed only as "key hash: match" or
 #      "key hash: MISMATCH" (exit 4); the hash itself is never printed
-#   6. private boot check: container hd-boot-<sha7>, no published port, tmpfs postgres, "Server ready in" within
-#      HD_IMAGE_TIMEOUT s (default 1800); the container is removed on every exit path (trap)
+#   6. private boot check: container hd-boot-<sha7>, no published port, tmpfs postgres, "Server ready in", or exit 5
+#      when the container exits first; the container is removed on every exit path (trap)
 #   7. record harness/state/images/<sha7>.json {integration, image, image_id, live_image_id, key_hash, boot,
 #      seconds, ready_line, batch}
 # Env: HD_STATE_DIR (harness/state), DOCKER or HD_DOCKER (the docker command: tests), HD_CACHE_SCRIPTS (the fix
-# scripts' dir), HD_IMAGE_ROOT (the context dir's parent, ~/src/openrune-work), HD_IMAGE_TIMEOUT, HD_POLL_SECONDS,
+# scripts' dir), HD_IMAGE_ROOT (the context dir's parent, ~/src/openrune-work), HD_POLL_SECONDS,
 # HD_LIVE_CONTAINER (osrs-openrune).
 # Exit: 0 ok, 2 usage or precondition, 3 a key file is present, 4 key hash mismatch, 5 build or boot failed.
 set -euo pipefail
@@ -27,7 +27,6 @@ STATE=${HD_STATE_DIR:-$ROOT/harness/state}
 DOCKER=${DOCKER:-${HD_DOCKER:-docker}}
 SCRIPTS=${HD_CACHE_SCRIPTS:-${HD_SERVER_TOOLS:-${HD_SERVER_HOME:-$HOME/src}/openrune-work/server-tools}/scripts}
 CTX_ROOT=${HD_IMAGE_ROOT:-${HD_SERVER_HOME:-$HOME/src}/openrune-work}
-TIMEOUT=${HD_IMAGE_TIMEOUT:-1800}
 POLL=${HD_POLL_SECONDS:-5}
 LIVE=${HD_LIVE_CONTAINER:-osrs-openrune}
 TEMPLATE=$(dirname "$0")/Dockerfile.integration
@@ -106,16 +105,13 @@ cleanup() { $DOCKER rm -f "$name" >/dev/null 2>&1 || true; }
 trap cleanup EXIT
 $DOCKER run -d --name "$name" --tmpfs /app/.data/postgres:uid=1000,gid=1000,mode=0700 "$tag" >/dev/null || die "boot container did not start" 5
 ready=""
-waited=0
-while [ "$waited" -lt "$TIMEOUT" ]; do
+while :; do
     ready=$($DOCKER logs "$name" 2>&1 | grep -m1 'Server ready in' || true)
     [ -n "$ready" ] && break
     state=$($DOCKER inspect "$name" --format '{{.State.Status}}' 2>/dev/null || echo gone)
     case $state in exited|dead|gone) die "boot check: the container $state before 'Server ready in' ($($DOCKER logs "$name" 2>&1 | tail -n 15 | tr '\n' ' '))" 5 ;; esac
     sleep "$POLL"
-    waited=$((waited + POLL))
 done
-[ -n "$ready" ] || die "boot check: no 'Server ready in' within ${TIMEOUT}s ($($DOCKER logs "$name" 2>&1 | tail -n 5 | tr '\n' ' '))" 5
 echo "boot: ok ($ready)"
 
 # 7. the record

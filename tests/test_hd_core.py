@@ -116,9 +116,12 @@ class StagesTest(unittest.TestCase):
         ch = H.change("ch-e", "client", stage="gate", commit=SHA)
         store.set_hold(ch, "failed", "the user asked for a fix"); store.save(ch)
         self.assertEqual(stages.next_executor(store.load("ch-e")), "dev")
-        ch = H.change("ch-f", "client")
-        store.set_hold(ch, "blocked", "deps"); store.save(ch)
-        self.assertIsNone(stages.next_executor(store.load("ch-f")))
+        ch = H.change("ch-f", "client", deps=["ch-a"])   # an open dep blocks: derived from the index, never held
+        self.assertEqual(stages.next_executor(ch), "dev")
+        self.assertIsNone(stages.next_executor(ch, store.index()))
+        ch = H.change("ch-g", "client")
+        store.set_hold(ch, "decision", "ask"); store.save(ch)
+        self.assertIsNone(stages.next_executor(store.load("ch-g")))
 
     def test_booking_key_is_the_head_and_the_finding_set(self):
         """BR-S9: the same head and finding set is the same key; a verifier is keyed by the head alone."""

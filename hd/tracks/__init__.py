@@ -20,6 +20,7 @@ A track is an object with these methods (defaults in `base.BaseTrack`):
   waiting(stage, ch)        the words for what the change waits on at `stage`
   executor(ch)              `gate` when the track's verifier must run now, else None (the core books `dev`)
   finding_set(ch)           the findings a dev run would be given (part of the no-loop booking key)
+  settles_first(ch)         the change settles work already in front of an external party (policy `settle_first` ranks it first)
   reconcile(ctx, slug, ch)  per change, each tick, after the stage is derived
   ship(ctx, slug, ch)       per handed-over change, each tick: the track's merge or queue step
   step(ctx)                 once per tick: the track's own work (findings, ...)

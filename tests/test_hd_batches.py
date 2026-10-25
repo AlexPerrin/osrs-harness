@@ -31,7 +31,7 @@ content/old
 # Local only (never upstream)
 local/integration-tools
 """
-T0, T1 = "2026-10-21T01:00:00Z", "2026-10-21T01:11:00Z"
+T0 = "2026-10-21T01:00:00Z"
 DEPLOY_RESOURCES = ("live-server",)
 
 STUBS = {
@@ -284,10 +284,7 @@ class TrainTest(unittest.TestCase):
     def test_train_to_live(self):
         batches.enqueue(self.handed("ta", "fix/a"))
         batches.enqueue(self.handed("tb", "content/b"))
-        self.assertEqual(batches.advance(self.obs), [], "debounce: the oldest entry is 0 min old")
-        self.assertEqual(store.rec_all("batches"), [])
-        util.freeze(T1)
-        acts = batches.advance(self.obs)
+        acts = batches.advance(self.obs)   # a queued entry starts a train at once: no debounce
         b = self.only_batch()
         self.assertEqual(b["step"], "gating", acts)
         self.assertEqual(b["includes"], ["ta", "tb"])
@@ -519,13 +516,13 @@ class ScriptTest(unittest.TestCase):
                     with open(os.path.join(sys.argv[1], ".fixed"), "a") as f:
                         f.write("{s}\\n")
                     """))
-        self.image_env = dict(HD_CACHE_SCRIPTS=scripts, HD_IMAGE_ROOT=os.path.join(self.d, "images-ctx"), HD_IMAGE_TIMEOUT="5")
+        self.image_env = dict(HD_CACHE_SCRIPTS=scripts, HD_IMAGE_ROOT=os.path.join(self.d, "images-ctx"))
         return c
 
     def test_image_boot_container_exit_fails_fast_with_its_logs(self):
         c = self.clone()
         r = self.run_script("image.sh", c, "int-t-1", STUB_NO_READY="1", STUB_BOOT_STATE="exited",
-                            **dict(self.image_env, HD_IMAGE_TIMEOUT="600"))
+                            **self.image_env)
         self.assertEqual(r.returncode, 5, r.stdout + r.stderr)
         self.assertIn("the container exited before 'Server ready in'", r.stdout + r.stderr)
 
@@ -580,7 +577,7 @@ class ScriptTest(unittest.TestCase):
 
     def test_image_boot_failure_removes_the_container(self):
         c = self.clone()
-        r = self.run_script("image.sh", c, "int-t-1", STUB_NO_READY="1", **dict(self.image_env, HD_IMAGE_TIMEOUT="1"))
+        r = self.run_script("image.sh", c, "int-t-1", STUB_NO_READY="1", STUB_BOOT_STATE="exited", **self.image_env)
         self.assertEqual(r.returncode, 5, r.stdout + r.stderr)
         self.assertEqual(self.calls()[-1], f"rm -f hd-boot-{self.sha[:7]}", "the trap removes the boot container")
         self.assertIsNone(store.rec_load("images", self.sha[:7]))
@@ -597,7 +594,7 @@ class ScriptTest(unittest.TestCase):
         od = os.path.join(self.d, "openrune")
         os.makedirs(od)
         open(os.path.join(od, "switch.env"), "w").close()
-        return dict(HD_OPENRUNE_DIR=od, HD_DEPLOY_TIMEOUT="5")
+        return dict(HD_OPENRUNE_DIR=od)
 
     def test_deploy_ok(self):
         env = self.deploy_setup()
@@ -629,9 +626,9 @@ class ScriptTest(unittest.TestCase):
         r = self.run_script("deploy.sh", "int-t-1", **env)
         self.assertEqual(r.returncode, 75)
 
-    def test_deploy_rolls_back_on_timeout(self):
+    def test_deploy_rolls_back_when_the_container_exits(self):
         env = self.deploy_setup()
-        r = self.run_script("deploy.sh", "int-t-1", STUB_NO_READY="1", **dict(env, HD_DEPLOY_TIMEOUT="1"))
+        r = self.run_script("deploy.sh", "int-t-1", STUB_NO_READY="1", STUB_BOOT_STATE="exited", **env)
         self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
         calls = self.calls()
         new = f"osrs-openrune:integration-{self.sha[:7]}"

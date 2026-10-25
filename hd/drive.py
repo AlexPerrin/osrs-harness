@@ -70,7 +70,7 @@ def _exceptions(idx, runs):
         if ch.hold == "exception":
             out.append({"what": f"{ch['slug']} is on an exception hold", "detail": ch.hold_reason,
                         "commands": [f'{HD} unhold {ch["slug"]} "<why>"']})
-        elif ch.hold == "failed" and not ch.get("owner") and not stages.next_executor(ch):
+        elif ch.hold == "failed" and not ch.get("owner") and not stages.next_executor(ch, idx):
             out.append({"what": f"{ch['slug']} ({ch.stage}) is on a failed hold no dev run will pick up",
                         "detail": ch.hold_reason, "commands": [f'{HD} unhold {ch["slug"]} "<why>"']})
     return out

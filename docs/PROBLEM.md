@@ -35,13 +35,22 @@ Priorities, in order: it runs unattended, it shows its status, it heals itself.
 
 ## 4. Workflow
 
-Three tracks, one process: **dev -> gate -> done**.
+The core orchestrates between three tracks (client, server, harness): changes, deps and blockers, one priority order,
+one capacity budget, dispatch, holds, run bookkeeping, the console's list. It knows nothing of GitHub, CI or PRs: each
+track owns its product's workflow behind one interface and its own policy section (`tracks.<name>`).
+
+One lifecycle for every track: **ready -> dev -> gate -> done**; a track defines what its gate checks and what done means.
 
 - **Dev.** One agent, one change, one stage. It commits locally, ticks the definition of done and hands over.
-- **Gate.** An independent agent verifies the exact handed-over commit and records PASS or FAIL with every finding at
-  once. Nothing public happens before PASS at that commit.
+- **Gate.** An independent agent aggregates every check of the exact handed-over commit onto one record: PASS or FAIL
+  per check, every finding, evidence links. A finding blocks nothing by itself; the user's approval of the change is the
+  only gate to an upstream action (BR-A2).
 - **Done.** Per track: client = `master` contains the commit, then a release gated and approved; server = the
   approved atomic contribution upstream, then merged; harness = this repo's `main` contains the commit.
+
+**Priority and capacity.** One priority order for every track, recomputed from facts each tick: a change that settles
+an open PR first, then the highest priority among a change and the changes waiting on it, then age. One machine
+budget of capacity classes; dispatch waits for a free slot, never for a lock.
 
 **Server.** Priority is unblocking client dev: a server change inherits the highest priority of the client changes
 blocked on it. Two independent outputs per server change: (a) the test server runs it, via the integration train, no
@@ -50,12 +59,21 @@ upstream gate; (b) the gated upstream contribution, which never holds up the cli
 **The PR and the change.** A PR is the bucket of maintainer interaction (thread, draft or ready, head commit, its
 changes). A change is the atomic action between us and the maintainers and the unit of work, gate and approval. A
 maintainer finding is filed once as one new change, keyed by its comment or review id; it runs the full process. A PR is
-done when it is ready for review with no open items; merge is observed afterward.
+done when it is ready for review with no open items; merge is observed afterward. Once a change is marked ready we
+wait for the maintainers: the PR is merged (observed) or a finding arrives as a follow-up change. Marking ready ends our
+action, and a change in review books no agent.
 
-**The contribution.** After gate PASS the user approves the commit in chat with concise context (branch, commit,
-net diff, what the gate verified, risk, recommendation). The approval is bound to the commit SHA. One approval covers one atomic sequence with no further
-asks: push to the upstream PR branch (fast-forward or merge commit, never force), wait for green CI at that commit,
-comment, move out of draft, request review. If CI does not go green the sequence stops before the comment and reports.
+**The contribution.** Once QA's record exists for the commit and fork CI is green, the change enters the approval
+queue, which holds only upstream contributions: one card per item with the record's checks and findings. The user
+approves the commit in chat with concise context (branch, commit, net diff, what QA verified, risk, recommendation).
+The approval is bound to the commit SHA. One approval covers one atomic sequence with no further asks: push to the
+upstream PR branch (fast-forward or merge commit, never force), wait for green CI at that commit, comment, move out of
+draft. If CI does not go green the sequence stops before the comment and reports.
+
+**CI equivalence.** Each check runs once, at the fork on the scratch branch merged with current upstream `main`; a
+green fork run satisfies its upstream twin (policy `tracks.server.ci_equivalence`: the fork workflow, the required
+upstream checks, the advisory ones). After the push the contribution only confirms the required twins: it never re-runs
+a check and never waits on an advisory one. A red fork check means not ready for upstream.
 
 **Harness.** Features and fixes are built in a worktree, merged by the daemon and deployed autonomously, then
 reported. A major revision is deployed (merge and daemon restart) only after the user's yes.
@@ -74,8 +92,10 @@ here.
   change's contains the spec, one change only, off current `main`.
 - **BR-C4 Dependencies are edges.** `deps[]` names other changes; a change is `ready` only when every dep is done
   for its purpose. A client change that needs the server files the server change itself and adds the edge.
-- **BR-C5 Priority.** P1 before P2; a server change that unblocks a client change inherits the client's priority;
-  "settle open PRs first" (review fixes before new upstream PRs) outranks blocker-derived priority; age breaks ties.
+- **BR-C5 Priority.** One order for every track, recomputed from facts each tick: a change a track says settles open
+  work (a review fix on an open PR) while policy `settle_first` is true; then effective priority, the highest (P1
+  before P2) of the change and of every unfinished change that lists it as a dep while it is not live (`hd block --by`,
+  transitive); then age.
 - **BR-C6 Scope.** One quest, feature or fix per change; a fix found on the way is its own change; no change
   contains a commit of another open upstream PR (no stacking). Upstream diffs carry no test file unless a rule has
   several cases or a reviewer asked.
@@ -85,17 +105,20 @@ here.
 
 ## 6. Business rules: stages and holds
 
-- **BR-S2 Stages are observed.** The daemon sets stages from facts (a ref at a sha, a CI conclusion, a PR state, an
-  image record, a lock row); an operator adds a hold or a note, never a stage.
-- **BR-S3 A failed gate is a hold, not a stage.** `failed` holds the change with the record's required changes; the
-  fix is a new commit (BR-C2); the hold clears on the next hand-over.
+- **BR-S2 Stages are observed; holds are durable.** The daemon sets stages from facts (a ref at a sha, a CI
+  conclusion, a PR state, an image record, a lock row); an operator adds a hold or a note, never a stage. A hold is
+  `decision`, `failed` or `exception`; the reconciler never clears one: `hd unhold` does, a hand-over or a moved commit
+  also clears `failed`. A change waiting on a dep is not held: the wait is derived from `deps` each tick (BR-C4).
+- **BR-S3 A fix is asked for with a hold.** The user (or a failed train) puts the change on `failed` with the
+  findings to fix; the fix is a new commit (BR-C2); the hold clears on the next hand-over.
 - **BR-S4 Maintainer review.** A maintainer finding on the upstream PR is filed once, keyed by its comment or review
   id, as a review-fix change carrying the finding; moving the PR to draft and any push to its branch are upstream
   actions (BR-A1), each needing the user's yes.
 - **BR-S9 No loops.** A dev is booked only if the head SHA or the finding set differs from the last booked run;
   otherwise a durable `decision` hold appears in the user's list.
-- **BR-S10 Failure on facts.** No `*_minutes` or `*_seconds` knobs: an action fails only on a fact meaning its
-  result cannot arrive.
+- **BR-S10 Failure on facts.** No timeout, debounce, grace period, heartbeat or `*_minutes` / `*_seconds` knob: an
+  action ends on an observed fact, and fails only on a fact meaning its result cannot arrive (the step's process or
+  container exited without its record, the run concluded). A queued server change starts a train at once.
 - **BR-S5 A failed hand-over returns the change to `ready`** with the failing items; the next agent fixes exactly
   those. A failing check never re-dispatches a dev without new facts.
 - **BR-S6 Ready means mergeable.** A PR leaves draft only when reported defects are fixed in its head, CI is green at
@@ -152,8 +175,9 @@ here.
 - **BR-R3 Lock-checked tools.** Tools that drive a locked resource (deploy, the integration push) refuse without it.
 - **BR-R4 Own client.** A client instance (emulator, desktop RuneLite) is not locked: every agent starts its own with
   its own profile, port and account state and stops it when done.
-- **BR-R5 Capacity.** Dev slots per track, one QA per track, at most `max_concurrent` agents; capacity classes
-  `build`, `client` (2) and `image` with the memory guard.
+- **BR-R5 Capacity.** One machine budget as data (policy `capacity`): the classes `agent`, `build`, `client` (2) and
+  `image`. A role and a train step declare the classes they use; dispatch books a run only while every class it uses
+  has a free slot, counted from runs not ended and batches at a step that uses one.
 - **BR-G1 Agents.** One change, one stage, a fresh context, a brief generated from the change; roles `client-dev`,
   `client-qa`, `server-dev`, `server-qa`, `integrator`, `harness-dev`.
 - **BR-G2 Exit.** An agent ends when its stage is reached or its hold is set; the daemon stops one still alive on a
@@ -190,6 +214,10 @@ here.
 - **BR-H6 Status.** Status, the console's work list, KPIs and the digest read the store and the log and keep no state
   of their own. Times are shown in US Eastern, stored in UTC. KPIs: unattended hours, lead time, first-pass hand-over
   rate, gate first-pass rate, interventions per day, denials per hour, tokens per change by role.
+- **BR-H7 Maintenance.** The daemon keeps this repo tidy as harness-internal work, no approval: it commits the change
+  store (pathspec-only) when only store files differ, removes clean agent worktrees and local branches merged into
+  `main` while no agent runs, keeps `.claude/worktrees` ignored, and lists the holds nothing will clear (a hold on a
+  finished change, a dep naming no change).
 
 ## 11. Acceptance
 

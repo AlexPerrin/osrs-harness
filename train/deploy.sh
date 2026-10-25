@@ -7,11 +7,11 @@
 #   3. rollback tag first: osrs-openrune:241 -> osrs-openrune:rollback-<live sha7> (live.json's integration, else
 #      the live image id); then the new image -> osrs-openrune:241
 #   4. `docker compose --env-file switch.env up -d --no-deps openrune` in server-tools/, never --build
-#   5. waits for "Server ready in" in the live container's log since the start, up to HD_DEPLOY_TIMEOUT s (300);
-#      on timeout the rollback tag goes back to :241 and compose up runs again: result rollback, exit 1
+#   5. waits for "Server ready in" in the live container's log since the start; when the container exits first the
+#      rollback tag goes back to :241 and compose up runs again: result rollback, exit 1
 #   6. record harness/state/deploys/<batch>.json {result: ok|rollback, image, rollback_tag, seconds, ready_line}
 # Never prints or copies a key file. Env: HD_STATE_DIR, DOCKER or HD_DOCKER (tests), HD_OPENRUNE_DIR (openrune/),
-# HD_DEPLOY_TIMEOUT, HD_POLL_SECONDS, HD_LIVE_CONTAINER (osrs-openrune),
+# HD_POLL_SECONDS, HD_LIVE_CONTAINER (osrs-openrune),
 # HD_LIVE_TAG (osrs-openrune:241).
 # Exit: 0 deployed, 1 rolled back, 2 precondition, 75 the live-server lock is not held.
 set -euo pipefail
@@ -20,7 +20,6 @@ ROOT=${HD_CLIENT_ROOT:-$HOME/osrs-plugins-reverse}   # the client checkout
 STATE=${HD_STATE_DIR:-$ROOT/harness/state}
 DOCKER=${DOCKER:-${HD_DOCKER:-docker}}
 OPENRUNE=${HD_OPENRUNE_DIR:-${HD_SERVER_TOOLS:-${HD_SERVER_HOME:-$HOME/src}/openrune-work/server-tools}}   # the compose dir (project name osrs-openrune is set in the file)
-TIMEOUT=${HD_DEPLOY_TIMEOUT:-300}
 POLL=${HD_POLL_SECONDS:-5}
 LIVE=${HD_LIVE_CONTAINER:-osrs-openrune}
 LIVE_TAG=${HD_LIVE_TAG:-osrs-openrune:241}
@@ -79,21 +78,22 @@ $DOCKER tag "$tag" "$LIVE_TAG" || die "retag failed"
 compose_up() { (cd "$OPENRUNE" && $DOCKER compose --env-file switch.env up -d --no-deps openrune); }
 compose_up || { $DOCKER tag "$rb" "$LIVE_TAG"; record rollback "compose up failed"; die "compose up failed; $rb retagged as $LIVE_TAG" 1; }
 
-# 5. wait for the server
+# 5. wait for the server: ends on "Server ready in" or on the container having exited
 ready=""
-waited=0
-while [ "$waited" -lt "$TIMEOUT" ]; do
+state=running
+while :; do
     ready=$($DOCKER logs --since "$start" "$LIVE" 2>&1 | grep -m1 'Server ready in' || true)
     [ -n "$ready" ] && break
+    state=$($DOCKER inspect "$LIVE" --format '{{.State.Status}}' 2>/dev/null || echo gone)
+    case $state in exited|dead|gone|restarting) break ;; esac
     sleep "$POLL"
-    waited=$((waited + POLL))
 done
 if [ -z "$ready" ]; then
-    echo "deploy: no 'Server ready in' within ${TIMEOUT}s; rolling back to $rb" >&2
+    echo "deploy: the container is $state before 'Server ready in'; rolling back to $rb" >&2
     $DOCKER logs --since "$start" "$LIVE" 2>&1 | tail -n 20 >&2 || true
     $DOCKER tag "$rb" "$LIVE_TAG"
     compose_up || true
-    record rollback "timeout after ${TIMEOUT}s"
+    record rollback "container $state before ready"
     exit 1
 fi
 

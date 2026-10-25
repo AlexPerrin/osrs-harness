@@ -26,7 +26,7 @@ flowchart LR
   daemon[harnessd: hd/daemon.py<br/>tick loop + digest] --> tick[hd/tick.py<br/>one tick = ordered steps]
   tick --> stages[stages.py<br/>climb the chain on facts]
   tick --> batches[batches.py<br/>trains + releases]
-  tick --> leases[leases.py] & heal[heal.py] & agentsmod[agents.py<br/>book runs, briefs]
+  tick --> leases[leases.py] & heal[heal.py] & maintain[maintain.py<br/>repo upkeep] & plan[priority.py, capacity.py<br/>order and budget] & agentsmod[agents.py<br/>book runs, briefs]
   tick --> store[(store.py<br/>changes/*.md, state/*.json)]
   tick --> events[(events.jsonl)] --> kpi[kpi.py, daemon.digest]
   cli --> check[check.py] & drive[drive.py + actions.py<br/>the console's work list]
@@ -41,7 +41,10 @@ flowchart LR
 |---|---|
 | `hd.py`, `hd/cli.py` | the command line; the only interface for agents, the console and the user; each track registers its own subcommands |
 | `hd/daemon.py` | the tick loop (detached process, `daemon.json`), `stop`, `status`, `digest` (news from events) |
-| `hd/tick.py` | one tick: reconcile, ship/train, deploy, re-pin, gates, tracks, dispatch, metrics, heal, log; each step isolated |
+| `hd/tick.py` | one tick: reconcile, ship/train, deploy, re-pin, gates, tracks, dispatch, metrics, heal, maintain, log; each step isolated |
+| `hd/priority.py` | the one dispatch order: settle-first changes, effective priority (inherited across deps), age |
+| `hd/capacity.py` | the capacity classes: usage counted from runs and batch steps, the first full class of a role |
+| `hd/maintain.py` | the repo's upkeep: commit the change store, remove merged clean worktrees and branches, stale holds |
 | `hd/stages.py` | the generic climb of a track's chain on its facts, booking keys; `derive()`, `next_executor()` |
 | `hd/observe.py` | external truth (`Observer`; `FakeObserver` for tests): git refs (the clones, a dev's clone), docker, the live server, pids; `tracks.Observer` adds each track's mixin |
 | `hd/check.py` | the hand-over check run by `hd handover`: the common items plus the track's; an incomplete hand-over is refused and nothing is recorded |
@@ -65,7 +68,7 @@ flowchart LR
 | `chain(ch)` | the stages of the change, `backlog ... terminal` |
 | `tip(ch, obs)`, `open_stages(ch)`, `moves_expected(ch)` | where the commit lives; where a moved branch re-enters at ready; a tip that moves on is normal |
 | `facts(ch, obs)` | `{stage: (met, why)}` for the stages after `gate`, plus `live` and `tip`; `waiting(stage, ch)` words the first unmet one |
-| `executor(ch)`, `finding_set(ch)` | the verifier role needed now; the findings a dev run is given (the no-loop key) |
+| `executor(ch)`, `finding_set(ch)`, `settles_first(ch)` | the verifier role needed now; the findings a dev run is given (the no-loop key); the change settles work already in front of an external party |
 | `reconcile(ctx, slug, ch)`, `ship(ctx, slug, ch)`, `step(ctx)` | per change after the stage is derived; per handed-over change (merge or queue); once per tick |
 | `needs_you(ch, obs, idx)` | the track's cards for the user, from observed facts alone |
 | `check_items(ch, obs, ev, files)`, `default_dod(spec)`, `records_repo` | the hand-over check beyond the common items; the definition of done `hd new --server-dod` writes; the dev's clone is kept |
@@ -76,7 +79,7 @@ flowchart LR
 |---|---|---|---|
 | client | `tracks/client.py` (on `target.py`) | `backlog ready dev gate live`: `master` contains the commit; build evidence at hand-over; the release flow stays in the core | `tracks.client` |
 | harness | `tracks/harness.py` (on `target.py`) | `backlog ready dev gate live`: this repo's `main` contains the commit | `tracks.harness` |
-| server | `tracks/server/` | `backlog ready dev gate contribute review merged` (`local/*`: `... gate live`) | `tracks.server`: `dev_slots`, `reviewers`, `ci_equivalence` |
+| server | `tracks/server/` | `backlog ready dev gate contribute review merged` (`local/*`: `... gate live`) | `tracks.server`: `reviewers`, `ci_equivalence` |
 
 Server track modules: `__init__` (the track), `qa` (QA's record and its checks), `gateci` (`hd gate-ci`: the scratch
 merge with upstream main, the fork's `gate/<slug>`, CI observed, the diff scan), `cards` (the approval card, the
@@ -99,7 +102,7 @@ erDiagram
     string slug PK
     string track "client|server|harness"
     string stage "a stage of the track chain"
-    json hold "blocked|decision|failed|exception"
+    json hold "decision|failed|exception"
     string branch
     string commit "handed-over sha"
     string repo "the dev's clone"
@@ -139,7 +142,7 @@ commit; `gate-ci.json`, the scratch merge's CI result and diff findings; `accura
 `pr-comment.md`). Server-track change keys: `upstream_pr`, `finding`, `review_seen`.
 State files: `events.jsonl` (append-only), `leases/<res>.json` (the locks), `runs/<name>.json` + `<name>.log` (the brief),
 `batches/<id>.json`, `queue.json` (train queue), `live.json` (what the live server runs), `images/`, `deploys/`,
-`view/` (last tick, waiting words), `actions/<id>.<part>.md` (text files for the commands of an action), `gates/<slug>/or` (the gate's scratch clone),
+`view/` (last tick, waiting words, stale holds), `actions/<id>.<part>.md` (text files for the commands of an action), `gates/<slug>/or` (the gate's scratch clone),
 `release.request` (`{tag}`), `counters.json` (agent names), `daemon.json`, `digest.json`, `digest.md`.
 
 ## 4. Observed vs recorded
@@ -148,15 +151,15 @@ State files: `events.jsonl` (append-only), `leases/<res>.json` (the locks), `run
 | A change's stage from `gate` on | derived each tick from the facts the track reads (git, its records, docker, ...) | `stages.derive`; a disagreement is repaired and logged as `drift` |
 | `dev` and the hand-over | recorded (dispatch; `hd handover`, which runs the check) | `store.set_stage`, never by an operator |
 | `live_commit` | observed: the live target carries the commit (server: the integration pin and the live server) | tick `reconcile`, the train; independent of the server's upstream stages |
-| Holds | recorded (agents' `hd block/fail`, daemon, console) | `hd hold/unhold` |
+| Holds | recorded (`hd fail`, `hd hold`, the daemon's no-loop and ship failures); `decision`, `failed`, `exception` only | `hd hold/unhold`; the reconciler never clears one |
+| Waiting on a dep | derived each tick from `deps` and the deps' observed stages; never stored | `hd block --by` adds the edge |
 | QA's aggregate | the local file `gate.md`, bound to the commit | `hd gate` checks it; a new commit voids it |
 | A card's work done | observed in the world (the release exists; server: the PR is ready at the commit) | no record; the card leaves `hd actions` |
 | User's OK | the chat itself | nothing is stored; commands run only after it |
 | Release published | observed: `gh release view <tag>` | tick `gates` step sets the batch `published` |
 | Run spawned / stop done | recorded by the console's own commands (`run-link`, `run-stopped`) | they only remove items from the drive list |
 | Lock in use | the holder's run, pid or container is alive; no timeouts decide anything | `leases.idle` |
-No decision uses elapsed time, except the train debounce, gate and image timeouts and the deploy-ready timeout still
-in policy (open work: docs/HANDOFF.md).
+No decision uses elapsed time: a step ends on its record, its process or its container.
 
 ## 5. The change lifecycle
 The stage names are the track's chain (section 2a); below `gate` the recorded stage stands, from `gate` on the track's facts
@@ -192,8 +195,8 @@ flowchart LR
 `live_commit` is the live target's own fact, set by the tick (client, harness) or the train (server); a dependent change waits
 for it only. A QA finding sets no hold and books no dev. `next_executor`: `ready`, or a `failed` hold at or after `gate`
 (an operator asked for a fix, or a train failed), needs a dev; otherwise the track's `executor` (the server's `gate`: a
-handed-over change that is not local-only with no QA record at its commit); a `blocked`/`decision`/`exception` hold needs
-nothing. Before a run is booked, `stages.would_loop` compares the booking key (head sha, the track's finding set; for a
+handed-over change that is not local-only with no QA record at its commit); a `decision`/`exception` hold needs
+nothing, nor does a change before `gate` with an open dep (derived). Before a run is booked, `stages.would_loop` compares the booking key (head sha, the track's finding set; for a
 verifier the head) with the last booked one: equal means a durable `decision` hold and no run (`hd unhold`, `hd block`,
 `hd fail` and a branch move reset it). Unknown facts (gh down) never regress a stage.
 
@@ -209,11 +212,12 @@ definition-of-done items on the store.
 
 ## 6. The tick (tick.py)
 Order, each step in its own try/except (a failure is an `error` event): 1 reconcile (derive stages, `live_commit`, a moved
-branch re-enters at ready, deps to blocked holds, each track's `reconcile`) · 2 ship/train (each track's `ship` for its
+branch re-enters at ready, each track's `reconcile`) · 2 ship/train (each track's `ship` for its
 handed-over changes: merge or queue; `batches.advance`) · 3 deploy (`live-server` lock, `deploy.sh`) · 4
 re-pin (upstream main moved) · 5 gates (release rule makes a release batch; release record sets `gated`; an observed
 release sets `published`; the release gate agent is booked) · 6 tracks (each track's `step`) · 7 dispatch (ready changes and gates x free
-slots, by priority; the no-loop check; integrator per train exception) · 8 metrics · 9 heal · the `tick` event.
+capacity, in `priority.rank` order; the no-loop check; integrator per train exception) · 8 metrics (recount on a client
+change live, a deploy, a re-pin) · 9 heal · 10 maintain · the `tick` event.
 `--dry-run` observes and reports only.
 
 ### Dispatch and hand-over
@@ -283,7 +287,7 @@ sequenceDiagram
   B->>X: gate (qa.sh), image (image.sh, boot check)
   T->>L: daemon takes live-server
   B->>X: deploy.sh (rollback tag first, compose up --no-deps, wait "Server ready in")
-  X-->>B: ready -> included changes live, live.json written; timeout -> auto-rollback -> exception
+  X-->>B: ready -> included changes live, live.json written; container exited -> auto-rollback -> exception
   B-->>I: on exception: brief with the stop output (booked, spawned by the console)
   I->>B: hd resolve <batch> "note" -> resume from the failed step
 ```
@@ -296,8 +300,26 @@ daemon holds it for one train), `live-server` (the daemon holds it for a deploy;
 container); a take by another holder is denied. It is idle when its holder's run ended or its attached pid or container
 is dead; heal reclaims it with that evidence. `run-end` and `stop` free what the run held.
 
-Dispatch waits on slots only (`dev_slots` per track, `max_concurrent` agents, one QA per track); client instances are
-not locks (skill `test-instances`). A deploy restarts the live server without waiting for any client.
+Dispatch waits on capacity classes only (section 10a); client instances are not locks (skill `test-instances`). A deploy restarts the live server without waiting for any client.
+
+### 10a. Capacity and priority
+Policy `capacity` names the classes and their slots (`agent`, `build`, `client`, `image`); `agents.roles.<role>.uses` and
+`batches.uses.<step>` name what a run or a train step holds. `capacity.used` counts runs not ended and open batches at a
+step that uses a class; `capacity.full(role, ...)` names the first full class of a role. A candidate whose role does not
+fit stays unbooked and shows as stalled; nothing is queued or locked. `hd lint` reports a class a role or step uses
+that `capacity` does not define.
+
+`priority.rank(change, idx)` is the dispatch order, a pure function of the store: settle-first (the track's
+`settles_first`, enabled by policy `settle_first`), then `effective` priority (the change's own, or the highest of the
+unfinished changes that list it as a dep while it is not live, transitive, cycle-safe), then `created`.
+
+### 10b. Maintenance
+`maintain.run` is the tick's last step, on the repo that holds the change store: `.claude/worktrees` into
+`.git/info/exclude`; one pathspec-only commit of `harness/changes` when only store files differ and the branch is the
+harness live target; while no run is alive, clean worktrees under `.claude/worktrees/` and local branches merged into the
+live target removed (`git worktree remove`, `git branch -d`, never forced). `stale_holds` (a hold on a finished change, a
+dep naming no change) is cached in `view/stale` and printed by `hd status`. `--dry-run` reports what is due and changes
+nothing.
 
 ## 11. Hooks and guards
 | Hook | Loaded by | Rule |

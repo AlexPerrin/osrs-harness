@@ -2,7 +2,7 @@
 
   1 observe + reconcile   every change's stage re-derived from the facts each track reads (git, docker, ...); a record
                           that disagrees is repaired and logged as `drift`; a branch that moved past its hand-over
-                          re-enters at ready and voids the gate (BR-C2); deps set or clear `blocked` holds (BR-C4);
+                          re-enters at ready and voids the gate (BR-C2);
                           a server change's `live_commit` follows the test server
   2 ship / train          each track's step for its handed-over changes (client and harness merge into their live
                           target; server changes the fork has join the train queue); trains advance (rebuild, gate,
@@ -11,17 +11,20 @@
   4 re-pin                upstream main moved: fast-forward, drop merged branches, train (BR-B5)
   5 gates                 the release rule makes a release batch; a release record sets its step; the release gate agent is booked
   6 tracks                each track's own once-per-tick work (the server track files maintainer findings: BR-S4)
-  7 dispatch              ready changes and gates x free slots, by priority (BR-C5); a dev or gate is booked only for a
-                          head or finding set not booked before, else a durable decision hold (BR-S9)
-  8 heal                  idle locks, lingering agents, dead containers, stuck batches (BR-H2)
-  9 log                   the `tick` event with its actions and the stalled changes
+  7 dispatch              changes that need an executor, in priority order (hd/priority.py), each booked only while
+                          every capacity class its role uses has a free slot (hd/capacity.py); a dev or gate is booked
+                          only for a head or finding set not booked before, else a durable decision hold (BR-S9)
+  8 metrics               recount on a fact: a client change went live, a deploy, a re-pin
+  9 heal                  idle locks, lingering agents, dead containers, stuck batches (BR-H2)
+ 10 maintain              the repo's own upkeep (hd/maintain.py)
+ 11 log                   the `tick` event with its actions and the stalled changes
 
 Every step runs in its own try/except: a failure is an `error` event, the others still run. `dry_run` observes,
 reconciles and reports what it would do without spawning, shipping, training or deploying."""
 import time
 import traceback
 
-from . import actions, agents, batches, events, heal, leases, metrics, policy, stages, store, tracks
+from . import actions, agents, batches, capacity, events, heal, leases, maintain, metrics, policy, priority, stages, store, tracks
 from .util import iso
 
 
@@ -92,22 +95,6 @@ def reconcile(ctx):
             ctx.refresh(slug)
             ctx.act(f"{slug}: {before} -> {stage}")
     store.rec_save("view", "waiting", {"waiting": waiting})
-    # deps -> blocked holds (BR-C4)
-    for slug, ch in list(ctx.idx.items()):
-        if ch.stage not in ("backlog", "ready", "dev") or ctx.dry_run:
-            continue
-        ok, open_ = stages.deps_met(ch, ctx.idx)
-        if not ok and ch.hold is None:
-            store.set_hold(ch, "blocked", "waiting for " + ", ".join(open_))
-            store.save(ch)
-            events.emit("hold", change=slug, hold="blocked", reason=", ".join(open_))
-            ctx.refresh(slug)
-        elif ok and ch.hold == "blocked":
-            store.clear_hold(ch, "every dep is live")
-            store.save(ch)
-            events.emit("hold", change=slug, hold="none", reason="deps live")
-            ctx.refresh(slug)
-            ctx.act(f"{slug}: unblocked")
 
 
 # --- 2 ship / train ----------------------------------------------------------------------------------------------------
@@ -153,7 +140,8 @@ def repin(ctx):
     if leases.status("integration").get("holder"):
         ctx.act(f"re-pin to {sha[:9]} waits for the running train")
         return
-    ctx.act(batches.repin(ctx.obs) or f"re-pin to {sha[:9]}")
+    batches.repin(ctx.obs)
+    ctx.act(f"re-pin to {sha[:9]}")
     ctx.refresh()
 
 
@@ -204,7 +192,8 @@ def gates(ctx):
                 events.emit("batch", batch=b["id"], step=b["step"], detail=rec[1], batch_kind="release")
                 ctx.act(f"release {b['id']}: gate {rec[0]} ({rec[1]})")
                 continue
-            if b.get("step") == "queued" and not any(r.get("role") == "client-qa" and r.get("batch") == b["id"] for r in running):
+            if (b.get("step") == "queued" and not any(r.get("role") == "client-qa" and r.get("batch") == b["id"] for r in running)
+                    and not capacity.full("client-qa", running, batches.open_batches())):
                 pseudo = {"slug": b["id"], "id": b["id"], "track": "client", "batch": b["id"], "branch": "master",
                           "commit": b.get("commit"), "title": f"release gate {b['id']}", "role": "client-qa"}
                 r = agents.spawn(pseudo, "client-qa", "gate")
@@ -222,19 +211,11 @@ def tracks_step(ctx):
 
 # --- 7 dispatch -----------------------------------------------------------------------------------------------------------------
 
-def slots_free(role, running):
-    pol = policy.role(role)
-    track = pol["track"]
-    used = sum(1 for r in running if r.get("role") == role)
-    if pol["stage"] == "dev":
-        return policy.track(track).get("dev_slots", 1) - used
-    return 1 - used   # one QA per track, one integrator
-
-
 def candidates(ctx):
+    """The changes that need an executor now, in dispatch order (hd/priority.py)."""
     out = []
     for ch in ctx.idx.values():
-        ex = stages.next_executor(ch)
+        ex = stages.next_executor(ch, ctx.idx)
         if not ex or ch.get("owner"):
             continue
         if ex == "dev" and not ch.has_dod():
@@ -242,9 +223,9 @@ def candidates(ctx):
         role = policy.role_for(ch["track"], ex)
         if not role:
             continue
-        out.append((policy.prio_order(ch.get("prio")), ch.get("created") or "", ch, ex, role))
-    out.sort(key=lambda t: (t[0], t[1]))
-    return [(ch, ex, role) for _, _, ch, ex, role in out]
+        out.append((priority.rank(ch, ctx.idx), ch, ex, role))
+    out.sort(key=lambda t: t[0])
+    return [(ch, ex, role) for _, ch, ex, role in out]
 
 
 def hold_loop(ctx, ch, ex):
@@ -280,16 +261,19 @@ def dispatch(ctx):
                 if r:
                     running.append(r)
                     ctx.act(f"integrator {r.get('name')} for {b['id']}")
-    cap = int(policy.get()["agents"].get("max_concurrent", 0) or 0)
     for ch, ex, role in candidates(ctx):
         if stages.would_loop(ch, ex):
             hold_loop(ctx, ch, ex)
             continue
-        if (cap and len(running) >= cap) or slots_free(role, running) <= 0:
+        full = capacity.full(role, running, batches.open_batches())
+        if full:
             ctx.stalled.append(ch["slug"])
+            if ctx.dry_run:
+                ctx.act(f"{ch['slug']}: {role} waits for a free {full} slot [dry run]")
             continue
         if ctx.dry_run:
             ctx.act(f"would dispatch {role} for {ch['slug']} ({ex}) [dry run]")
+            running.append({"role": role})   # the capacity the booking would hold
             continue
         r = agents.spawn(ch, role, ex)
         running.append(r)
@@ -302,9 +286,9 @@ def dispatch(ctx):
 def metrics_step(ctx):
     if ctx.dry_run:
         return
-    went_live = any(a.endswith("-> live") and not a.startswith(("int-", "rel-")) for a in ctx.actions)
-    if metrics.due(client_went_live=went_live):
-        names = metrics.recount("client live" if went_live else "daily")
+    why = metrics.why(ctx.actions)
+    if why:
+        names = metrics.recount(why)
         ctx.act(f"recount: {len(names)} metrics")
 
 
@@ -318,6 +302,13 @@ def heal_step(ctx):
     ctx.refresh()
 
 
+# --- 10 maintain -------------------------------------------------------------------------------------------------------------------
+
+def maintain_step(ctx):
+    for a in maintain.run(ctx.idx, dry_run=ctx.dry_run) or []:
+        ctx.act(f"maintain: {a}")
+
+
 # --- the tick ----------------------------------------------------------------------------------------------------------------------------
 
 def tick(obs=None, dry_run=False, interval=60):
@@ -328,7 +319,7 @@ def tick(obs=None, dry_run=False, interval=60):
     ctx = Ctx(obs, dry_run)
     for name, fn in (("reconcile", reconcile), ("ship", ship_and_train), ("deploy", deploy),
                      ("repin", repin), ("gates", gates), ("tracks", tracks_step), ("dispatch", dispatch),
-                     ("metrics", metrics_step), ("heal", heal_step)):
+                     ("metrics", metrics_step), ("heal", heal_step), ("maintain", maintain_step)):
         _step(ctx, name, fn)
     secs = round(time.time() - t0, 1)
     n = (store.rec_load("view", "tick") or {}).get("n", 0) + 1

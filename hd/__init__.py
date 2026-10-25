@@ -13,11 +13,14 @@ is an event; agents execute one stage and are spawned by the console session; tw
   tracks    the client, harness and server tracks behind one interface (tracks/__init__.py); the server track holds the
             whole upstream contribution workflow (QA record, approval card, contribution, findings, GitHub)
   leases    the shared-resource locks (BR-R*)
+  capacity  the capacity classes and what a role or a train step holds (BR-R5)
+  priority  the one dispatch order across tracks (BR-C5)
   agents    stage executors booked by the daemon, spawned by the console (BR-G*)
   batches   trains and releases: queue, rebuild, gate, image, deploy (BR-B*)
   actions   what needs the user's OK: the tracks' cards and release batches (BR-A*)
   drive     the console's work list (`hd drive`)
   heal      repairs (BR-H2, BR-H3)
+  maintain  the repo's upkeep: the change store, merged worktrees and branches, stale holds (BR-H7)
   tick      observe -> advance -> dispatch -> heal -> log
   daemon    the tick loop and the digest
   kpi       the harness KPIs from the event log

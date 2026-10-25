@@ -8,9 +8,9 @@ Release steps: queued -> gating -> gated -> published (the release is observed o
 
   enqueue(ch)                   a handed-over server change joins the queue (`harness/state/queue.json`; a newer
                                 commit of the same branch replaces its entry); idempotent
-  advance(obs, now=False)       one step of every open batch, never blocking: starts a train when the oldest
-                                entry is past policy `batches.train_debounce_minutes` (or `now`, or a re-pin asked
-                                for one), the `integration` lease is free and no train waits at `exception`; the
+  advance(obs, now=False)       one step of every open batch, never blocking: starts a train when an entry is
+                                queued (or `now`, or a re-pin asked for one), the `integration` lease is free and no
+                                train waits at `exception`; the
                                 rebuild (integrate.py's helpers:
                                 pins, the tools commit, build-integration.sh, the lease push) runs synchronously
                                 (seconds); gate (`qa.sh clone` + `qa.sh gate` through buildq), image
@@ -24,7 +24,7 @@ Release steps: queued -> gating -> gated -> published (the release is observed o
                                 (started, message). On "Server ready in" the next advance() marks the included
                                 changes live (and older imaged trains this integration carries), writes live.json
                                 (integration, image, image_id, rollback, since, upstream_main), releases
-                                `live-server` and emits `deploy`; on timeout deploy.sh rolled back: `exception`
+                                `live-server` and emits `deploy`; when the container exited deploy.sh rolled back: `exception`
   on_exception(batch, text)     records the stop output, frees the integration lease; the tick spawns an
                                 `integrator` with it (BR-B4)
   resume(batch_id)              after the integrator recorded a resolution (or dropped a branch from
@@ -39,14 +39,14 @@ Release steps: queued -> gating -> gated -> published (the release is observed o
                                 policy `batches.release_after_live_changes`, or when `harness/state/release.request`
                                 exists; None when no release is due (or one is open)
   new_release(slugs)            a release batch: gates master at HEAD with client-qa (the tick spawns it)
-  status()                      open batches with their step and timings 
-  wait_step(batch, timeout)     block until the batch's background step ends (tests, `hd batch wait`)
+  status()                      open batches with their step
+  wait_step(batch)              block until the batch's background step ends (tests, `hd batch wait`)
 Scripts: train/image.sh <gated-clone> <batch> (stages server/ + data/ without key files, cache fixes,
 template train/Dockerfile.integration with COPY --from the live image for the key and game.yml, key-hash
 compare printing only match/MISMATCH, private boot check, record harness/state/images/<sha7>.json);
 train/deploy.sh <batch> (image record ok, `live-server` held by harnessd, rollback tag, retag :241,
 `docker compose --env-file switch.env up -d --no-deps openrune` in openrune/, wait for "Server ready in",
-auto-rollback on timeout; never --build; record harness/state/deploys/<batch>.json).
+auto-rollback when the container exits; never --build; record harness/state/deploys/<batch>.json).
 Environment (tests): HD_QA_SH, HD_IMAGE_SH, HD_DEPLOY_SH, HD_FORK_SH, HD_DOCKER (passed to the scripts as DOCKER),
 HD_QA_ROOT, HD_OURS (the client repo); the fork clone, its remote and the tools worktree come from integrate.py's
 INTEGRATION_CLONE, INTEGRATION_REMOTE, INTEGRATION_TOOLS_WT. Locks: `harness/state/batches.lock` byte 0 guards the
@@ -57,12 +57,11 @@ import fcntl
 import os
 import re
 import shlex
-import signal
 import subprocess
 import sys
 
 from . import HD_HOME, ROOT, server_tools, server_work, events, evidence_dir, leases, policy, state_dir, store
-from .util import iso, minutes_since, now, parse, pid_alive, read_json, write_json
+from .util import iso, now, parse, pid_alive, read_json, write_json
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "train"))
 import integrate  # noqa: E402  (the v2 train helpers: pins, lists, the tools commit, rebuild, the lease push)
@@ -195,19 +194,9 @@ def _drain(entries):
         write_queue(q)
 
 
-def _due(now_):
-    """(entries, why): the queue when a train may start."""
+def _queued():
     with queue_lock():
-        entries = list(read_queue()["entries"])
-    if now_ or _repin_pending():
-        return entries, ""
-    if not entries:
-        return [], "queue empty"
-    age = minutes_since(min(parse(e["queued"]) for e in entries))
-    debounce = float(_cfg("train_debounce_minutes", 10))
-    if age < debounce:
-        return [], f"debounce: oldest entry {age:.0f} min old, train at {debounce:.0f}"
-    return entries, ""
+        return list(read_queue()["entries"])
 
 
 # --- batch records ---------------------------------------------------------------------------------------------------
@@ -312,7 +301,7 @@ def status():
         s = b["steps"][-1] if b.get("steps") else {}
         out.append({"id": b["id"], "kind": b["kind"], "step": b.get("step"), "includes": b.get("includes") or [],
                     "integration": b.get("integration"), "image": b.get("image"), "since": s.get("started"),
-                    "minutes": minutes_since(s.get("started")), "exception": b.get("exception"),
+                    "exception": b.get("exception"),
                     "steps": [(x["step"], x.get("started"), x.get("ended"), x.get("rc")) for x in b.get("steps") or []]})
     return out
 
@@ -320,9 +309,7 @@ def status():
 # --- background steps ------------------------------------------------------------------------------------------------
 
 def _env():
-    env = dict(os.environ, HD_STATE_DIR=state_dir(), HD_EVIDENCE_DIR=evidence_dir(),
-               HD_IMAGE_TIMEOUT=str(int(_cfg("image_timeout_minutes", 30)) * 60),
-               HD_DEPLOY_TIMEOUT=str(int(_cfg("deploy_ready_timeout_seconds", 300))))
+    env = dict(os.environ, HD_STATE_DIR=state_dir(), HD_EVIDENCE_DIR=evidence_dir())
     if os.environ.get("HD_DOCKER"):
         env["DOCKER"] = os.environ["HD_DOCKER"]
     return env
@@ -350,19 +337,12 @@ def _done(b):
     return not pid_alive(pid)
 
 
-def wait_step(batch, timeout=60):
+def wait_step(batch):
     b = batch if isinstance(batch, dict) else load(batch)
     p = _PROCS.get(b.get("pid"))
     if p is not None:
-        p.wait(timeout)
+        p.wait()
     return load(b["id"])
-
-
-def _kill(b):
-    try:
-        os.killpg(int(b["pid"]), signal.SIGTERM)
-    except (OSError, TypeError, ValueError):
-        pass
 
 
 def _tail(path, n=15):
@@ -373,14 +353,6 @@ def _tail(path, n=15):
     except OSError:
         pass
     return integrate.tail(text, n)
-
-
-def _timeout_minutes(step):
-    if step == "gating":
-        return float(_cfg("gate_timeout_minutes", 60))
-    if step == "imaging":
-        return float(_cfg("image_timeout_minutes", 30))
-    return float(_cfg("deploy_ready_timeout_seconds", 300)) / 60 * 2 + 5
 
 
 def _summary_rc(gate_dir):
@@ -420,14 +392,9 @@ def _docker_wait(b, step):
 
 
 def _poll(b, obs):
-    """A background step: timeout, or its result when the process ended. Returns an action string or None."""
+    """A background step: its result once the process ended; a running one is waited for. Returns an action string or None."""
     step = b["step"]
     if not _done(b):
-        elapsed = minutes_since(b["steps"][-1]["started"]) or 0
-        if elapsed > _timeout_minutes(step):
-            _kill(b)
-            on_exception(b, f"{step} timed out after {elapsed:.0f} min (pid {b['pid']} killed)\n{_tail(b['log'])}")
-            return f"{b['id']}: {step} timed out -> exception"
         return None
     if step == "gating":
         rc = _summary_rc(b["gate_dir"])
@@ -699,7 +666,7 @@ def advance(obs, now=False):
         ok, msg = deploy(ready, obs)
         actions.append(msg if ok else f"deploy refused: {msg}")
     if not leases.status("integration").get("holder") and not _exception_train():
-        entries, why = _due(now)
+        entries = _queued()
         if entries or now or _repin_pending():
             b = _start_train(entries, now_=True)
             if b:

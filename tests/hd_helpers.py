@@ -14,13 +14,11 @@ ENV_KEYS = ("HD_HARNESS_DIR", "HD_STATE_DIR", "HD_EVENTS", "HD_POLICY", "HD_EVID
 
 def write_test_policy(dest):
     """The real policy's structure with the numeric knobs the tests rely on pinned, so a change of the live values
-    (slots, caps) never changes a test: client 1 dev slot, server 2, harness 1, at most 3 agents running."""
+    (capacity) never changes a test: 3 agents, 2 builds, 2 clients, 1 image."""
     import yaml
     with open(os.path.join(ROOT, "harness", "policy.yaml")) as f:
         pol = yaml.safe_load(f)
-    for name, slots in (("client", 1), ("server", 2), ("harness", 1)):
-        pol["tracks"][name]["dev_slots"] = slots
-    pol["agents"]["max_concurrent"] = 3
+    pol["capacity"] = {"agent": 3, "build": 2, "client": 2, "image": 1}
     with open(dest, "w") as f:
         yaml.safe_dump(pol, f)
 

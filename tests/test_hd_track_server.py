@@ -125,9 +125,8 @@ class ServerChainTest(unittest.TestCase):
         ch = H.change("ch-e", "server", stage="contribute", commit=SHA)
         store.set_hold(ch, "failed", "the user wants the findings fixed"); store.save(ch)
         self.assertEqual(stages.next_executor(store.load("ch-e")), "dev")
-        ch = H.change("ch-f", "server")
-        store.set_hold(ch, "blocked", "deps"); store.save(ch)
-        self.assertIsNone(stages.next_executor(store.load("ch-f")))
+        ch = H.change("ch-f", "server", deps=["ch-a"])
+        self.assertIsNone(stages.next_executor(ch, store.index()))
 
     def test_booking_key_changes_with_the_head_and_the_findings(self):
         """BR-S9: the same head and finding set is the same key."""

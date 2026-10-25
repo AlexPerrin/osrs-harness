@@ -3,7 +3,7 @@
 Changes: `harness/changes/<slug>.md`, YAML front matter + body (`## Change`, `## Definition of done` with
 checkboxes, `## Log` with dated lines). Front matter keys (the order they are written in):
   slug, track (client|server|harness), title, prio (P0-P3), role (the dev role that executes `dev`),
-  stage (a stage of the track's chain, hd/tracks), hold ({kind, reason, since} or null),
+  stage (a stage of the track's chain, hd/tracks), hold ({kind: decision|failed|exception, reason, since} or null; a change waiting on deps is derived, not held),
   deps (slugs), branch, commit (the handed-over commit), repo (the clone the commit is in), local_only (ends at the
   test server: chain ending at live), owner (the agent in dev), evidence (dir), spec, network (client: touches
   networking), summary, live_commit (the live target carries the commit), booked ({dev|gate: key} of the last booked
@@ -23,7 +23,7 @@ from . import changes_dir, state_dir
 from .util import atomic_write, iso, read_json, slug_ok, write_json
 
 TRACKS = ("client", "server", "harness")
-HOLDS = ("blocked", "decision", "failed", "exception")
+HOLDS = ("decision", "failed", "exception")   # durable: only an operator, a hand-over (failed) or a moved commit clears one
 PRIOS = ("P0", "P1", "P2", "P3")
 ROLES = {"client": "client-dev", "server": "server-dev", "harness": "harness-dev"}
 QA_ROLES = {"client": "client-qa", "server": "server-qa"}
@@ -128,6 +128,8 @@ def load(slug):
     for k in RETIRED_KEYS:
         meta.pop(k, None)   # dropped on the next save
     meta["stage"] = _migrate_stage(meta)
+    if (meta.get("hold") or {}).get("kind") == "blocked":
+        meta["hold"] = None   # blocked is derived from the deps, never stored
     for k in LIST_KEYS:
         if meta.get(k) is None:
             meta[k] = []

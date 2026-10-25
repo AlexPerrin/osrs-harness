@@ -78,14 +78,14 @@ class HandoverTest(unittest.TestCase):
         self.assertEqual(events.read(kinds=["check"])[-1]["result"], "PASS")
         self.assertEqual([(e["from"], e["to"]) for e in events.read(kinds=["stage"]) if e["change"] == "feat"][-1], ("dev", "gate"))
 
-    def test_a_failed_hold_clears_a_blocked_one_stays(self):
+    def test_a_failed_hold_clears_a_decision_one_stays(self):
         self.write("accuracy.md", "pr-title.txt", "pr-body.md")
         ch = store.load("feat"); store.set_hold(ch, "failed", "fix it"); store.save(ch)
         self.hand_over()
         self.assertIsNone(store.load("feat").hold)
-        ch = store.load("feat"); store.set_hold(ch, "blocked", "waiting for srv"); store.save(ch)
+        ch = store.load("feat"); store.set_hold(ch, "decision", "ask the user"); store.save(ch)
         self.hand_over()
-        self.assertEqual(store.load("feat").hold, "blocked")
+        self.assertEqual(store.load("feat").hold, "decision")
 
     def test_a_commit_that_is_not_the_branch_tip_is_refused(self):
         self.write("accuracy.md", "pr-title.txt", "pr-body.md")

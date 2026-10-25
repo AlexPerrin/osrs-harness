@@ -8,7 +8,9 @@ recount is one line. The KPIs and every post-mortem read it; nothing rewrites it
 
 Kinds (the `kind` field; `data` holds the rest):
   stage      change moved: from, to, commit, why
-  hold       change held or released: hold (blocked|decision|failed|exception|none), reason
+  hold       change held or released: hold (decision|failed|exception|none), reason
+  block      a dep edge added by `hd block`: change, by, reason
+  maintain   the repo's upkeep: action (commit-store|remove-worktree|delete-branch), detail
   check      hand-over check, run by `hd handover`: result (PASS|FAIL), items
   handover   a hand-over recorded: change, branch, commit
   gate       a track verifier's verdict (`hd gate`): change, commit, result (PASS|FAIL), findings (count)
