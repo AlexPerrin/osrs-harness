@@ -292,6 +292,7 @@ sequenceDiagram
   I->>B: hd resolve <batch> "note" -> resume from the failed step
 ```
 A re-pin fast-forwards the fork's main when upstream main moved and starts a train.
+A resume after a gate failure re-runs the train from pinning when the tools branch head differs from the batch's tools commit (entries the integrator removed from `integration.txt` leave the batch), else restarts the gate.
 
 ## 10. Locks (leases.py)
 Mechanism only, for the three resources that exist once: `integration` (the integration clone and its lease push; the
