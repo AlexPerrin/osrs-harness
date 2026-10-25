@@ -17,6 +17,7 @@ network: true
 summary: Dropped GenieRandomEventTest and the integration suite setup, helpers private (genieOf removed as unused), PR text ticks made true; new tip d8ab60221 on fix/genie-clean, merge 3b00b228b
 booked:
   gate: 3b00b228bad2038e43e242cb29213e8c622b265a
+batch: int-20261025-5
 cost:
   runs: 24
   turns: 0
@@ -24,7 +25,7 @@ cost:
   usd: 0
   tokens: 0
 created: '2026-10-24T19:31:52Z'
-updated: '2026-10-25T02:53:24Z'
+updated: '2026-10-25T03:25:42Z'
 review_seen: '2026-10-25T02:53:24Z'
 ---
 ## Change
@@ -152,3 +153,4 @@ Upstream #355 (draft) has two review findings from eaglepurerocketgrape (2026-10
 - 2026-10-25T02:22:02Z run sq64 ended: ? turns, ? tokens, exit ok
 - 2026-10-25T02:22:22Z gate -> contribute: observed
 - 2026-10-25T02:53:15Z contribute -> review: observed
+- 2026-10-25T03:25:42Z in train int-20261025-5: integration 442b396d2 pushed; gate, image and deploy pending

@@ -17,13 +17,14 @@ summary: 'One Hunter feat PR: traps, bird houses, Herbiboar, butterflies, implin
   in game (draft); kebbit tracking out'
 booked:
   dev: '|da39a3ee5e6b'
+batch: int-20261025-5
 cost:
   runs: 1
   turns: 0
   tokens: 0
   minutes: 0
 created: '2026-10-25T02:32:09Z'
-updated: '2026-10-25T02:55:34Z'
+updated: '2026-10-25T03:25:42Z'
 ---
 ## Change
 One upstream feat: PR for the completed hunter work
@@ -43,3 +44,4 @@ One upstream feat: PR for the completed hunter work
 - 2026-10-25T02:55:08Z dev -> gate: hand-over recorded
 - 2026-10-25T02:55:08Z handover feat/hunter@fbfdb9eac: One Hunter feat PR: traps, bird houses, Herbiboar, butterflies, implings, Hunters' Rumours; one commit off upstream main, no tests or comments; compile, spotless, gameval check pass; not verified in game (draft); kebbit tracking out
 - 2026-10-25T02:55:34Z run sd85 ended: ? turns, ? tokens, exit ok
+- 2026-10-25T03:25:42Z in train int-20261025-5: integration 442b396d2 pushed; gate, image and deploy pending

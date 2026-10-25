@@ -18,6 +18,7 @@ summary: 'Five QA fixes: comment removed (fixed tip 569393171 on fork fix/witchs
   and spotless pass'
 booked:
   gate: 74048def774aabf7f96544f765819f9d1fb3d827
+batch: int-20261025-5
 cost:
   runs: 5
   turns: 0
@@ -25,7 +26,7 @@ cost:
   usd: 0
   tokens: 0
 created: '2026-10-24T19:31:52Z'
-updated: '2026-10-25T02:34:27Z'
+updated: '2026-10-25T03:25:42Z'
 review_seen: '2026-10-25T02:34:27Z'
 ---
 ## Change
@@ -69,3 +70,4 @@ Upstream #368 review P2 x2 (eaglepurerocketgrape 2026-10-22 11:42). Head content
 - 2026-10-25T02:20:26Z gate -> contribute: observed
 - 2026-10-25T02:20:28Z run sq65 ended: ? turns, ? tokens, exit stopped:lingering: change at contribute
 - 2026-10-25T02:34:24Z contribute -> review: observed
+- 2026-10-25T03:25:42Z in train int-20261025-5: integration 442b396d2 pushed; gate, image and deploy pending
