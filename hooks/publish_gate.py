@@ -9,8 +9,8 @@ An upstream contribution is bound to a commit twice over:
     another commit or a missing record stops the run.
   - a direct `gh pr create` against upstream (OpenRune/*, or --head AlexPerrin:<branch>) is denied unless a change on
     that branch has QA's record at the commit the branch is at (fork/<branch> in the fork clone, else the local one).
-A client release (`git tag` / `gh release create` with a semver tag) needs qa/client-<version>.md with PASS at the
-tagged commit. Fork PRs are not gated. Commands run inside scripts are not visible to this hook; they still go through
+A client release (`git tag` / a GH release creation with a semver tag) needs a PASS record (qa/client-<version>.md or
+an evidence client-record.md) at the released commit (`--target`, else the tag's, else HEAD). Fork PRs are not gated. Commands run inside scripts are not visible to this hook; they still go through
 the ask rule (github_scope.py).
 """
 import json
@@ -40,26 +40,44 @@ def git(*args):
     return r.stdout if r.returncode == 0 else None
 
 
+def release_records(version):
+    """The release record files for a version: the client repo's qa/client-<version>.md, then every
+    client-record.md in the harness evidence tree."""
+    import glob
+    from hd import evidence_dir
+    return [os.path.join(ROOT, "qa", f"client-{version}.md"),
+            *sorted(glob.glob(os.path.join(evidence_dir(), "*", "client-record.md")))]
+
+
 def release_gate(cmd):
-    """Client release gate: tagging or `gh release create` with a semver tag vX.Y.Z[-pre] (https://semver.org;
-    the older client-v prefix too) needs qa/client-X.Y.Z[-pre].md with `## Verdict: **PASS**` for the commit
-    being tagged (the tag's, else HEAD)."""
+    """Client release gate: tagging or a GH release creation with a semver tag vX.Y.Z[-pre] (https://semver.org;
+    the older client-v prefix too) needs a record with `## Verdict: **PASS**` whose `- Commit:` names the commit
+    being released: qa/client-X.Y.Z[-pre].md in the client repo, or a client-record.md in the evidence tree. The
+    commit is `--target <sha>` / `--target=<sha>`, else the positional sha, else the tag's, else HEAD."""
     m = re.search(r"\b(?:git\s+tag|gh\s+release\s+create)\b(?:\s+-\S+)*\s+((?:client-)?v([0-9][0-9A-Za-z.\-+]*))(?:\s+([0-9a-f]{7,40}|HEAD|master))?", cmd)
     if not m:
         return
     tag, version, target = m.group(1), m.group(2), m.group(3)
+    flag = re.search(r"--target[=\s]+[\"']?([0-9a-f]{7,40}|HEAD|master)\b", cmd)
+    target = flag.group(1) if flag else target
     run = lambda *a: (subprocess.run(["git", "-C", ROOT, *a], capture_output=True, text=True).stdout or "").strip()
-    sha = run("rev-parse", "-q", "--verify", f"refs/tags/{tag}^{{commit}}") or run("rev-parse", target or "HEAD")
-    path = os.path.join(ROOT, "qa", f"client-{version}.md")
-    if not os.path.isfile(path):
-        deny(f"no release record qa/client-{version}.md; client-qa runs the release gate on {sha[:9]} first")
-    text = open(path).read()
-    commit = re.search(r"^- Commit: `([0-9a-f]{7,40})`", text, re.M)
-    verdict = re.search(r"^## Verdict: \*\*(PASS|FAIL)\*\*", text, re.M)
-    if not (commit and verdict and verdict.group(1) == "PASS" and sha.startswith(commit.group(1))):
-        deny(f"{tag} would tag {sha[:9]}, but qa/client-{version}.md says "
-             f"{verdict.group(1) if verdict else 'no verdict'} at {commit.group(1)[:9] if commit else 'no commit'}")
-    sys.exit(0)
+    sha = ((run("rev-parse", target) if target else "")
+           or run("rev-parse", "-q", "--verify", f"refs/tags/{tag}^{{commit}}") or run("rev-parse", "HEAD"))
+    seen = []
+    for path in release_records(version):
+        if not os.path.isfile(path):
+            continue
+        text = open(path).read()
+        commit = re.search(r"^- Commit: `([0-9a-f]{7,40})`", text, re.M)
+        verdict = re.search(r"^## Verdict: \*\*(PASS|FAIL)\*\*", text, re.M)
+        if commit and verdict and verdict.group(1) == "PASS" and sha.startswith(commit.group(1)):
+            sys.exit(0)
+        seen.append(f"{path} says {verdict.group(1) if verdict else 'no verdict'} at "
+                    f"{commit.group(1)[:9] if commit else 'no commit'}")
+    if not seen:
+        deny(f"no release record (qa/client-{version}.md or an evidence client-record.md); client-qa runs the "
+             f"release gate on {sha[:9]} first")
+    deny(f"{tag} would release {sha[:9]}, but no record passes it: " + "; ".join(seen))
 
 
 def main():
