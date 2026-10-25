@@ -54,7 +54,9 @@ The spec is `accuracy.md` in the change's evidence dir `~/osrs-harness/evidence/
 
 A passing check is what the PR template's "Matches the OSRS wiki" item means: nothing found differs from the official
 game. A difference is fixed, never recorded: no `docs/quirks.md` entries in our changes; one the server cannot fix is an
-`hd ask`.
+`hd ask`. A rule with no official data at all (the wiki names it but no cache, recording or transcript bounds it) is
+not a difference: implement the best reconstruction (an open reconstruction such as LostCity's tables, or the game's map)
+and name it in the PR notes as unsourced; it does not block the wiki item.
 
 ## Report
 Per rule: matches, diverges (with the evidence), or a guess. Then the caveats the PR must list.
