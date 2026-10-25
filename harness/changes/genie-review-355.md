@@ -4,7 +4,7 @@ track: server
 title: 'Genie #355: address maintainer review and our gate findings'
 prio: P0
 role: server-dev
-stage: contribute
+stage: review
 hold: null
 deps: []
 branch: content/genie
@@ -24,7 +24,8 @@ cost:
   usd: 0
   tokens: 0
 created: '2026-10-24T19:31:52Z'
-updated: '2026-10-25T02:22:22Z'
+updated: '2026-10-25T02:53:24Z'
+review_seen: '2026-10-25T02:53:24Z'
 ---
 ## Change
 Upstream #355 (draft) has two review findings from eaglepurerocketgrape (2026-10-22 11:42). Head content/genie 1d9b6fa49. Folds in the pending gate findings held on `genie`.
@@ -150,3 +151,4 @@ Upstream #355 (draft) has two review findings from eaglepurerocketgrape (2026-10
 - 2026-10-25T02:21:39Z QA aggregate PASS at 3b00b228b (0 finding(s)): all checks PASS at 3b00b228b: CI 40151994890, Formatting 40151996645, scope 3 files, no tests, text template verbatim
 - 2026-10-25T02:22:02Z run sq64 ended: ? turns, ? tokens, exit ok
 - 2026-10-25T02:22:22Z gate -> contribute: observed
+- 2026-10-25T02:53:15Z contribute -> review: observed
