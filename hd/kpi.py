@@ -1,4 +1,4 @@
-"""KPIs from the event log (PROBLEM.md BR-H6): nothing typed, everything derived.
+"""KPIs from the event log (PRD.md BR-H6): nothing typed, everything derived.
 
   compute(evs=None, since=None) -> dict:
     unattended_hours      wall time covered by ticks with no `note kind=user` event between them (the console

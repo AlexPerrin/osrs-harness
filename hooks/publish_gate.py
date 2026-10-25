@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PreToolUse hook (Bash), every session: the publish gate (skill server-track, docs/PROBLEM.md BR-A2, BR-A4). The
+"""PreToolUse hook (Bash), every session: the publish gate (skill server-track, docs/PRD.md BR-A2, BR-A4). The
 server track's rules are hd/tracks/server/hooks.py; this entry point parses the command and denies on its answer.
 
 An upstream contribution is bound to a commit twice over:
