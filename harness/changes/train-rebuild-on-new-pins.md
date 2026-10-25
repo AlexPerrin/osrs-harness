@@ -4,19 +4,25 @@ track: harness
 title: hd resume rebuilds the integration when the tools branch moved past the batch's pins (a gate-failure resolution that changes integration.txt or pins must take effect)
 prio: P0
 role: harness-dev
-stage: gate
+stage: live
 hold: null
 deps: []
 branch: harness/train-rebuild-on-new-pins
 commit: 1d3d4e8ed0ba3d531f9dd616ee7e3634a9459c03
 local_only: false
-owner: hd20
+owner: null
 evidence: /home/alex/osrs-plugins-reverse/re/evidence/train-rebuild-on-new-pins
 summary: resume re-runs the train from pinning when the tools branch head differs from the batch's tools commit (drops unlisted entries), else restarts the gate; 2 tests; 263 pass; nothing pruned
+live_commit: 1d3d4e8ed0ba3d531f9dd616ee7e3634a9459c03
 booked:
   dev: '|da39a3ee5e6b'
+cost:
+  runs: 1
+  turns: 0
+  tokens: 0
+  minutes: 0
 created: '2026-10-25T00:43:25Z'
-updated: '2026-10-25T00:45:33Z'
+updated: '2026-10-25T00:46:12Z'
 ---
 ## Change
 hd resume rebuilds the integration when the tools branch moved past the batch's pins (a gate-failure resolution that changes integration.txt or pins must take effect)
@@ -35,3 +41,5 @@ hd resume rebuilds the integration when the tools branch moved past the batch's 
 - 2026-10-25T00:45:09Z dev -> gate: hand-over recorded
 - 2026-10-25T00:45:09Z handover harness/train-rebuild-on-new-pins@1d3d4e8ed: resume re-runs the train from pinning when the tools branch head differs from the batch's tools commit (drops unlisted entries), else restarts the gate; 2 tests; 263 pass; nothing pruned
 - 2026-10-25T00:45:33Z ship: merged into main 6efb7d3
+- 2026-10-25T00:45:46Z run hd20 ended: ? turns, ? tokens, exit ok
+- 2026-10-25T00:46:12Z gate -> live: observed
