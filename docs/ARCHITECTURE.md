@@ -197,13 +197,47 @@ python3 -m unittest discover -s tests           # one test per requirement; a fa
 
 ```mermaid
 classDiagram
-  class Definition { slug; track; deps }
-  class Goal { target; measure }
-  class Change { kind; priority; pr; finding }
-  class Step { name; done(facts); actor; do() }
-  class Record { head; base; writer }
-  class Run { agent_id; role; change; head; def_hash; console_pid; ended; usage }
-  class Train { pid; heads; failed_step }
+  class Definition {
+    slug
+    track
+    deps
+  }
+  class Goal {
+    target
+    measure
+  }
+  class Change {
+    kind
+    priority
+    pr
+    finding
+  }
+  class Step {
+    name
+    done(facts)
+    actor
+    do()
+  }
+  class Record {
+    head
+    base
+    writer
+  }
+  class Run {
+    agent_id
+    role
+    change
+    head
+    def_hash
+    console_pid
+    ended
+    usage
+  }
+  class Train {
+    pid
+    heads
+    failed_step
+  }
   Definition <|-- Goal
   Definition <|-- Change
   Change "*" --> "*" Change : deps
