@@ -19,8 +19,9 @@ review-stage PRs carry gate, verdict and approval records at their PR head. Upst
 every handed-over server change reruns on a fresh scratch merge.
 
 ## Open decisions for the user
-- The six `fin/*` and `acc/*` fork branches not named by a change: drop or convert.
-- Hunter #408: the review-fix work continues as the v7 change `hunter-feat-pr`.
+- Eleven `fin/*` fork branches hold finished, test-server-live work never contributed (diaries, doric, fairy-rings,
+  farming, grand-exchange, jewellery, op-overrides, plank-sack, quest-test-fixture, rune-pouch, vampyre-slayer): the
+  source of the rebuilt backlog, one change per feature, after the open PRs settle.
 - The client API probe (`tools/api-probe.sh`, the measure of goal `client-api`) does not exist yet; the orchestrator's
   first change builds it.
 
