@@ -173,3 +173,9 @@ One short entry per issue, newest first: symptom, root cause, evidence, fix, how
 - **Root cause.** The gate read the target only as a positional sha and looked for the record only in the client repo's `qa/`; client-qa writes `client-record.md` in the evidence tree.
 - **Fix.** The gate takes `--target` and accepts a PASS record at the released commit from either place.
 - **Recognise.** A release denied "no release record" while `re/evidence/*/client-record.md` says PASS.
+
+## 2026-10-24 A draft upstream PR was denied for lack of a QA record
+- **Symptom.** Opening fork branch feat/hunter as an upstream draft was denied: no QA record at the commit.
+- **Root cause.** The gate required the record for every upstream PR creation; the user decides to open drafts unverified.
+- **Fix.** A `--draft` creation with an existing explicit `--head AlexPerrin:<branch>` skips the record check; non-draft creation, `hd contribute` and releases keep theirs.
+- **Recognise.** A draft denied "QA record missing" while the command carries `--draft` and `--head`.
