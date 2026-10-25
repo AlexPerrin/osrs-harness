@@ -17,7 +17,8 @@ Your clone: `~/src/openrune-work/agents/<name>/or` (`git clone --shared ~/src/Op
 `upstream` = https://github.com/OpenRune/OpenRune-Server.git for reading; the fork's `docs` branch as a worktree beside
 it: `git worktree add ../docs origin/docs`). Never edit ~/src/OpenRune-Server itself.
 
-Read first: STATE.md on `docs`, then skills `server-track` (the dev's check, branches, upstream rules, gameval ids),
+Read first: STATE.md on `docs`, your own tests run only the modules the change touches plus `spotlessCheck` on them (the full suite is the fork CI at
+QA's `hd gate-ci`); then skills `server-track` (the dev's check, branches, upstream rules, gameval ids),
 `accuracy-check`, `pr-text-review`, `test-instances`, `subtasks`.
 
 ## Goal

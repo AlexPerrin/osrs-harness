@@ -126,7 +126,8 @@ here.
 - **BR-S7 Gate scope.** The gate checks the exact commit merged with current upstream `main` in a scratch clone:
   accuracy against the spec, CI on a fork scratch branch, one change, upstream AGENTS.md and CONTRIBUTING, PR text,
   gameval ids, in game on its own client. Fork actions (scratch branches, fork PRs, docs branch, fork CI) are
-  part of the gate and need no approval.
+  part of the gate and need no approval. Dev and QA run locally only the tests of the touched modules plus
+  spotlessCheck on them; the full suite is the fork CI run, and the record's `Tests` line names both.
 - **BR-S8 Client done.** Commit on `master`: repack log with 7 `telemetry:` lines, device evidence (logcat or
   data-tool dump), a `netqa` record when networking changes; docs-only changes need no build evidence.
 

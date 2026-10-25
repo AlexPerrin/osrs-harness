@@ -244,7 +244,7 @@ class ServerTrack(BaseTrack):
                 "  2. accuracy against the spec and sources, formatting (spotless) of the scratch merge, scope (one change, no "
                 "stacking, no test file, no docs of ours), upstream AGENTS.md and CONTRIBUTING style (no added comments or "
                 "tests), the PR text, gameval ids, and the change in game on your own client.",
-                f"  3. write {ev}/gate.md (the role file has the format): the commit line, one `- accuracy|ci|format|scope|style|"
+                f"  3. write {ev}/gate.md (the role file has the format): the commit line, a `- Tests: <modules>; CI run <id>` line, one `- accuracy|ci|format|scope|style|"
                 "text|ingame: PASS|FAIL|N/A reason` line each, `## Gate: **PASS|FAIL**` (PASS only with no failed check), "
                 "`## Findings` listing all of them, evidence links.",
                 f"  4. `{HD} gate {slug} PASS|FAIL \"note\"`: it checks the record against the commit and the CI result. "

@@ -168,6 +168,10 @@ class GateRecordTest(unittest.TestCase):
     def test_every_check_is_named_and_the_verdict_matches(self):
         text = H.gate_text(SHA).replace("- ingame: PASS\n", "")
         self.assertTrue(any("ingame" in p for p in qa.record_problems(text, SHA, "PASS", {"commit": SHA, "result": "success"})))
+        no_tests = H.gate_text(SHA).replace("- Tests: server:app; CI run 123\n", "")
+        self.assertTrue(any("Tests" in p for p in qa.record_problems(no_tests, SHA, "PASS", {"commit": SHA, "result": "success"})))
+        self.assertTrue(any("Tests" in p for p in qa.record_problems(no_tests, SHA, "FAIL")))
+        self.assertEqual(qa.parse_record(H.gate_text(SHA))["tests"], "server:app; CI run 123")
         self.assertTrue(any("verdict line" in p for p in qa.record_problems(H.gate_text(SHA), SHA, "FAIL")))
         self.assertTrue(any("no gate record" in p for p in qa.record_problems("", SHA, "PASS")))
 

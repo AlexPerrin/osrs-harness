@@ -6,6 +6,9 @@ context: fork
 # Build and test
 
 ## Server branch: CI first (GitHub Actions on the fork)
+Dev and QA run locally only the tests of the modules the change touches plus `spotlessCheck` on them (`qa.sh dev`
+below, or `./gradlew :<module>:test :<module>:integration spotlessCheck` there); the full unit and integration suite is
+the fork CI on the scratch merge (`hd gate-ci`).
 For a branch based on upstream `main` (every `content/*`/`fix/*` for upstream), the build-and-test evidence comes from
 the fork's GitHub Actions `CI` (upstream's own `.github/workflows/ci.yml`: freshCache, buildCache, generateRsa,
 `assemble test integration`, boot to ready; plus `Formatting` = spotlessCheck and `Gameval Conflict Check`). It runs in parallel on GitHub's runners (free for the public fork), so it doesn't use a local
@@ -18,11 +21,11 @@ build slot.
   background command. Record the run URL, head sha and conclusion; a run at another sha doesn't count.
 - If CI is red for an infrastructure reason (runner, network, cache download), rerun it once; if it still fails,
   use the local gate below and say why.
-- Local `qa.sh gate` is still the gate for `integration` and the live image (they need our patched RSProt,
+- Local `qa.sh gate` is for the live image (it needs our patched RSProt,
   `.m2-rsprot`, and the image's fix scripts), and the fallback when Actions is unavailable. `qa.sh gate-run` builds the
   branch server for in-game checks (CI doesn't keep a runnable server).
 
-## Server branch: the local gate
+## Server branch: the local gate (only where the fork CI cannot run)
 The branch gate (STATE.md on the fork's `docs` branch, "Build, test, deploy"; QA.md section 1). The QA helper is
 `openrune/upstream/qa/qa.sh`: `clone <slug> <commit> main`, then `gate <clone>`.
 - A fresh `git clone --shared` at the commit (one clone per gate: a shared tree leaks outputs). Copy

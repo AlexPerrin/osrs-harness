@@ -65,7 +65,8 @@ The dev owns accuracy and the build:
    client's repro is part of the spec.
 2. Build on `content/<slug>` or `fix/<slug>` off `upstream/main`, in the dev's clone; commit locally. Tests only as
    above. Push the branch to the fork when the test server should run it.
-3. Verify: skill `build-test` (`qa.sh dev <name> <clone>` in the warm container), behaviour against the spec,
+3. Verify: skill `build-test` (`qa.sh dev <name> <clone>` in the warm container: the touched modules' tests and
+   `spotlessCheck` on them, not the full suite), behaviour against the spec,
    `ab-test` on desktop RuneLite where it renders.
 4. Self-check the diff against upstream AGENTS.md and CONTRIBUTING (no added comments, no tests unless justified) and
    write the PR text (`pr-title.txt`, `pr-body.md`, skill `pr-text-review`) in the evidence dir.
@@ -77,6 +78,8 @@ A new commit voids QA's record and the approval; the branch stays in `integratio
 Independent check of the exact commit; the dev's runs are evidence, QA's count. Every check gets a PASS, FAIL or N/A line
 and every finding is listed at once; the result goes on the user's approval card.
 - **accuracy**: `accuracy-check` against the spec and sources re-read through `osrs-mcp`, including the RSProx comparison.
+- **tests**: the `Tests` line: the modules whose tests QA ran (the touched ones plus `spotlessCheck` on them) and the
+  fork CI run id covering the full suite; never a local full `qa.sh gate` unless the fork CI cannot run.
 - **ci**: `hd gate-ci <slug>`: the commit merged with current upstream `main` in a scratch clone (read from the dev's
   clone, no push needed), pushed to the fork's `gate/<slug>`, CI dispatched there and observed.
 - **format**: spotless on the scratch merge.
@@ -96,6 +99,7 @@ and every finding is listed at once; the result goes on the user's approval card
 # Gate: <branch>
 - Branch: `<branch>`
 - Commit: `<full sha>`
+- Tests: <modules whose tests ran>; CI run <id covering the full suite>
 ## Gate: **PASS**     (or **FAIL**; PASS only with no failed check and no finding)
 ## Checks
 - accuracy|ci|format|scope|style|text|ingame: PASS|FAIL|N/A <reason or evidence link>   (one line each)
