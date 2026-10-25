@@ -4,7 +4,7 @@ track: harness
 title: 'BlueStacks is open: any agent opens its own BlueStacks or RuneLite instance at any time; the device capacity class is permissive'
 prio: P1
 role: harness-dev
-stage: gate
+stage: live
 hold: null
 deps: []
 branch: main
@@ -13,6 +13,7 @@ local_only: false
 owner: null
 evidence: /home/alex/osrs-harness/docs
 summary: 'Merged into main: device capacity 2; per-agent BlueStacks and RuneLite instances.'
+live_commit: 524cf23e4f9971158458b3cd81d6ea360cba1f65
 booked:
   dev: '|da39a3ee5e6b'
 cost:
@@ -21,7 +22,7 @@ cost:
   tokens: 0
   minutes: 0
 created: '2026-10-25T02:18:02Z'
-updated: '2026-10-25T02:20:19Z'
+updated: '2026-10-25T02:21:17Z'
 ---
 ## Change
 BlueStacks is open: any agent opens its own BlueStacks or RuneLite instance at any time; the device capacity class is permissive
@@ -40,3 +41,4 @@ BlueStacks is open: any agent opens its own BlueStacks or RuneLite instance at a
 - 2026-10-25T02:20:01Z run hd27 ended: ? turns, ? tokens, exit ok
 - 2026-10-25T02:20:19Z dev -> gate: hand-over recorded
 - 2026-10-25T02:20:19Z handover main@524cf23e4: Merged into main: device capacity 2; per-agent BlueStacks and RuneLite instances.
+- 2026-10-25T02:21:17Z gate -> live: observed
