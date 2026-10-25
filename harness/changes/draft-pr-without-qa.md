@@ -5,7 +5,10 @@ title: 'publish_gate: an upstream draft PR may open without a QA record (the use
 prio: P0
 role: harness-dev
 stage: ready
-hold: null
+hold:
+  kind: decision
+  reason: 'needs you: a dev run was already booked for exactly this head (none) and these findings; booking another would repeat it'
+  since: '2026-10-25T02:59:27Z'
 deps: []
 branch: null
 commit: null
@@ -19,7 +22,7 @@ cost:
   tokens: 0
   minutes: 0
 created: '2026-10-25T02:56:16Z'
-updated: '2026-10-25T02:58:25Z'
+updated: '2026-10-25T02:59:27Z'
 ---
 ## Change
 publish_gate: an upstream draft PR may open without a QA record (the user's unverified-draft decision); non-draft and contribute keep the record requirement
@@ -36,3 +39,4 @@ publish_gate: an upstream draft PR may open without a QA record (the user's unve
 - 2026-10-25T02:57:46Z dod ticked: 1, 2
 - 2026-10-25T02:57:57Z run hd30 ended: ? turns, ? tokens, exit ok
 - 2026-10-25T02:58:25Z dev -> ready: run hd30 ended without a hand-over
+- 2026-10-25T02:59:27Z hold decision: needs you: a dev run was already booked for exactly this head (none) and these findings; booking another would repeat it
