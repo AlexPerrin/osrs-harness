@@ -102,9 +102,9 @@ The core knows three step kinds and reads the lists below; only the server list 
 | `queue` | `live.json.integration` contains `head` | **script**: pin on the tools branch, start `train.sh` when none is alive; a failed train: the **integrator** |
 | `review` | a valid verdict with `pass` | **agent** reviewer; `pass` false at this head: the **dev**, with the findings |
 | `approve` | `approval.json.head == head` | **user**: a card with head, verdict, texts and the command |
-| `push`, `pr`, `comment`, `ready` | the fact on GitHub at `head` | **script**, one per pass |
+| `push`, `pr`, `comment`, `ready` | the fact on GitHub at `head`; `comment` holds when nobody else has commented or a comment of ours names `head` | **script**, one per pass; the dev when the PR text the step posts is missing in the evidence dir |
 | `ci` | the PR's checks green at `head` | **wait**; failed: the **dev** |
-| `merged` | upstream `main` contains `head` | **wait**; a maintainer finding newer than the approval files a P0 change on the same `pr` |
+| `merged` | the PR is merged or upstream `main` contains `head` | **wait**; a maintainer finding newer than the approval files a P0 change on the same `pr` |
 | `release` | the release `version` exists | **script**: `gh release create` with the APK from the evidence dir |
 | `measure` | an open change serves the goal, or `measure.json` is bound to the track's live tip with `value ≥ target` | **agent** orchestrator |
 
@@ -131,7 +131,7 @@ are fewer than the agent count. The brief's first line carries the input: ``Harn
 |---|---|---|---|
 | Dev ref | `origin/client/<slug>` | fork `dev/<slug>` | local `harness/<slug>` |
 | Base | `origin/main` (checkout branch `master`) | upstream `main` (`origin/main` of the fork clone) | `main` |
-| Gate | repack log (seven telemetry lines), device evidence, Network QA report when `network` | spec and PR texts present; scratch merge with upstream `main` on `gate/<slug>`; fork CI and Formatting green there; added tests and comments listed for the reviewer | the test suite at `head` in a throwaway worktree |
+| Gate | repack log (seven telemetry lines), device evidence, Network QA report when `network` | accuracy spec present; scratch merge with upstream `main` on `gate/<slug>`; fork CI and Formatting green there; added tests and comments listed for the reviewer | the test suite at `head` in a throwaway worktree |
 | Reviewer | `client-qa` (release only) | `server-qa` | none |
 | Ship | merge into `master`, push `origin/main` | `train.sh`; publish steps to `content/<slug>` or `fix/<slug>` after approval | merge into `main`, push |
 

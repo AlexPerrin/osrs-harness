@@ -2,6 +2,20 @@
 
 One short entry per issue, newest first: symptom, root cause, evidence, fix, how to recognise it again.
 
+## 2026-10-25 First v7 pass on the live system (all fixed the same day)
+
+- **A squash-merged PR never counted as done.** `done` checked ancestry only; #368 and #406 stayed at `gate`. Fix: the
+  PR's merged state counts too. Recognise: a merged PR whose change still lists a step.
+- **The gate failed every migrated change on PR texts.** The gate required `pr-title.txt`, `pr-body.md`, `pr-comment.md`;
+  v6 evidence rarely had them, so ten changes went back to a dev to add a file. Fix: the gate checks the accuracy spec and
+  CI; `pr` and `comment` check the text they post and become the dev's step when it is missing; a comment is not owed
+  when nobody else has commented or ours names the head.
+- **The gate script crashed with `ok` unbound** after that edit removed its initialisation. Fix: `ok, pending = True, False`.
+- **Migrated approvals were dated at the migration**, so a maintainer comment made before it was not a finding. Fix: the
+  three approvals dated at the v6 push; the finding on #355 was then filed.
+- **A pending gate rewrote its record every pass** (one record event per minute). Fix: saved only when it changed.
+- **Refusals printed an empty sha** for a change whose ref does not exist. Fix: "nothing".
+
 ## 2026-10-25 Audit of the v6 code: open defects (v7 inputs)
 
 Found by reading the code; none reproduced live. Fixed ones say so.
