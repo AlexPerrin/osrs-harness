@@ -86,7 +86,10 @@ def live(ctx, ch):
 def done(ctx, ch):
     if ch["track"] == "server" and ch.get("kind") == "change":
         h = head(ctx, ch)
-        return h and ctx.F.contains(ctx.repo(ch), ctx.track(ch)["base"], h)
+        if not h:
+            return h
+        pr = _pr(ctx, ch)
+        return bool(pr) and pr["state"] == "merged" or ctx.F.contains(ctx.repo(ch), ctx.track(ch)["base"], h)
     return live(ctx, ch)
 
 
@@ -278,6 +281,11 @@ def _texts(ch):
     return out
 
 
+def _pr_actor(ctx, ch):
+    t = _texts(ch)
+    return "script" if t["title"] and t["body"] else _dev(ctx, ch)
+
+
 def _open_pr(ctx, ch):
     t = _texts(ch)
     if not (t["title"] and t["body"]):
@@ -311,9 +319,19 @@ def _comments(ctx, ch):
 
 
 def _comment_done(ctx, ch):
+    """Done when nobody but us has commented (nothing to update), or one of our comments names the head."""
     cs = _comments(ctx, ch)
-    marks = (MARK.format(head(ctx, ch)[:12]), f"<!-- hd-contribute:{head(ctx, ch)[:12]} -->")   # shortcut: v6's marker, drop when every v6 PR is merged
-    return None if cs is None else any(m in c["body"] for c in cs for m in marks)
+    if cs is None:
+        return None
+    h, owner = head(ctx, ch), ctx.cfg["repos"]["fork"].split("/")[0].lower()
+    ours = [c["body"] for c in cs if c["author"].lower() == owner]
+    others = [c for c in cs if c["author"].lower() != owner and not c["author"].endswith("[bot]")]
+    marks = (MARK.format(h[:12]), f"<!-- hd-contribute:{h[:12]} -->", h[:9])   # v6 wrote the sha in prose
+    return not others or any(m in body for body in ours for m in marks)
+
+
+def _comment_actor(ctx, ch):
+    return "script" if _texts(ch)["comment"] else _dev(ctx, ch)
 
 
 def _comment(ctx, ch):
@@ -383,9 +401,9 @@ QUEUE = Step("queue", live, _queue_actor, _queue)
 REVIEW = Step("review", _review_done, _review_actor)
 APPROVE = Step("approve", _approve_done, "user")
 PUSH = Step("push", _pushed, "script", _push)
-PR = Step("pr", _pr_done, "script", _open_pr)
+PR = Step("pr", _pr_done, _pr_actor, _open_pr)
 CI = Step("ci", _ci_done, _ci_actor)
-COMMENT = Step("comment", _comment_done, "script", _comment)
+COMMENT = Step("comment", _comment_done, _comment_actor, _comment)
 READY = Step("ready", _ready_done, "script", _ready)
 MERGED = Step("merged", _merged_done, WAIT)
 RELEASE = Step("release", _release_done, "script", _release)
@@ -534,6 +552,9 @@ def brief(ctx, ch, step, name):
         lines += ["## The review failed at this head"] + [f"- {f}" for f in v.get("findings") or []] + [""]
     if step is CI and role == _dev(ctx, ch):
         lines += ["## Upstream CI failed at this head", f"PR #{(_pr(ctx, ch) or {}).get('number')}", ""]
+    if step in (PR, COMMENT) and role == _dev(ctx, ch):
+        lines += ["## Missing PR text in the evidence dir",
+                  "pr-title.txt and pr-body.md" if step is PR else "pr-comment.md: what changed for the maintainers since their last look", ""]
     if step is QUEUE:
         t = train_state()
         lines += [f"## The train failed at `{t.get('failed_step')}` (tools {str(t.get('tools'))[:9]})", t.get("detail", ""), ""]
@@ -542,6 +563,8 @@ def brief(ctx, ch, step, name):
             QUEUE: "a resolution pushed to fork local/integration-tools (a recorded rr-cache or a dropped branch, with `hd ask` on it)"}
     if step in (GATE, CI):
         owed[step] = f"a new commit on the dev ref, then hd handover {ch['slug']} <sha>"
+    if step in (PR, COMMENT):
+        owed[step] = f"the PR text in the evidence dir, then hd handover {ch['slug']} {h}"
     lines += [f"## You owe\n{owed.get(step, 'the record of your role')}; or `hd ask {ch['slug']} \"<question>\"` when you cannot."]
     return "\n".join(lines)
 

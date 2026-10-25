@@ -85,8 +85,9 @@ class R2Flow(Sandbox):
         F.f["prs"] = {"content/s": {"number": 7, "state": "open", "draft": True, "head": A, "merged": False, "branch": "content/s"}}
         self.assertIn(("s", "ci", "wait"), names(self.ctx(F)))
         F.f["checks"] = {(7, A): "success"}
+        F.f["comments"] = {7: [{"id": "m", "author": "maint", "body": "please", "at": "t", "kind": "comment"}]}
         self.assertIn(("s", "comment", "script"), names(self.ctx(F)))
-        F.f["comments"] = {7: [{"id": "x", "author": "alexperrin", "body": steps.MARK.format(A[:12]), "at": "t", "kind": "comment"}]}
+        F.f["comments"][7].append({"id": "x", "author": "alexperrin", "body": steps.MARK.format(A[:12]), "at": "t", "kind": "comment"})
         self.assertIn(("s", "ready", "script"), names(self.ctx(F)))
         F.f["prs"]["content/s"]["draft"] = False
         self.assertIn(("s", "merged", "wait"), names(self.ctx(F)))
@@ -265,6 +266,29 @@ class R7Visibility(Sandbox):
 
 
 class ServerTrack(Sandbox):
+    def test_a_squash_merged_pr_is_done(self):
+        self.change("s", track="server")
+        F = Fake(refs={"fork/dev/s": A, "origin/main": B},
+                 prs={"content/s": {"number": 7, "state": "merged", "draft": False, "head": A, "merged": True, "branch": "content/s"}})
+        self.assertTrue(steps.done(self.ctx(F), self.ctx(F).by_slug["s"]))
+
+    def test_pr_texts_are_the_publish_steps_concern(self):
+        self.change("s", track="server")
+        for k, d in (("handover", {"evidence": "e"}), ("gate", {"ok": True, "detail": ""}), ("verdict", {"pass": True, "findings": []})):
+            self.store.save_record("s", k, {"head": A, "base": B, **d})
+        self.store.save_record("s", "approval", {"head": A})
+        F = Fake(refs={"fork/dev/s": A, "origin/main": B, "fork/content/s": A, "fork/local/integration-tools": D}, anc={(A, A)})
+        self.assertIn(("s", "pr", "server-dev"), names(self.ctx(F)))          # no pr-title.txt or pr-body.md: the dev's step
+        self.evidence("s", "pr-title.txt", "pr-body.md")
+        self.assertIn(("s", "pr", "script"), names(self.ctx(F)))
+        F.f["prs"] = {"content/s": {"number": 7, "state": "open", "draft": True, "head": A, "merged": False, "branch": "content/s"}}
+        F.f["checks"] = {(7, A): "success"}
+        self.assertIn(("s", "ready", "script"), names(self.ctx(F)))          # nobody to update yet
+        F.f["comments"] = {7: [{"id": "m", "author": "maint", "body": "x", "at": "t", "kind": "comment"}]}
+        self.assertIn(("s", "comment", "server-dev"), names(self.ctx(F)))    # a maintainer spoke, no pr-comment.md
+        F.f["comments"][7].append({"id": "o", "author": "alexperrin", "body": f"Pushed `{A[:9]}`", "at": "t", "kind": "comment"})
+        self.assertIn(("s", "ready", "script"), names(self.ctx(F)))          # our comment names the commit
+
     def test_list_and_pins(self):
         text = "# Upstream fixes\nfix/a\n# Content\ncontent/b\n# Local only\nlocal/c\n"
         self.assertEqual(server.listed(text, "dev/x", "# Content"), "# Upstream fixes\nfix/a\n# Content\ncontent/b\ndev/x\n# Local only\nlocal/c\n")

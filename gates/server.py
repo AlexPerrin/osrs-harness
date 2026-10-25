@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """The server gate (ARCHITECTURE 4): gates/server.py <slug> <head> <base> <evidence>. Exit 0 ok, 1 fail, 2 pending.
 
-  1. the evidence dir holds the accuracy spec (accuracy*.md) and, unless the change is `local`, pr-title.txt,
-     pr-body.md and pr-comment.md
+  1. the evidence dir holds the accuracy spec (accuracy*.md); the PR texts are the publish steps' concern
   2. the scratch merge <head> + upstream main (<base>) in state/gates/<slug>/or, pushed to the fork's gate/<slug>; the
      merge commit on the fork with those two parents is reused
   3. the net diff scanned: added test files and comment lines are printed for the reviewer
@@ -60,13 +59,8 @@ def scratch_clone(cfg, slug):
 def main(slug, head, base, ev):
     cfg = store.config()
     ch = next((c for c in store.changes() if c["slug"] == slug), {})
-    ok = True
-    for pat, need in (("accuracy*.md", True), ("pr-title.txt", ch.get("kind") != "local"),
-                      ("pr-body.md", ch.get("kind") != "local"), ("pr-comment.md", ch.get("kind") != "local")):
-        if need and not glob.glob(os.path.join(ev, pat)):
-            ok = False
-            print(f"missing {pat} in the evidence dir")
-    if not ok:
+    if not glob.glob(os.path.join(ev, "accuracy*.md")):
+        print("missing accuracy*.md in the evidence dir")
         return 1
     branch = f"gate/{slug}"
     path = scratch_clone(cfg, slug)
