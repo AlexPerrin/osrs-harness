@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
-# tools/harness/image.sh <gated-clone> <batch>: the deploy image of a gated integration commit (BR-B1), from the
+# train/image.sh <gated-clone> <sha>: the deploy image of a gated integration commit (ARCHITECTURE 7), from the
 # gate's installDist output and data; the login key only ever comes from the live image.
-#   1. preconditions: <clone>.logs/summary ends rc=0; the batch record harness/state/batches/<batch>.json names
-#      the integration sha (= HEAD of the clone when it is a git checkout)
+#   1. preconditions: <clone>.logs/summary ends rc=0; <sha> is HEAD of the clone when it is a git checkout
 #   2. exit 3 if <clone>/.data/rsa.properties exists (the live key never enters a clone); stage
 #      <server work>/image-<sha7>/: server/ = <clone>/server/app/build/install/app, data/ = <clone>/.data without
 #      game.key (the gate's throwaway key) and postgres/; exit 3 if a key file survives the staging
@@ -15,15 +14,14 @@
 #   6. private boot check: container hd-boot-<sha7>, no published port, tmpfs postgres, "Server ready in", or exit 5
 #      when the container exits first; the container is removed on every exit path (trap)
 #   7. record harness/state/images/<sha7>.json {integration, image, image_id, live_image_id, key_hash, boot,
-#      seconds, ready_line, batch}
+#      seconds, ready_line}
 # Env: HD_STATE_DIR (harness/state), DOCKER or HD_DOCKER (the docker command: tests), HD_CACHE_SCRIPTS (the fix
 # scripts' dir), HD_IMAGE_ROOT (the context dir's parent, ~/src/openrune-work), HD_POLL_SECONDS,
 # HD_LIVE_CONTAINER (osrs-openrune).
 # Exit: 0 ok, 2 usage or precondition, 3 a key file is present, 4 key hash mismatch, 5 build or boot failed.
 set -euo pipefail
 HD_HOME=$(cd "$(dirname "$0")/.." && pwd)   # the harness repo
-ROOT=${HD_CLIENT_ROOT:-$HOME/osrs-plugins-reverse}   # the client checkout
-STATE=${HD_STATE_DIR:-$ROOT/harness/state}
+STATE=${HD_STATE_DIR:-$HD_HOME/harness/state}
 DOCKER=${DOCKER:-${HD_DOCKER:-docker}}
 SCRIPTS=${HD_CACHE_SCRIPTS:-${HD_SERVER_TOOLS:-${HD_SERVER_HOME:-$HOME/src}/openrune-work/server-tools}/scripts}
 CTX_ROOT=${HD_IMAGE_ROOT:-${HD_SERVER_HOME:-$HOME/src}/openrune-work}
@@ -31,8 +29,8 @@ POLL=${HD_POLL_SECONDS:-5}
 LIVE=${HD_LIVE_CONTAINER:-osrs-openrune}
 TEMPLATE=$(dirname "$0")/Dockerfile.integration
 
-clone=${1:?usage: image.sh <gated-clone> <batch>}
-batch=${2:?usage: image.sh <gated-clone> <batch>}
+clone=${1:?usage: image.sh <gated-clone> <sha>}
+sha=${2:?usage: image.sh <gated-clone> <sha>}
 die() { echo "image: $*" >&2; exit "${2:-2}"; }
 
 # 1. preconditions
@@ -40,13 +38,9 @@ die() { echo "image: $*" >&2; exit "${2:-2}"; }
 summary=$clone.logs/summary
 [ -f "$summary" ] || die "no gate summary $summary"
 grep -q 'rc=0$' "$summary" || die "the gate of $clone did not pass ($(tail -n1 "$summary"))"
-rec=$STATE/batches/$batch.json
-[ -f "$rec" ] || die "no batch record $rec"
-sha=$(python3 -I -c 'import json,sys; print(json.load(open(sys.argv[1])).get("integration") or "")' "$rec")
-[ -n "$sha" ] || die "batch $batch has no integration sha"
 if [ -e "$clone/.git" ]; then
     head=$(git -C "$clone" rev-parse HEAD)
-    [ "$head" = "$sha" ] || die "clone HEAD $head is not the batch's integration $sha"
+    [ "$head" = "$sha" ] || die "clone HEAD $head is not $sha"
 fi
 sha7=${sha:0:7}
 tag=osrs-openrune:integration-$sha7
@@ -117,11 +111,11 @@ echo "boot: ok ($ready)"
 # 7. the record
 seconds=$(( $(date +%s) - t0 ))
 mkdir -p "$STATE/images"
-python3 -I - "$STATE/images/$sha7.json" "$sha" "$tag" "$image_id" "$live_id" "$seconds" "$ready" "$batch" <<'EOF'
+python3 -I - "$STATE/images/$sha7.json" "$sha" "$tag" "$image_id" "$live_id" "$seconds" "$ready" <<'EOF'
 import json, sys
-p, sha, tag, image_id, live_id, seconds, ready, batch = sys.argv[1:9]
+p, sha, tag, image_id, live_id, seconds, ready = sys.argv[1:8]
 rec = {"integration": sha, "image": tag, "image_id": image_id, "live_image_id": live_id, "key_hash": "match",
-       "boot": "ok", "seconds": int(seconds), "ready_line": ready.strip(), "batch": batch}
+       "boot": "ok", "seconds": int(seconds), "ready_line": ready.strip()}
 with open(p, "w") as f:
     json.dump(rec, f, indent=1, sort_keys=True)
     f.write("\n")

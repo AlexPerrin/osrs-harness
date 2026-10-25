@@ -1,38 +1,30 @@
 #!/usr/bin/env bash
-# tools/harness/deploy.sh <batch>: deploy a train's image to the live test server (BR-B3), the daemon's step only.
-#   1. harness/state/batches/<batch>.json names the integration sha; harness/state/images/<sha7>.json must say
-#      key_hash match and boot ok (image.sh)
-#   2. refuses (exit 75) unless `live-server` is locked by harnessd (harness/state/leases/live-server.json holder):
-#      the tick takes it first
+# train/deploy.sh <sha>: deploy the train's image to the live test server (ARCHITECTURE 7), the train's step only.
+#   1. harness/state/images/<sha7>.json must say key_hash match and boot ok (image.sh)
 #   3. rollback tag first: osrs-openrune:241 -> osrs-openrune:rollback-<live sha7> (live.json's integration, else
 #      the live image id); then the new image -> osrs-openrune:241
 #   4. `docker compose --env-file switch.env up -d --no-deps openrune` in server-tools/, never --build
 #   5. waits for "Server ready in" in the live container's log since the start; when the container exits first the
 #      rollback tag goes back to :241 and compose up runs again: result rollback, exit 1
-#   6. record harness/state/deploys/<batch>.json {result: ok|rollback, image, rollback_tag, seconds, ready_line}
+#   6. record harness/state/deploys/<sha7>.json {result: ok|rollback, image, rollback_tag, seconds, ready_line, since}
 # Never prints or copies a key file. Env: HD_STATE_DIR, DOCKER or HD_DOCKER (tests), HD_OPENRUNE_DIR (openrune/),
 # HD_POLL_SECONDS, HD_LIVE_CONTAINER (osrs-openrune),
 # HD_LIVE_TAG (osrs-openrune:241).
-# Exit: 0 deployed, 1 rolled back, 2 precondition, 75 the live-server lock is not held.
+# Exit: 0 deployed, 1 rolled back, 2 precondition.
 set -euo pipefail
 HD_HOME=$(cd "$(dirname "$0")/.." && pwd)   # the harness repo
-ROOT=${HD_CLIENT_ROOT:-$HOME/osrs-plugins-reverse}   # the client checkout
-STATE=${HD_STATE_DIR:-$ROOT/harness/state}
+STATE=${HD_STATE_DIR:-$HD_HOME/harness/state}
 DOCKER=${DOCKER:-${HD_DOCKER:-docker}}
 OPENRUNE=${HD_OPENRUNE_DIR:-${HD_SERVER_TOOLS:-${HD_SERVER_HOME:-$HOME/src}/openrune-work/server-tools}}   # the compose dir (project name osrs-openrune is set in the file)
 POLL=${HD_POLL_SECONDS:-5}
 LIVE=${HD_LIVE_CONTAINER:-osrs-openrune}
 LIVE_TAG=${HD_LIVE_TAG:-osrs-openrune:241}
 
-batch=${1:?usage: deploy.sh <batch>}
+sha=${1:?usage: deploy.sh <sha>}
 die() { echo "deploy: $*" >&2; exit "${2:-2}"; }
 jget() { python3 -I -c 'import json,sys; print(json.load(open(sys.argv[1])).get(sys.argv[2]) or "")' "$1" "$2"; }
 
 # 1. the image record
-rec=$STATE/batches/$batch.json
-[ -f "$rec" ] || die "no batch record $rec"
-sha=$(jget "$rec" integration)
-[ -n "$sha" ] || die "batch $batch has no integration sha"
 sha7=${sha:0:7}
 img=$STATE/images/$sha7.json
 [ -f "$img" ] || die "no image record $img (run image.sh first)"
@@ -40,14 +32,6 @@ img=$STATE/images/$sha7.json
 [ "$(jget "$img" boot)" = ok ] || die "image record $img: boot check not ok"
 tag=$(jget "$img" image)
 [ -n "$tag" ] || die "image record $img names no image"
-
-# 2. the live-server lock, held by harnessd
-holder=$(python3 -I -c 'import json,sys
-try:
-    print(json.load(open(sys.argv[1])).get("holder") or "")
-except (OSError, ValueError):
-    print("")' "$STATE/leases/live-server.json")
-[ "$holder" = harnessd ] || die "live-server is not locked by harnessd (the tick takes it first)" 75
 
 # 3. rollback tag first
 live_sha=$(jget "$STATE/live.json" integration 2>/dev/null || true)
@@ -61,12 +45,12 @@ t0=$(date +%s)
 start=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 mkdir -p "$STATE/deploys"
 record() {
-    python3 -I - "$STATE/deploys/$batch.json" "$1" "$tag" "$rb" "$(( $(date +%s) - t0 ))" "$2" "$sha" <<'EOF'
+    python3 -I - "$STATE/deploys/$sha7.json" "$1" "$tag" "$rb" "$(( $(date +%s) - t0 ))" "$2" "$sha" "$start" <<'EOF'
 import json, sys
-p, result, image, rb, seconds, line, sha = sys.argv[1:8]
+p, result, image, rb, seconds, line, sha, since = sys.argv[1:9]
 with open(p, "w") as f:
     json.dump({"result": result, "image": image, "rollback_tag": rb, "seconds": int(seconds),
-               "ready_line": line.strip(), "integration": sha}, f, indent=1, sort_keys=True)
+               "ready_line": line.strip(), "integration": sha, "since": since}, f, indent=1, sort_keys=True)
     f.write("\n")
 EOF
 }

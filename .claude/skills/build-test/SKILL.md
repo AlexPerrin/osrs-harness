@@ -8,7 +8,7 @@ context: fork
 ## Server branch: CI first (GitHub Actions on the fork)
 Dev and QA run locally only the tests of the modules the change touches plus `spotlessCheck` on them (`qa.sh dev`
 below, or `./gradlew :<module>:test :<module>:integration spotlessCheck` there); the full unit and integration suite is
-the fork CI on the scratch merge (`hd gate-ci`).
+the fork CI on the scratch merge (the gate).
 For a branch based on upstream `main` (every `content/*`/`fix/*` for upstream), the build-and-test evidence comes from
 the fork's GitHub Actions `CI` (upstream's own `.github/workflows/ci.yml`: freshCache, buildCache, generateRsa,
 `assemble test integration`, boot to ready; plus `Formatting` = spotlessCheck and `Gameval Conflict Check`). It runs in parallel on GitHub's runners (free for the public fork), so it doesn't use a local

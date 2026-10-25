@@ -1,16 +1,16 @@
-# hd configuration: repos, roles, capacity. Read by hd and the hooks.
-repos:
-  client: AlexPerrin/osrs-plugins-reverse
-  fork: AlexPerrin/OpenRune-Server
-  harness: AlexPerrin/osrs-harness
-  upstream: OpenRune/OpenRune-Server
-
-roles:                       # record: what a run owes before it may stop; uses: capacity classes held while alive
-  client-dev:  {track: client,  record: handover,   uses: [agent, device, build], worktree: true,  push: {client: ["client/<slug>"]}}
-  client-qa:   {track: client,  record: verdict,    uses: [agent, client, build], worktree: true}
-  server-dev:  {track: server,  record: handover,   uses: [agent, build],         push: {fork: ["dev/<slug>"]}, gh: [fork]}
-  server-qa:   {track: server,  record: verdict,    uses: [agent, client, build], push: {fork: ["gate/*", "docs"]}, gh: [fork]}
-  integrator:  {track: server,  record: resolution, uses: [agent, build],         push: {fork: ["local/server-tools", "local/integration-tools"]}}
-  harness-dev: {track: harness, record: handover,   uses: [agent],                worktree: true}
-
-capacity: {agent: 3, build: 2, image: 1, client: 2, device: 2}
+# hd: repos, paths, the tracks, the roles (the guard's refs and the record each owes), the agent count.
+repos: {client: AlexPerrin/osrs-plugins-reverse, fork: AlexPerrin/OpenRune-Server, upstream: OpenRune/OpenRune-Server, harness: AlexPerrin/osrs-harness}
+paths: {client: ~/osrs-plugins-reverse, fork: ~/src/OpenRune-Server, work: ~/src/openrune-work}
+tracks:                        # head: the dev ref; base: what a change is checked against and merged into
+  client:  {dev: client-dev,  reviewer: client-qa, head: origin/client/<slug>, base: origin/main, remote: origin, checkout_branch: master}
+  server:  {dev: server-dev,  reviewer: server-qa, head: fork/dev/<slug>,      base: origin/main}
+  harness: {dev: harness-dev,                      head: harness/<slug>,       base: main,        remote: origin}
+roles:                         # push: the refs a role may push, by repo; record: what a run owes; worktree: spawned in one
+  client-dev:   {record: handover, worktree: true, push: {client: ["client/<slug>"]}}
+  client-qa:    {record: verdict,  worktree: true}
+  server-dev:   {record: handover, push: {fork: ["dev/<slug>"]}}
+  server-qa:    {record: verdict,  push: {fork: ["gate/<slug>", "docs"]}}
+  integrator:   {push: {fork: ["local/integration-tools", "local/server-tools"]}}
+  harness-dev:  {record: handover, worktree: true}
+  orchestrator: {record: measure}
+agents: 3

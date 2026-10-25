@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/hooks/guard.py",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/hooks/hook.py",
             "timeout": 30
           }
         ]
@@ -14,22 +14,22 @@
     ],
     "SubagentStart": [
       {
-        "matcher": "client-dev|client-qa|server-dev|server-qa|integrator|harness-dev",
+        "matcher": "client-dev|client-qa|server-dev|server-qa|integrator|harness-dev|orchestrator",
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/hooks/run_start.py"
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/hooks/hook.py"
           }
         ]
       }
     ],
     "SubagentStop": [
       {
-        "matcher": "client-dev|client-qa|server-dev|server-qa|integrator|harness-dev",
+        "matcher": "client-dev|client-qa|server-dev|server-qa|integrator|harness-dev|orchestrator",
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/hooks/run_stop.py",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/hooks/hook.py",
             "timeout": 660
           }
         ]
