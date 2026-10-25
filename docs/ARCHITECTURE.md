@@ -269,7 +269,7 @@ sequenceDiagram
   loop until nothing is listed
     C->>H: hd drive
     H-->>C: spawn, stop, actions, decisions, exceptions
-    C->>C: Agent tool per spawn then hd run-link; TaskStop per stop then hd run-stopped
+    C->>C: Agent tool per spawn then hd run-link, TaskStop per stop then hd run-stopped
     C->>U: each action card and decision
     U-->>C: yes or answer
     C->>C: the card's commands (after a yes); hd unhold with the answer
