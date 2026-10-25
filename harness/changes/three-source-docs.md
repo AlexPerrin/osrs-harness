@@ -14,7 +14,7 @@ owner: hd25
 booked:
   dev: '|da39a3ee5e6b'
 created: '2026-10-25T02:01:29Z'
-updated: '2026-10-25T02:01:29Z'
+updated: '2026-10-25T02:03:01Z'
 ---
 ## Change
 Docs: PROBLEM, PRD and ARCHITECTURE as the three minimal sources of truth
@@ -31,3 +31,4 @@ Docs: PROBLEM, PRD and ARCHITECTURE as the three minimal sources of truth
 - 2026-10-25T02:01:29Z USER 2026-10-24 (verbatim intent): the solution is tracked in PROBLEM, PRD and ARCHITECTURE, all minimal sources of truth. PROBLEM = all business context, the goals of each track, the process/workflow of each track in human language: the problem definition. PRD = the requirements, the first principles the solution must solve. ARCHITECTURE = the technical implementation that meets the requirements, with UML and sequence diagrams for the application. These are the source of truth each iteration builds on; each iteration tries to reduce complexity, increase efficiency and streamline the implementation. Current docs: docs/PROBLEM.md (has the BR rules folded in; split them back out into docs/PRD.md, restore the file from git history: git show 1cac8c8^:docs/PRD.md, then rewrite to current truth, do not copy stale text), docs/ARCHITECTURE.md (already has diagrams; verify each against the code, add the missing ones). Read the memory files in /home/alex/.claude/projects/-home-alex-osrs-harness/memory/ for the user's rules and keep every still-true rule. Do this in a worktree: git reset --hard main first.
 - 2026-10-25T02:01:29Z ready -> dev: dispatched to hd25
 - 2026-10-25T02:01:29Z run hd25 started (harness-dev, stage dev)
+- 2026-10-25T02:03:01Z USER 2026-10-24 ADDENDUM: each iteration reduces our ad hoc work surface and process and iterates quickly; a major revision must reduce to the least complex, most efficient solution; the docs are minimal, only the source of truth, no revision history or justification.
