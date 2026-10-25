@@ -21,9 +21,7 @@ orchestrator's first run defines the client backlog, starting with the probe `to
   farming, grand-exchange, jewellery, op-overrides, plank-sack, quest-test-fixture, rune-pouch, vampyre-slayer): the
   source of the rebuilt backlog, one change per feature, after the open PRs settle.
 - The client API probe (`tools/api-probe.sh`, the measure of goal `client-api`) does not exist yet.
-- Two v6 leftovers to delete by hand when convenient: `harness/state.v6/` (the v6 records, kept until a server change
-  completed a full v7 pass) and the v6 agent clones `~/src/openrune-work/agents/{sd*,sq*,orch}` (full server clones;
-  v7 removes only clones named after its own runs).
+- `harness/state.v6/` (the v6 records) is kept until a server change completed a full v7 pass; then delete it.
 
 ## Standing rules
 The user's rules are the memory files in `/home/alex/.claude/projects/-home-alex-osrs-harness/memory/` (index
