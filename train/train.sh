@@ -76,7 +76,7 @@ fi
 export QA_ROOT=$WORK/qa
 dir=$QA_ROOT/integration-${sha:0:9}
 [ -d "$dir" ] || "$QA" clone integration "$sha" >"$STATE/train-gate.log" 2>&1 || fail gate "qa.sh clone: $(tail_of "$STATE/train-gate.log")"
-"$QA" gate "$dir" >>"$STATE/train-gate.log" 2>&1
+"$QA" gate "$dir" --full >>"$STATE/train-gate.log" 2>&1   # the whole integration tree, not touched modules
 grep -q 'rc=0$' "$dir.logs/summary" 2>/dev/null || fail gate "qa.sh gate: $(tail -n1 "$dir.logs/summary" 2>/dev/null) $(tail_of "$STATE/train-gate.log")"
 j step=image
 
