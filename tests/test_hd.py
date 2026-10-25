@@ -109,12 +109,12 @@ class R2Flow(Sandbox):
         F.f["anc"] = {(A, A)}
         F.f["refs"]["fork/content/s"] = A
         self.assertIn(("s", "pr", "script"), names(self.ctx(F)))
-        F.f["prs"] = {"content/s": {"number": 7, "state": "open", "draft": True, "head": A, "merged": False, "branch": "content/s"}}
+        F.f["prs"] = {"content/s": {"number": 7, "state": "open", "draft": True, "head": A, "merged": False, "branch": "content/s", "title": "x"}}
         self.assertIn(("s", "ci", "wait"), names(self.ctx(F)))
         F.f["checks"] = {(7, A): "success"}
         F.f["comments"] = {7: [{"id": "m", "author": "maint", "body": "please", "at": "t", "kind": "comment"}]}
         self.assertIn(("s", "comment", "script"), names(self.ctx(F)))
-        F.f["comments"][7].append({"id": "x", "author": "alexperrin", "body": steps.MARK.format(A[:12]), "at": "t", "kind": "comment"})
+        F.f["comments"][7].append({"id": "x", "author": "alexperrin", "body": "x\n\n" + steps.MARK.format(A[:12]), "at": "t", "kind": "comment"})   # the prepared text
         self.assertIn(("s", "ready", "script"), names(self.ctx(F)))
         F.f["prs"]["content/s"]["draft"] = False
         self.assertIn(("s", "merged", "wait"), names(self.ctx(F)))
@@ -384,7 +384,7 @@ class ServerTrack(Sandbox):
             self.store.save_record("s", k, {"head": A, "base": B, **d})
         self.store.save_record("s", "approval", {"head": A})
         F = Fake(refs={"fork/dev/s": A, "fork/dev/s-f1": C, "origin/main": B, "fork/content/s": A, "fork/local/integration-tools": D}, anc={(A, A)},
-                 prs={"content/s": {"number": 7, "state": "open", "draft": False, "head": A, "merged": False, "branch": "content/s"}},
+                 prs={"content/s": {"number": 7, "state": "open", "draft": False, "head": A, "merged": False, "branch": "content/s", "title": "x"}},
                  checks={(7, A): "success"}, comments={7: [{"id": "m", "author": "maint", "body": "x", "at": "t", "kind": "comment"},
                                                           {"id": "o", "author": "alexperrin", "body": f"Pushed `{A[:9]}`", "at": "t", "kind": "comment"}]})
         self.assertIn(("s", "merged", "wait"), names(self.ctx(F)))
@@ -403,7 +403,7 @@ class ServerTrack(Sandbox):
     def test_a_pr_moved_past_the_head_and_a_dead_console(self):
         self.change("s", track="server")
         F = Fake(refs={"fork/dev/s": A, "origin/main": B}, anc={(C, A)},
-                 prs={"content/s": {"number": 7, "state": "open", "draft": False, "head": C, "merged": False, "branch": "content/s"}})
+                 prs={"content/s": {"number": 7, "state": "open", "draft": False, "head": C, "merged": False, "branch": "content/s", "title": "x"}})
         self.assertEqual(steps._ci_state(self.ctx(F), self.ctx(F).by_slug["s"]), "success")
         h = self.ctx(F).by_slug["s"]["hash"]
         self.store.save_run({"name": "s-1", "agent_id": "x", "role": "server-dev", "change": "s", "head": A, "def_hash": h,
@@ -416,7 +416,7 @@ class ServerTrack(Sandbox):
             self.store.save_record("s", k, {"head": A, "base": B, **d})
         self.store.save_record("s", "verdict", {"head": A, "base": B, "pass": False, "findings": ["incomplete"]})
         F = Fake(refs={"fork/dev/s": A, "origin/main": B, "fork/content/s": A}, anc={(A, A)},
-                 prs={"content/s": {"number": 7, "state": "open", "draft": False, "head": A, "merged": False, "branch": "content/s"}})
+                 prs={"content/s": {"number": 7, "state": "open", "draft": False, "head": A, "merged": False, "branch": "content/s", "title": "x"}})
         with mock.patch.object(steps, "sh", return_value=R(0)) as sh, mock.patch.object(server, "pin", return_value="pinned"), \
                 mock.patch.object(server, "start_train", return_value="started"):
             out = tick.run(F)
@@ -426,6 +426,26 @@ class ServerTrack(Sandbox):
         with open(os.path.join(self.ev, "s", "pr-comment.md"), "w") as f:
             f.write("x\n## Checklist\n- [x] Builds\n- [ ] Matches the OSRS wiki\n\nNot done: pets\n")
         self.assertEqual(steps._incomplete(self.ctx(F).by_slug["s"]), ["unticked: Matches the OSRS wiki", "a Not done list"])
+
+    def test_title_and_comment_follow_the_prepared_texts(self):
+        self.change("s", track="server")
+        self.evidence("s", "pr-title.txt", "pr-comment.md")
+        for name, text in (("pr-title.txt", "feat: X"), ("pr-comment.md", "progress update")):
+            with open(os.path.join(self.ev, "s", name), "w") as f:
+                f.write(text)
+        F = Fake(refs={"fork/dev/s": A}, prs={"content/s": {"number": 7, "state": "open", "draft": True, "head": A, "title": "old"}},
+                 comments={7: [{"id": "IC_1", "author": "alexperrin", "body": "final update\n\n" + steps.MARK.format(A[:12]), "at": "t", "kind": "comment"}]})
+        ch = self.ctx(F).by_slug["s"]
+        self.assertFalse(steps._title_done(self.ctx(F), ch))
+        self.assertFalse(steps._comment_done(self.ctx(F), ch))                    # names the head but says something else
+        with mock.patch.object(steps, "sh", return_value=R(0)) as run:
+            self.assertEqual(steps.COMMENT.do(self.ctx(F), ch), "comment edited")
+            self.assertIn("id=IC_1", run.call_args[0][0])
+            self.assertEqual(steps.TITLE.do(self.ctx(F), ch), "title set")
+            self.assertIn("title=feat: X", run.call_args[0][0])
+        F.f["prs"]["content/s"]["title"] = "feat: X"
+        F.f["comments"][7][0]["body"] = "progress update\r\n\r\n" + steps.MARK.format(A[:12])
+        self.assertTrue(steps._title_done(self.ctx(F), ch) and steps._comment_done(self.ctx(F), ch))
 
     def test_a_squash_merged_pr_is_done(self):
         self.change("s", track="server")
@@ -442,14 +462,16 @@ class ServerTrack(Sandbox):
         self.assertIn(("s", "pr", "server-dev"), names(self.ctx(F)))          # no pr-title.txt or pr-body.md: the dev's step
         self.evidence("s", "pr-title.txt", "pr-body.md")
         self.assertIn(("s", "pr", "script"), names(self.ctx(F)))
-        F.f["prs"] = {"content/s": {"number": 7, "state": "open", "draft": True, "head": A, "merged": False, "branch": "content/s"}}
+        F.f["prs"] = {"content/s": {"number": 7, "state": "open", "draft": True, "head": A, "merged": False, "branch": "content/s", "title": "x"}}
         F.f["checks"] = {(7, A): "success"}
         self.assertIn(("s", "comment", "server-dev"), names(self.ctx(F)))    # no comment yet and none prepared: the dev writes it
         self.evidence("s", "pr-comment.md")
         self.assertIn(("s", "comment", "script"), names(self.ctx(F)))        # every PR gets a comment before ready
         F.f["comments"] = {7: [{"id": "m", "author": "maint", "body": "x", "at": "t", "kind": "comment"}]}
         F.f["comments"][7].append({"id": "o", "author": "alexperrin", "body": f"Pushed `{A[:9]}`", "at": "t", "kind": "comment"})
-        self.assertIn(("s", "ready", "script"), names(self.ctx(F)))          # our comment names the commit
+        self.assertIn(("s", "comment", "script"), names(self.ctx(F)))        # names the commit, but not the prepared text: edited
+        F.f["comments"][7][-1]["body"] = "x\n" + steps.MARK.format(A[:12])
+        self.assertIn(("s", "ready", "script"), names(self.ctx(F)))          # our comment names the commit and says the text
         F.f["comments"] = {7: [{"id": "b", "author": "github-actions", "bot": True, "body": "x", "at": "t", "kind": "comment"},
                               {"id": "g", "author": None, "body": "x", "at": "t", "kind": "comment"}]}
         self.assertIn(("s", "comment", "script"), names(self.ctx(F)))        # a bot's or a deleted account's comment is not ours
@@ -493,7 +515,7 @@ class ServerTrack(Sandbox):
             self.store.save_record("s", k, {"head": A, "base": B, **d})
         self.store.save_record("s", "approval", {"head": A, "ts": "2026-10-25T10:00:00Z"})
         F = Fake(refs={"fork/dev/s": A, "origin/main": B, "fork/content/s": A},
-                 prs={"content/s": {"number": 7, "state": "open", "draft": False, "head": A, "merged": False, "branch": "content/s"}},
+                 prs={"content/s": {"number": 7, "state": "open", "draft": False, "head": A, "merged": False, "branch": "content/s", "title": "x"}},
                  checks={(7, A): "success"},
                  comments={7: [{"id": "IC_1", "author": "maint", "body": "please fix", "at": "2026-10-25T11:00:00Z", "kind": "comment"},
                                {"id": "IC_0", "author": "maint", "body": "old", "at": "2026-10-25T09:00:00Z", "kind": "comment"},

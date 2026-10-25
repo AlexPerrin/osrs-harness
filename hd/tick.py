@@ -124,6 +124,8 @@ def alerts(ctx):
 
 
 def run(F=None, dry=False):
+    if os.path.exists(store.path("paused")) and not dry:   # the console's stop: no pass runs while the file exists
+        return ["paused: harness/state/paused exists"]
     cfg = store.config()
     F = F or Facts(cfg)
     with store.locked():
@@ -143,7 +145,10 @@ def run(F=None, dry=False):
             pr = steps._pr(ctx, ch) if ch["track"] == "server" and ch.get("kind") == "change" else None
             if pr and pr.get("state") == "open" and not pr["draft"] and not steps._may_be_ready(ctx, ch) \
                     and steps.READY not in [s for c, s in steps.next_steps(ctx) if c is ch]:
-                out.append(f"{ch['slug']} ready: " + ("would draft" if dry else steps.READY.do(ctx, ch)))
+                detail = "would draft" if dry else steps.READY.do(ctx, ch)
+                out.append(f"{ch['slug']} ready: {detail}")
+                if not dry:
+                    store.event("step", change=ch["slug"], step="ready", detail=detail[:300])
         if not dry:
             out += [f"filed {s}" for s in server.findings(ctx)]
     return out

@@ -83,7 +83,7 @@ class Facts:
         None when gh failed."""
         owner = self.cfg["repos"]["fork"].split("/")[0]
         prs = self.gh("pr", "list", "-R", self.cfg["repos"]["upstream"], "--head", branch, "--state", "all", "--limit",
-                      "10", "--json", "number,state,isDraft,headRefOid,mergedAt,headRefName,headRepositoryOwner,mergeable")
+                      "10", "--json", "number,state,isDraft,headRefOid,mergedAt,headRefName,headRepositoryOwner,mergeable,title")
         if prs is None:
             return None
         prs = [p for p in prs if (p.get("headRepositoryOwner") or {}).get("login") == owner]
@@ -93,7 +93,7 @@ class Facts:
         p = prs[0]
         return {"number": p["number"], "state": p["state"].lower(), "draft": bool(p.get("isDraft")),
                 "head": p.get("headRefOid"), "merged": bool(p.get("mergedAt")), "branch": p.get("headRefName"),
-                "mergeable": p.get("mergeable")}
+                "mergeable": p.get("mergeable"), "title": p.get("title")}
 
     def pr_checks(self, number, sha):
         """'success' | 'failure' | 'pending' | 'none' (the PR head is not `sha`, or no checks yet) | None."""

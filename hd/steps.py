@@ -342,30 +342,59 @@ def _comments(ctx, ch):
     return None if not pr else ctx.m(("comments", pr["number"]), lambda: ctx.F.pr_comments(pr["number"]))
 
 
-def _comment_done(ctx, ch):
-    """Done when one of our comments names the head: every PR has one before it is marked for review (the user's rule)."""
-    cs = _comments(ctx, ch)
-    if cs is None:
-        return None
+def _ours_at_head(ctx, ch):
+    """Our comments that name the head, newest last."""
+    cs = _comments(ctx, ch) or []
     h, owner = head(ctx, ch), _owner(ctx)
-    if not h:
+    marks = (MARK.format(h[:12]), f"<!-- hd-contribute:{h[:12]} -->", h[:9]) if h else ()   # v6 wrote the sha in prose
+    return [c for c in cs if (c["author"] or "").lower() == owner and any(m in c["body"] for m in marks)]
+
+
+def _norm(text):
+    return "\n".join(l.rstrip() for l in re.sub(r"<!-- hd:\w+ -->", "", text.replace("\r\n", "\n")).strip().splitlines())
+
+
+def _comment_done(ctx, ch):
+    """Done when one of our comments names the head (every PR has one before it is marked for review, the user's rule)
+    and, when pr-comment.md is prepared, says what it says (an edited pr-comment.md is edited in place)."""
+    if _comments(ctx, ch) is None:
+        return None
+    if not head(ctx, ch):
         return False
-    ours = [c["body"] for c in cs if (c["author"] or "").lower() == owner]
-    marks = (MARK.format(h[:12]), f"<!-- hd-contribute:{h[:12]} -->", h[:9])   # v6 wrote the sha in prose
-    return any(m in body for body in ours for m in marks)
+    ours, want = _ours_at_head(ctx, ch), _texts(ch)["comment"]
+    return bool(ours) and (not want or _norm(ours[-1]["body"]) == _norm(want))
 
 
 def _comment_actor(ctx, ch):
     return "script" if _texts(ch)["comment"] else _dev(ctx, ch)
 
 
+GQL_EDIT = "mutation($id:ID!,$b:String!){updateIssueComment(input:{id:$id,body:$b}){issueComment{id}}}"
+
+
 def _comment(ctx, ch):
     t = _texts(ch)
+    body = (t["comment"] or f"Updated to {head(ctx, ch)[:9]}.") + "\n\n" + MARK.format(head(ctx, ch)[:12]) + "\n"
+    ours = _ours_at_head(ctx, ch)
+    if ours:   # our comment at this head exists: edit it in place (GraphQL takes the node id gh reports)
+        r = sh(["gh", "api", "graphql", "-f", "query=" + GQL_EDIT, "-f", f"id={ours[-1]['id']}", "-f", f"b={body}"])
+        return "comment edited" if r is not None and r.returncode == 0 else f"comment edit failed: {(r.stderr if r else '')[-300:]}"
     with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as f:
-        f.write((t["comment"] or f"Updated to {head(ctx, ch)[:9]}.") + "\n\n" + MARK.format(head(ctx, ch)[:12]) + "\n")
+        f.write(body)
     r = sh(["gh", "pr", "comment", str(_pr(ctx, ch)["number"]), "-R", ctx.cfg["repos"]["upstream"], "--body-file", f.name])
     os.unlink(f.name)
     return "commented" if r is not None and r.returncode == 0 else f"comment failed: {(r.stderr if r else '')[-300:]}"
+
+
+def _title_done(ctx, ch):
+    pr, want = _pr(ctx, ch), _texts(ch)["title"]
+    return None if pr is None else bool(pr) and (not want or pr.get("title") == want)
+
+
+def _title(ctx, ch):
+    pr = _pr(ctx, ch)   # REST: `gh pr edit` fails on repos that still list classic projects
+    r = sh(["gh", "api", "-X", "PATCH", f"repos/{ctx.cfg['repos']['upstream']}/pulls/{pr['number']}", "-f", f"title={_texts(ch)['title']}"])
+    return "title set" if r is not None and r.returncode == 0 else f"title failed: {(r.stderr if r else '')[-300:]}"
 
 
 def _unanswered(ctx, ch):
@@ -464,6 +493,7 @@ REVIEW = Step("review", _review_done, _review_actor)
 APPROVE = Step("approve", _approve_done, "user")
 PUSH = Step("push", _pushed, "script", _push)
 PR = Step("pr", _pr_done, _pr_actor, _open_pr)
+TITLE = Step("title", _title_done, "script", _title)
 CI = Step("ci", _ci_done, _ci_actor)
 COMMENT = Step("comment", _comment_done, _comment_actor, _comment)
 READY = Step("ready", _ready_done, _ready_actor, _ready)
@@ -471,7 +501,7 @@ MERGED = Step("merged", _merged_done, WAIT)
 RELEASE = Step("release", _release_done, "script", _release)
 MEASURE = Step("measure", _measure_done, "orchestrator")
 
-UPSTREAM = [HANDOVER, GATE, REVIEW, APPROVE, PUSH, PR, CI, COMMENT, READY, MERGED]
+UPSTREAM = [HANDOVER, GATE, REVIEW, APPROVE, PUSH, PR, TITLE, CI, COMMENT, READY, MERGED]
 
 
 def lists(ctx, ch):
