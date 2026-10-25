@@ -4,28 +4,28 @@ track: server
 title: 'Genie #355: address maintainer review and our gate findings'
 prio: P0
 role: server-dev
-stage: contribute
+stage: gate
 hold: null
 deps: []
 branch: content/genie
-commit: 07f629a8e6d01c0d644b6871ed8926d012d91a79
+commit: 3b00b228bad2038e43e242cb29213e8c622b265a
 repo: /home/alex/src/openrune-work/agents/sd45/or
 local_only: false
-owner: sd84
+owner: sq62
 evidence: /home/alex/osrs-plugins-reverse/re/evidence/genie-review-355
 network: true
-summary: 'Clean Genie tip 57887e5c8 on upstream main 5c4c9c106 (4 Genie files, comments removed), merge 07f629a8e6d01c0d644b6871ed8926d012d91a79 onto #355 head 1d9b6fa49. Ran only :content:events:random-events
-  spotlessCheck, test and integration (2 tests); gameval check clean.'
+summary: Dropped GenieRandomEventTest and the integration suite setup, helpers private (genieOf removed as unused), PR text ticks made true; new tip d8ab60221 on fix/genie-clean, merge 3b00b228b
 booked:
   dev: 07f629a8e6d01c0d644b6871ed8926d012d91a79|61fcf0670b66
+  gate: 3b00b228bad2038e43e242cb29213e8c622b265a
 cost:
-  runs: 21
+  runs: 22
   turns: 0
   minutes: 0
   usd: 0
   tokens: 0
 created: '2026-10-24T19:31:52Z'
-updated: '2026-10-25T01:45:31Z'
+updated: '2026-10-25T01:47:09Z'
 ---
 ## Change
 Upstream #355 (draft) has two review findings from eaglepurerocketgrape (2026-10-22 11:42). Head content/genie 1d9b6fa49. Folds in the pending gate findings held on `genie`.
@@ -142,3 +142,7 @@ Upstream #355 (draft) has two review findings from eaglepurerocketgrape (2026-10
 - 2026-10-25T01:45:31Z hold failed: fix first (user): drop the two original tests, private helpers, true checklist ticks
 - 2026-10-25T01:45:31Z hold failed cleared: fix first dispatched
 - 2026-10-25T01:45:31Z run sd84 started (server-dev, stage dev)
+- 2026-10-25T01:46:52Z contribute -> gate: hand-over recorded
+- 2026-10-25T01:46:52Z handover content/genie@3b00b228b: Dropped GenieRandomEventTest and the integration suite setup, helpers private (genieOf removed as unused), PR text ticks made true; new tip d8ab60221 on fix/genie-clean, merge 3b00b228b
+- 2026-10-25T01:47:09Z run sd84 ended: ? turns, ? tokens, exit ok
+- 2026-10-25T01:47:09Z run sq62 started (server-qa, stage gate)
