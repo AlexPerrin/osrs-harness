@@ -20,13 +20,13 @@ booked:
   gate: caacbf4cefa6f8491c8afa2d3fc7fc624d581a57
 batch: int-20261024-2
 cost:
-  runs: 8
+  runs: 7
   turns: 16
   minutes: 2.9
   usd: 11.77
   tokens: 0
 created: '2026-10-20T01:42:40Z'
-updated: '2026-10-25T00:50:20Z'
+updated: '2026-10-25T00:50:33Z'
 upstream_pr: 406
 ---
 ## Change
@@ -87,5 +87,4 @@ fix/stile-approach 8a8c0ca7a failed the internal gate: the player walks onto the
 - 2026-10-25T00:34:52Z run sd79 ended: ? turns, ? tokens, exit ok
 - 2026-10-25T00:34:52Z run sq58 started (server-qa, stage gate)
 - 2026-10-25T00:49:59Z QA aggregate FAIL at caacbf4ce (4 finding(s)): 3 findings: wiki checklist item unticked (user decision), stale 'only test dropped' claim (KDoc also restored), commit 68ddd1b6c subject lacks fix: prefix; all checks else PASS
-- 2026-10-25T00:50:19Z gate -> contribute: observed
-- 2026-10-25T00:50:20Z run sq58 ended: ? turns, ? tokens, exit stopped:lingering: change at contribute
+- 2026-10-25T00:50:33Z gate -> contribute: observed
