@@ -4,21 +4,27 @@ track: client
 title: 'One installable, distributable APK: merge the repacked base and arm64 split into a single signed universal APK'
 prio: P0
 role: client-dev
-stage: gate
+stage: live
 hold: null
 deps: []
 branch: client/client-single-apk
 commit: 81ef19ad226e6f100388e4e47dd4b2dd26872507
 local_only: false
-owner: cd53
+owner: null
 evidence: /home/alex/osrs-plugins-reverse/re/evidence/client-single-apk
 summary: 'Single universal arm64 APK re/out/osrs-runelite.apk (26504793 bytes, sha256 8864d2501eafee70ce6303b0aeaaec8ba80770dd41c840b10ceffab8026b8bf6): split libs folded into base, split-required flags
   removed, notices embedded, debug-key signed; install, hooks, host, sign-in, LOGGED_IN verified on an x86_64+arm64-translation Android Studio emulator (not BlueStacks, default plugins not exercised); release-dev.sh
   attaches it. Harness-owned skill/role text (client-qa.md, client-track skill) still says base.apk+split.apk and is not edited here.'
+live_commit: 81ef19ad226e6f100388e4e47dd4b2dd26872507
 booked:
   dev: '|da39a3ee5e6b'
+cost:
+  runs: 1
+  turns: 0
+  tokens: 0
+  minutes: 0
 created: '2026-10-25T02:50:15Z'
-updated: '2026-10-25T03:06:20Z'
+updated: '2026-10-25T03:06:25Z'
 ---
 ## Change
 One installable, distributable APK: merge the repacked base and arm64 split into a single signed universal APK
@@ -37,7 +43,5 @@ One installable, distributable APK: merge the repacked base and arm64 split into
 - 2026-10-25T03:05:43Z dod ticked: 1, 2, 3
 - 2026-10-25T03:05:44Z dev -> gate: hand-over recorded
 - 2026-10-25T03:05:44Z handover client/client-single-apk@81ef19ad2: Single universal arm64 APK re/out/osrs-runelite.apk (26504793 bytes, sha256 8864d2501eafee70ce6303b0aeaaec8ba80770dd41c840b10ceffab8026b8bf6): split libs folded into base, split-required flags removed, notices embedded, debug-key signed; install, hooks, host, sign-in, LOGGED_IN verified on an x86_64+arm64-translation Android Studio emulator (not BlueStacks, default plugins not exercised); release-dev.sh attaches it. Harness-owned skill/role text (client-qa.md, client-track skill) still says base.apk+split.apk and is not edited here.
-- 2026-10-25T03:06:20Z ship: merged into master 2ec736d, push failed:  behind its remote
-hint: counterpart. If you want to integrate the remote changes, use 'git pull'
-hint: before pushing again.
-hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+- 2026-10-25T03:06:15Z run cd53 ended: ? turns, ? tokens, exit ok
+- 2026-10-25T03:06:25Z gate -> live: observed
