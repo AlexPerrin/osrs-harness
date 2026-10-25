@@ -308,7 +308,7 @@ def _pr_actor(ctx, ch):
 def _open_pr(ctx, ch):
     t = _texts(ch)
     if _names_fork(t):
-        return "pr: the PR text names the fork; not opened"
+        return "pr: the PR text links a fork PR; not opened"
     if not (t["title"] and t["body"]):
         return "pr: pr-title.txt or pr-body.md missing in the evidence dir"
     with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as f:
@@ -378,7 +378,7 @@ GQL_EDIT = "mutation($id:ID!,$b:String!){updateIssueComment(input:{id:$id,body:$
 def _comment(ctx, ch):
     t = _texts(ch)
     if _names_fork(t):
-        return "comment: the PR text names the fork; not posted"
+        return "comment: the PR text links a fork PR; not posted"
     body = (t["comment"] or f"Updated to {head(ctx, ch)[:9]}.") + "\n\n" + MARK.format(head(ctx, ch)[:12]) + "\n"
     ours = _ours_at_head(ctx, ch)
     if ours:   # our comment at this head exists: edit it in place (GraphQL takes the node id gh reports)
@@ -398,7 +398,7 @@ def _title_done(ctx, ch):
 
 def _title(ctx, ch):
     if _names_fork(_texts(ch)):
-        return "title: the PR text names the fork; not posted"
+        return "title: the PR text links a fork PR; not posted"
     pr = _pr(ctx, ch)   # REST: `gh pr edit` fails on repos that still list classic projects
     r = sh(["gh", "api", "-X", "PATCH", f"repos/{ctx.cfg['repos']['upstream']}/pulls/{pr['number']}", "-f", f"title={_texts(ch)['title']}"])
     return "title set" if r is not None and r.returncode == 0 else f"title failed: {(r.stderr if r else '')[-300:]}"
@@ -427,12 +427,12 @@ def _incomplete(ch):
     return out + _names_fork(t)
 
 
-FORK = re.compile(r"AlexPerrin/OpenRune-Server|\bfork(?:'s)?\b", re.I)
+FORK = re.compile(r"github\.com/AlexPerrin/OpenRune-Server/(?:pull|issues)/\d+|AlexPerrin/OpenRune-Server#\d+|\bfork(?:'s)? (?:PR|pull request) ?#?\d+", re.I)
 
 
 def _names_fork(t):
-    """Upstream texts never mention our fork: a fork PR link renders as a big red Closed (the user's rule)."""
-    return [f"{k} names the fork: {m.group(0)}" for k in ("title", "body", "comment") for m in [FORK.search(t[k])] if m]
+    """Upstream texts never link a fork PR: it renders as a big red Closed (the user's rule; the fork itself may be named)."""
+    return [f"{k} links a fork PR: {m.group(0)}" for k in ("title", "body", "comment") for m in [FORK.search(t[k])] if m]
 
 
 def _blocked(ctx, ch):
@@ -695,7 +695,7 @@ def brief(ctx, ch, step, name):
     if step in (PR, COMMENT) and role == _dev(ctx, ch):
         lines += ["## Missing PR text in the evidence dir",
                   "pr-title.txt and pr-body.md" if step is PR else "pr-comment.md: what changed for the maintainers since their last look"] + \
-                 [f"- {x}: remove it (upstream texts never mention the fork)" for x in _names_fork(_texts(ch))] + [""]
+                 [f"- {x}: remove the link (upstream texts never link fork PRs)" for x in _names_fork(_texts(ch))] + [""]
     if step is QUEUE:
         t = train_state()
         lines += [f"## The train failed at `{t.get('failed_step')}` (tools {str(t.get('tools'))[:9]})", t.get("detail", ""), ""]

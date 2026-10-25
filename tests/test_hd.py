@@ -461,9 +461,9 @@ class ServerTrack(Sandbox):
         F = Fake(refs={"fork/dev/s": A})
         ch = self.ctx(F).by_slug["s"]
         self.assertEqual(steps._pr_actor(self.ctx(F), ch), "server-dev")
-        self.assertEqual(steps._names_fork(steps._texts(ch)), ["body names the fork: Fork"])
+        self.assertEqual(steps._names_fork(steps._texts(ch)), ["body links a fork PR: github.com/AlexPerrin/OpenRune-Server/pull/20"])
         with open(os.path.join(self.ev, "s", "pr-body.md"), "w") as f:
-            f.write("Content area from #353 (upstream).\n")
+            f.write("Content area from #353 (upstream). Checked on our fork's CI and an earlier fork branch.\n")
         self.assertEqual(steps._names_fork(steps._texts(ch)), [])
 
     def test_a_squash_merged_pr_is_done(self):
