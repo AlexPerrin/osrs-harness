@@ -14,17 +14,17 @@ owner: hd25
 booked:
   dev: '|da39a3ee5e6b'
 created: '2026-10-25T02:01:29Z'
-updated: '2026-10-25T02:03:01Z'
+updated: '2026-10-25T02:05:30Z'
 ---
 ## Change
 Docs: PROBLEM, PRD and ARCHITECTURE as the three minimal sources of truth
 
 ## Definition of done
-- [ ] docs/PROBLEM.md is the problem definition only: the business context, the GOALS of each track (client, server, harness) and the process/workflow of each track in human language (including the PR as bucket, the change as the atomic action, the approval and review flow); no rule ids, no mechanism, no UML
-- [ ] docs/PRD.md is restored as the requirements: the first principles the solution must meet, as the BR-* rules moved out of PROBLEM.md (same ids, current rules only, each testable and traceable to a goal), grouped by track and by cross-cutting concern; PROBLEM.md and ARCHITECTURE.md no longer carry the rules; code and tests that cite BR ids still resolve
-- [ ] docs/ARCHITECTURE.md is the implementation that meets the PRD: components, data model, lifecycle, the core/track split, the train, hooks; UML (component, class/ER, state) and sequence diagrams for the main application flows (dispatch and hand-over, QA aggregate and contribution, train and deploy, drive loop), each diagram checked against the code; it names which PRD requirement each mechanism satisfies
-- [ ] CLAUDE.md layout and iteration protocol: the three documents are the source of truth for each iteration; each iteration starts by reading them and ends by updating them; each iteration aims to reduce complexity, increase efficiency and streamline the implementation: anything in code, tests, policy or docs not traceable to a PRD requirement is pruned (listed in the hand-over only); the harness-dev role file says the same
-- [ ] All three docs are concise current truth with no revision justification; incidents only in docs/ISSUES.md; full suite passes; no push, no daemon restart
+- [x] docs/PROBLEM.md is the problem definition only: the business context, the GOALS of each track (client, server, harness) and the process/workflow of each track in human language (including the PR as bucket, the change as the atomic action, the approval and review flow); no rule ids, no mechanism, no UML
+- [x] docs/PRD.md is restored as the requirements: the first principles the solution must meet, as the BR-* rules moved out of PROBLEM.md (same ids, current rules only, each testable and traceable to a goal), grouped by track and by cross-cutting concern; PROBLEM.md and ARCHITECTURE.md no longer carry the rules; code and tests that cite BR ids still resolve
+- [x] docs/ARCHITECTURE.md is the implementation that meets the PRD: components, data model, lifecycle, the core/track split, the train, hooks; UML (component, class/ER, state) and sequence diagrams for the main application flows (dispatch and hand-over, QA aggregate and contribution, train and deploy, drive loop), each diagram checked against the code; it names which PRD requirement each mechanism satisfies
+- [x] CLAUDE.md layout and iteration protocol: the three documents are the source of truth for each iteration; each iteration starts by reading them and ends by updating them; each iteration aims to reduce complexity, increase efficiency and streamline the implementation: anything in code, tests, policy or docs not traceable to a PRD requirement is pruned (listed in the hand-over only); the harness-dev role file says the same
+- [x] All three docs are concise current truth with no revision justification; incidents only in docs/ISSUES.md; full suite passes; no push, no daemon restart
 
 ## Log
 - 2026-10-25T02:01:29Z created (ready)
@@ -32,3 +32,4 @@ Docs: PROBLEM, PRD and ARCHITECTURE as the three minimal sources of truth
 - 2026-10-25T02:01:29Z ready -> dev: dispatched to hd25
 - 2026-10-25T02:01:29Z run hd25 started (harness-dev, stage dev)
 - 2026-10-25T02:03:01Z USER 2026-10-24 ADDENDUM: each iteration reduces our ad hoc work surface and process and iterates quickly; a major revision must reduce to the least complex, most efficient solution; the docs are minimal, only the source of truth, no revision history or justification.
+- 2026-10-25T02:05:30Z dod ticked: 1, 2, 3, 4, 5

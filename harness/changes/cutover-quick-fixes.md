@@ -4,25 +4,24 @@ track: harness
 title: Quick fixes found during the cutover period, applied now (batch)
 prio: P0
 role: harness-dev
-stage: ready
-hold:
-  kind: decision
-  reason: 'needs you: a dev run was already booked for exactly this head (none) and these findings; booking another would repeat it'
-  since: '2026-10-25T01:41:13Z'
+stage: live
+hold: null
 deps: []
-branch: null
-commit: null
+branch: main
+commit: 1f654bbf3d889c7272e188f3b9112468eaae4e96
 local_only: false
 owner: null
-booked:
-  dev: '|da39a3ee5e6b'
+evidence: /home/alex/osrs-harness/docs
+summary: 'Merged into main (547ca66): evidence dir rule, train dedupe and rebuild after a moved tools branch, fork-only changes, Formatting in gate-ci, device capacity class, self-settling stop requests.'
+live_commit: 1f654bbf3d889c7272e188f3b9112468eaae4e96
+booked: null
 cost:
   runs: 1
   turns: 0
   tokens: 0
   minutes: 0
 created: '2026-10-25T01:30:56Z'
-updated: '2026-10-25T01:41:13Z'
+updated: '2026-10-25T02:05:23Z'
 ---
 ## Change
 Quick fixes found during the cutover period, applied now (batch)
@@ -45,3 +44,7 @@ Quick fixes found during the cutover period, applied now (batch)
 - 2026-10-25T01:39:57Z run hd23 ended: ? turns, ? tokens, exit ok
 - 2026-10-25T01:40:23Z dev -> ready: run hd23 ended without a hand-over
 - 2026-10-25T01:41:13Z hold decision: needs you: a dev run was already booked for exactly this head (none) and these findings; booking another would repeat it
+- 2026-10-25T02:05:13Z hold decision cleared: merged into main (547ca66); recording the hand-over
+- 2026-10-25T02:05:14Z ready -> gate: hand-over recorded
+- 2026-10-25T02:05:14Z handover main@1f654bbf3: Merged into main (547ca66): evidence dir rule, train dedupe and rebuild after a moved tools branch, fork-only changes, Formatting in gate-ci, device capacity class, self-settling stop requests.
+- 2026-10-25T02:05:23Z gate -> live: observed
