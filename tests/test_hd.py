@@ -197,6 +197,9 @@ class R5Recovery(Sandbox):
         self.store.write({"pid": "7", "start": "1", "step": "gate", "tools": D, "failed_step": "rebuild", "ended": "t"}, "train.json")
         self.assertEqual(steps.QUEUE.actor(self.ctx(F), self.ctx(F).by_slug["s"]), "integrator")
         F.f["refs"]["fork/local/integration-tools"] = C
+        F.f["log"] = "integration: pin dev/t at bbbbbbbbb\n"
+        self.assertEqual(steps.QUEUE.actor(self.ctx(F), self.ctx(F).by_slug["s"]), "integrator")   # a pin resolves nothing
+        F.f["log"] = "integration: rr-cache for fix/22\n"
         self.assertEqual(steps.QUEUE.actor(self.ctx(F), self.ctx(F).by_slug["s"]), "script")
 
     def test_an_unbound_agent_is_bound_at_its_first_command(self):

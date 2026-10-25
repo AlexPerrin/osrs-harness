@@ -212,7 +212,13 @@ def _train_failed(ctx):
     if not t.get("failed_step") or _train_alive(ctx):
         return False
     tools = ctx.F.rev(ctx.cfg["paths"]["fork"], "fork/local/integration-tools")
-    return tools is not None and tools == t.get("tools")
+    if tools is None or not t.get("tools"):
+        return False
+    if tools == t["tools"]:
+        return True
+    log = ctx.F.git(ctx.cfg["paths"]["fork"], "log", "--format=%s", f"{t['tools']}..{tools}")   # the pass's own pins resolve nothing
+    subjects = log.stdout.splitlines() if log is not None and log.returncode == 0 else []
+    return bool(subjects) and all(s.startswith("integration: pin ") for s in subjects)
 
 
 def _queue_actor(ctx, ch):

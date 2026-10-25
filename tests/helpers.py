@@ -26,6 +26,8 @@ class Fake:
         self.calls.append(("git", repo) + args)
         if args[:2] == ("branch", "--show-current"):
             return R(0, self.f.get("branch", "master") + "\n")
+        if args[0] == "log":
+            return R(0, self.f.get("log", ""))
         return R(0, "")
 
     def fetch(self, repo, remote):
