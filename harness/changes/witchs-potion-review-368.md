@@ -4,7 +4,7 @@ track: server
 title: 'Witch''s Potion #368: net diff is Witch''s Potion only, mergeable'
 prio: P0
 role: server-dev
-stage: gate
+stage: contribute
 hold: null
 deps: []
 branch: content/witchs-potion
@@ -23,7 +23,7 @@ cost:
   usd: 0
   tokens: 0
 created: '2026-10-24T19:31:52Z'
-updated: '2026-10-25T01:23:11Z'
+updated: '2026-10-25T01:40:20Z'
 ---
 ## Change
 Upstream #368 review P2 x2 (eaglepurerocketgrape 2026-10-22 11:42). Head content/witchs-potion 18afab0a7, CONFLICTING. The unstacked branch content/witchs-potion-unstacked 23e1b7c5d is a candidate base but is older than #366's merge.
@@ -50,3 +50,5 @@ Upstream #368 review P2 x2 (eaglepurerocketgrape 2026-10-22 11:42). Head content
 - 2026-10-25T00:57:03Z run sq60 started (server-qa, stage gate)
 - 2026-10-25T00:57:35Z run sq60 ended: ? turns, ? tokens, exit stopped:lingering: hold decision
 - 2026-10-25T01:23:11Z hold decision cleared: obsolete hold from the first dev run (fork CI blocked); the QA aggregate runs now
+- 2026-10-25T01:39:49Z QA aggregate FAIL at d782b5798 (6 finding(s)): 6 findings: added comment; PR text checklist not verbatim and revision wording; stale live #368 body and update comment; history/merge subject. CI+format green, in game PASS
+- 2026-10-25T01:40:20Z gate -> contribute: observed

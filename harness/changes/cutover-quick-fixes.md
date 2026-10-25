@@ -4,17 +4,22 @@ track: harness
 title: Quick fixes found during the cutover period, applied now (batch)
 prio: P0
 role: harness-dev
-stage: dev
+stage: ready
 hold: null
 deps: []
 branch: null
 commit: null
 local_only: false
-owner: hd23
+owner: null
 booked:
   dev: '|da39a3ee5e6b'
+cost:
+  runs: 1
+  turns: 0
+  tokens: 0
+  minutes: 0
 created: '2026-10-25T01:30:56Z'
-updated: '2026-10-25T01:39:25Z'
+updated: '2026-10-25T01:40:23Z'
 ---
 ## Change
 Quick fixes found during the cutover period, applied now (batch)
@@ -34,3 +39,5 @@ Quick fixes found during the cutover period, applied now (batch)
 - 2026-10-25T01:30:56Z ready -> dev: dispatched to hd23
 - 2026-10-25T01:30:56Z run hd23 started (harness-dev, stage dev)
 - 2026-10-25T01:39:25Z dod ticked: 1, 2, 3, 4, 5, 6, 7
+- 2026-10-25T01:39:57Z run hd23 ended: ? turns, ? tokens, exit ok
+- 2026-10-25T01:40:23Z dev -> ready: run hd23 ended without a hand-over
