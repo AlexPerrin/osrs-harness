@@ -25,3 +25,5 @@ re-check, never edit one. When you cannot finish: `hd ask <slug> "<question>"`.
 - Never connect anything to Jagex or RuneScape servers; never read or modify `C:\Users\Alex\.runelite`.
 
 Your final message is one line: the change slug, PASS or FAIL, the finding count.
+
+The release gate runs on the `Agent_Phone` emulator (skill test-instances): the supported release-gate device, x86_64 with arm64 translation, holding no OSRS app.
