@@ -33,9 +33,10 @@ server (`integration`) as soon as its gate passes and, independently, upstream a
   justified in the PR text); no new KDoc or explanatory comments; nothing public for a test; server toggles in the
   config with a default; commit subjects `feat:`/`fix:`. The PR text uses the template's sections plus problem, data
   sources, caveats, release note, `Depends:`; the checklist items as checkboxes verbatim, notes as plain text; in-game
-  verification without cheats where possible, state in varbits/varps, gameval symbols not raw ids, wiki deviations in
-  upstream's `docs/quirks.md`. The accuracy check (skill `accuracy-check`) is the wiki check: when it passes, tick
-  "Matches the OSRS wiki" and add every deviation it records to `docs/quirks.md` in the same PR; a PR is never
+  verification without cheats where possible, state in varbits/varps, gameval symbols not raw ids, no deviation from the
+  official game: anything that differs is fixed, never recorded (no `docs/quirks.md` entries in our changes). The
+  accuracy check (skill `accuracy-check`) is the wiki check: tick "Matches the OSRS wiki" only when it finds nothing that
+  differs; a difference the server cannot fix is an `hd ask`, not a caveat; a PR is never
   marked for review with that item unticked or a Not done list. Upstream texts (title, description, comments) never
   link a fork PR (`github.com/AlexPerrin/OpenRune-Server/pull/N`, `AlexPerrin/OpenRune-Server#N`, "fork PR #N"): it
   renders as a big red Closed. Naming the fork itself is fine. Never open a PR, issue or

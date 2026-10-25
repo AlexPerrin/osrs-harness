@@ -23,6 +23,6 @@ clean. Title: "feat: Hunter skill".
   branch server
 - mergeable as it stands (the user, 2026-10-25: "Hunter is not complete. It's missing a checklist item Matches the OSRS
   wiki and there's a list of 'not done'"): every template checklist item ticked and true, no Not done list; each Not
-  done item is implemented or, where the server cannot do it, recorded as a deviation in docs/quirks.md; no
-  technique is taken out of scope
+  done item is implemented to match the official game (the user: "dont include any quirks in our changes. If it
+  differs from official OSRS, fix it"); no docs/quirks.md entries; no technique is taken out of scope
 - after the user's yes: #408 leaves draft once upstream CI is green

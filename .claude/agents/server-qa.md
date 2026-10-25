@@ -31,4 +31,4 @@ re-check, never edit one. When you cannot finish: `hd ask <slug> "<question>"`.
 
 Your final message is one line: the change slug, PASS or FAIL, the finding count.
 
-A PR passes only when it is mergeable as it stands: every checklist item of the upstream template ticked and true, and no Not done list for anything in its scope. Disclosing a gap does not make it mergeable: FAIL with the gap, and the dev finishes it, records a real deviation in docs/quirks.md as the checklist item asks, or takes it out of scope.
+A PR passes only when it is mergeable as it stands: every checklist item of the upstream template ticked and true, and no Not done list for anything in its scope. Disclosing a gap does not make it mergeable: FAIL with the gap, and the dev finishes it. A difference from the official game is a finding to fix, never a docs/quirks.md entry.
