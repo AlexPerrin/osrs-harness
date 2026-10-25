@@ -1,4 +1,4 @@
-"""hd: the harness v4 command line (python3 tools/harness/hd.py <command>).
+"""hd: the harness v4 command line (python3 ~/osrs-harness/hd.py <command>).
 
 Changes
   new --track t --slug s --title "..." [--prio P2] [--dod "item"]... [--deps a,b] [--branch b] [--spec n] [--network]

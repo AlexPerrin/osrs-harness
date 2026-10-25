@@ -28,13 +28,13 @@ gated_commit: d0fe09c630e7456433348ee273f3e9cd8353cc82
 live_commit: d0fe09c630e7456433348ee273f3e9cd8353cc82
 batch: int-20261024-1
 cost:
-  runs: 18
+  runs: 19
   turns: 88
   minutes: 40.2
   usd: 7.78
   tokens: 0
 created: '2026-10-20T01:42:40Z'
-updated: '2026-10-24T23:21:30Z'
+updated: '2026-10-24T23:39:38Z'
 check:
 - fork/fix/ground-item-despawn-times is at 5ae6a3aeb, not 7e3e0dc2b
 ---
@@ -132,3 +132,6 @@ Ground items: keep the owner when an obj is copied (ObjRegistry.singleCopy, Zone
 - 2026-10-24T23:20:49Z handover fix/ground-item-despawn-times@7e3e0dc2b: spotlessApply on the touched modules (ObjRepository import order, Obj.kt blank line and HeldInteractions elvis spacing are all required by spotless); spotlessCheck clean on api:game-process, api:player, api:registry, api:repo, engine:game; no test file in net diff; spec Tests section updated on docs
 - 2026-10-24T23:21:29Z hold blocked: waiting for cannon-review-354, genie-review-355, goblin-diplomacy-review-367, witchs-potion-review-368
 - 2026-10-24T23:21:30Z dev -> ready: hand-over check FAIL (1): the next dev fixes exactly those items
+- 2026-10-24T23:23:35Z run sq54 started (server-qa, stage gate)
+- 2026-10-24T23:23:42Z run sq54 ended: ? turns, ? tokens, exit stopped:lingering: change at ready
+- 2026-10-24T23:39:38Z gate PASS claimed: 7e3e0dc2b: CI+Formatting green on merge, spotless clean, 8 files (the record on docs is what counts)
