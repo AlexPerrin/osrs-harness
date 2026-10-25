@@ -393,6 +393,8 @@ class ServerTrack(Sandbox):
         F.f["comments"] = {7: [{"id": "b", "author": "github-actions", "bot": True, "body": "x", "at": "t", "kind": "comment"},
                               {"id": "g", "author": None, "body": "x", "at": "t", "kind": "comment"}]}
         self.assertIn(("s", "comment", "server-dev"), names(self.ctx(F)))    # a bot is nobody; a deleted account still counts
+        F.f["refs"]["fork/dev/s"] = ""
+        self.assertFalse(steps._comment_done(self.ctx(F), self.ctx(F).by_slug["s"]))   # no head: nothing can name it
 
     def test_the_gate_script_dispatches_ci_on_a_fresh_scratch_merge(self):
         import importlib.util

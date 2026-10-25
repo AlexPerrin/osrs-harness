@@ -22,7 +22,7 @@ exec 9>"$WORK/integration/.lock"
 flock -n 9 || exit 0
 
 j() { python3 -I -c '
-import json, sys
+import json, os, sys
 p = sys.argv[1]
 try:
     d = json.load(open(p))
@@ -31,7 +31,8 @@ except Exception:
 for kv in sys.argv[2:]:
     k, v = kv.split("=", 1)
     d[k] = None if v == "null" else v
-json.dump(d, open(p, "w"), indent=1, sort_keys=True)' "$STATE/train.json" "$@"; }
+json.dump(d, open(p + ".tmp", "w"), indent=1, sort_keys=True)
+os.replace(p + ".tmp", p)' "$STATE/train.json" "$@"; }
 now() { date -u +%Y-%m-%dT%H:%M:%SZ; }
 fail() { j failed_step="$1" detail="$2" ended="$(now)"; echo "train: $1 failed: $2" >&2; exit 1; }
 stop() { j detail="$1" ended="$(now)"; echo "train: stopped: $1" >&2; exit 1; }

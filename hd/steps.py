@@ -334,6 +334,8 @@ def _comment_done(ctx, ch):
     if cs is None:
         return None
     h, owner = head(ctx, ch), _owner(ctx)
+    if not h:
+        return False
     ours = [c["body"] for c in cs if (c["author"] or "").lower() == owner]
     others = [c for c in cs if (c["author"] or "").lower() != owner and not c.get("bot")]
     marks = (MARK.format(h[:12]), f"<!-- hd-contribute:{h[:12]} -->", h[:9])   # v6 wrote the sha in prose

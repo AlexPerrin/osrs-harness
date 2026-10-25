@@ -115,7 +115,8 @@ def stop(data):
             return
         slug, name, head, dh, step = b
         run = {"name": name, "agent_id": aid, "role": data.get("agent_type"), "change": slug, "head": head or None,
-               "def_hash": dh, "step": step, "transcript": path, "console_pid": None, "console_start": None, "started": "", "ended": None}
+               "def_hash": dh, "step": step, "transcript": path, "console_pid": None, "console_start": None,
+               "started": store.now(), "ended": None}   # first seen now: a record it may have written earlier is not credited
     if not run.get("ended"):
         tick.end_run(run, last=(data.get("last_assistant_message") or "")[-500:])
     subprocess.run([sys.executable, os.path.join(HD_HOME, "hd.py"), "tick"], capture_output=True, timeout=600)
