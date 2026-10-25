@@ -34,7 +34,9 @@ server (`integration`) as soon as its gate passes and, independently, upstream a
   config with a default; commit subjects `feat:`/`fix:`. The PR text uses the template's sections plus problem, data
   sources, caveats, release note, `Depends:`; the checklist items as checkboxes verbatim, notes as plain text; in-game
   verification without cheats where possible, state in varbits/varps, gameval symbols not raw ids, wiki deviations in
-  upstream's `docs/quirks.md`.
+  upstream's `docs/quirks.md`. The accuracy check (skill `accuracy-check`) is the wiki check: when it passes, tick
+  "Matches the OSRS wiki" and add every deviation it records to `docs/quirks.md` in the same PR; a PR is never
+  marked for review with that item unticked or a Not done list.
 
 ## Gameval ids
 Write each new gameval as `name = -1`, run `python3 tools/scripts/fix_gameval_conflicts.py` on the branch (needs

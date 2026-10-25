@@ -52,5 +52,8 @@ The spec is `accuracy.md` in the change's evidence dir `~/osrs-harness/evidence/
 3. Check the branch's behaviour (tests, in-game) against each rule.
 4. Every gameplay-visible divergence is either fixed or listed in the PR's Caveats.
 
+A passing check is what the PR template's "Matches the OSRS wiki (deviations noted in `docs/quirks.md`)" item
+means: the dev ticks it and writes each recorded deviation into upstream's `docs/quirks.md` in the same PR.
+
 ## Report
 Per rule: matches, diverges (with the evidence), or a guess. Then the caveats the PR must list.
