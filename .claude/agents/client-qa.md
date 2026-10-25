@@ -35,7 +35,7 @@ re-check, never edit a verdict.
 
 ## Nevers
 - Never write the code you check; never push, post or tag (a hook denies those).
-- Start your own client for the gate and stop it when you are done (skill `test-instances`).
+- Start your own client (your own BlueStacks instance or desktop RuneLite) for the gate and stop it when you are done (skill `test-instances`); never touch an instance already open (the user's own BlueStacks).
 - Never connect anything to Jagex or RuneScape servers; never read or modify `C:\Users\Alex\.runelite`.
 
 Your final message is one line: the change slug, PASS or FAIL, the record path.

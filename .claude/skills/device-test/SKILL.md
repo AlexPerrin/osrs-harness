@@ -2,9 +2,9 @@
 name: device-test
 description: "Test on the Android device (BlueStacks) against the OpenRune test server, from backup to handing the device back restored. Use for any check that needs the Android app."
 ---
-# Device test (BlueStacks, adb 127.0.0.1:5555, app uid 10071)
+# Device test (your own BlueStacks instance, its own adb port; app uid 10071)
 
-1. **Instance.** Your own client (skill `test-instances`); no lock. Client repo paths below are under `~/osrs-plugins-reverse` (docs, tools, re/).
+1. **Instance.** Start your own BlueStacks instance (multi-instance, own ADB port and app data; skill `test-instances`), `export ANDROID_SERIAL=127.0.0.1:<its port>`, stop it when done; never touch an instance already open; no lock. Client repo paths below are under `~/osrs-plugins-reverse` (docs, tools, re/).
 2. **Backup.** `~/osrs-harness/bench/device-restore-check.sh pre /tmp/osrs-slot/<name>` before touching anything.
 3. **Set up.** Push test jars to the plugins dir; for the `osrs-devtools` MCP push `devtools.jar`,
    `adb shell setprop debug.osrsrl.devtools 1` and restart the app (~/osrs-plugins-reverse/docs/plugin-host.md).
@@ -15,7 +15,7 @@ description: "Test on the Android device (BlueStacks) against the OpenRune test 
    (`get_chat_history`), NPCs and items (`list_*`). Raw `adb shell input` and screenshots are the fallback for what
    the tools can't reach (the native long-press menu: `input swipe x y x y 900`) and for drawing claims; confirm
    repeated chat lines by screenshot (`get_chat_history` under-reports repeats). `osrs-mcp` gives ids and game data.
-6. **Restore.** Remove what you added BY NAME, each in a plain `adb -s 127.0.0.1:5555 shell rm <path>` call of its
+6. **Restore.** Remove what you added BY NAME, each in a plain `adb -s $ANDROID_SERIAL shell rm <path>` call of its
    own (no wildcards, loops or `bash -c`); clear the debug props; log in at 3219,3222.
 7. **Check.** `~/osrs-harness/bench/device-restore-check.sh check /tmp/osrs-slot/<name>` until every line is OK.
 
