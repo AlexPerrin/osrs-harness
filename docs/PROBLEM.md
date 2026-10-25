@@ -5,9 +5,9 @@ the solution.
 
 ## Business context
 
-The user wants **goals** reached with no person watching, overnight and across days. A goal is an outcome with a
-measurable fact, for example "the client covers 100% of the RuneLite API". It is reached by **three deliveries**, one per
-track, that depend on each other:
+The user wants **goals** reached with no person watching, overnight and across days. A goal is an outcome of one track
+with a measurable fact; the client's goal is "100% of the RuneLite API working in the Android app". The three tracks are
+**three deliveries** that depend on each other, so a goal of one track is served by changes of all three:
 
 | Track | Delivers | Live when | Done when |
 |---|---|---|---|
@@ -39,11 +39,13 @@ The world:
 
 ## Goals
 
-**A goal** has a metric that a command prints as a number and a target. It stays open after the target is met as a guard:
-the metric must not drop. Several goals may be open at once. The orchestrator pursues them (below).
+**A goal** belongs to one track, has a metric that a command prints as a number and a target, and stays open after the
+target is met as a guard: the metric must not drop. Changes of the other tracks serve it as dependencies. The
+orchestrator pursues every open goal (below).
 
-**Client.** Plugins work in the official Android app. Each change is built, checked on a real client and merged into
-`master`; a release is cut after a network and privacy check, with the user's yes.
+**Client.** Plugins work in the official Android app. The client's goal is **100% of the RuneLite API** working in the
+app; its metric is the share of the RuneLite API that works there. Each change is built, checked on a real client and
+merged into `master`; a release is cut after a network and privacy check, with the user's yes.
 
 **Server.** (1) Unblock client work: the test server runs a change as soon as it is handed over and gated, whatever
 upstream thinks. (2) Contribute: every change reaches OpenRune as a clean, single-purpose, verified contribution; review
