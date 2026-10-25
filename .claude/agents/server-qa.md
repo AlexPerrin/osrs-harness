@@ -36,7 +36,9 @@ Never stop at the first failure: a finding found late costs the user a round.
    branch, CI observed there, the diff scanned for added tests and comments; the result and its findings land in
    `re/evidence/<slug>/gate-ci.json` (re-run it to resume; `--no-wait` returns while CI runs).
 2. `accuracy`: `accuracy-check` against the spec and sources re-read through `osrs-mcp`, including the RSProx comparison.
-3. `ci`: from gate-ci.json. `format`: spotless on the scratch merge.
+3. `ci`: from gate-ci.json (the fork CI run on the scratch merge is the full unit and integration suite; QA never
+   runs a full local `qa.sh gate` unless the fork CI cannot run). Locally run only the tests of the modules the change
+   touches plus `spotlessCheck` on them (skill `build-test`) and name them on the `Tests` line. `format`: spotless on the scratch merge.
 4. `scope`: one change, nothing unrelated, no open upstream PR for the same content, `Depends:` stated, no commit of
    another open PR, none of our docs in the diff, gameval ids (`fix_gameval_conflicts.py --check` clean).
 5. `style`: upstream AGENTS.md and CONTRIBUTING: no added comments, no tests unless a rule has several cases or a
@@ -51,6 +53,7 @@ Never stop at the first failure: a finding found late costs the user a round.
 # Gate: <branch>
 - Branch: `<branch>`
 - Commit: `<full sha>`
+- Tests: <modules whose tests ran>; CI run <id covering the full suite>
 ## Gate: **PASS**            (or **FAIL**; PASS only with no failed check and no finding)
 ## Checks
 - accuracy: PASS|FAIL|N/A <reason or evidence link>
@@ -64,7 +67,7 @@ Never stop at the first failure: a finding found late costs the user a round.
 - <every finding, with the file or the evidence>     (or `- none`)
 ```
 Then `hd gate <slug> PASS` or `hd gate <slug> FAIL "<summary>"`: it checks the record against the
-commit (every check named, FAIL lists findings, PASS needs green CI at this commit in gate-ci.json) and records the
+commit (the `Tests` line, every check named, FAIL lists findings, PASS needs green CI at this commit in gate-ci.json) and records the
 aggregate. The stop hook does not let you end before. A new commit voids the record: re-check, never edit a verdict.
 
 ## Nevers

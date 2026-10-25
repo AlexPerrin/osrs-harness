@@ -110,7 +110,7 @@ CHECKS = ("accuracy", "ci", "format", "scope", "style", "text", "ingame")
 def gate_text(commit, verdict="PASS", findings=(), branch="content/feat", checks=None):
     """QA's aggregate record in the format `hd gate` checks."""
     checks = dict({n: "PASS" for n in CHECKS}, **(checks or {}))
-    lines = [f"# Gate: {branch}", f"- Branch: `{branch}`", f"- Commit: `{commit}`", f"## Gate: **{verdict}**", "## Checks"]
+    lines = [f"# Gate: {branch}", f"- Branch: `{branch}`", f"- Commit: `{commit}`", "- Tests: server:app; CI run 123", f"## Gate: **{verdict}**", "## Checks"]
     lines += [f"- {n}: {r}" + (" reason" if r == "N/A" else "") for n, r in checks.items()]
     lines += ["## Findings"] + ([f"- {f}" for f in findings] or ["- none"])
     return "\n".join(lines) + "\n"
