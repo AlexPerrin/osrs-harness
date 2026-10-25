@@ -152,6 +152,7 @@ class R4Authority(Sandbox):
         self.assertIsNotNone(self.guard("git -C /x push fork HEAD:refs/heads/content/s"))
         self.assertIsNotNone(self.guard("git -C /x push --force fork HEAD:refs/heads/dev/s"))
         self.assertIsNone(self.guard("git -C /x push fork HEAD:refs/heads/content/s", role="console"))
+        self.assertIsNone(self.guard("git -C /x push fork --delete dev/s", role="console"))
         self.assertIsNotNone(self.guard("git push"))
         self.assertIsNotNone(self.guard("x=$(git -C /x push fork HEAD:dev/s)"))
 

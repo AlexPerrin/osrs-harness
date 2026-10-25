@@ -205,10 +205,10 @@ class Guard:
         repo = sp.norm_repo(url)
         if repo not in self.ours:
             return f"remote {p['remote']} is {url or 'unknown'}, not one of our repos"
+        if self.role == "console":
+            return None   # our repos are the user's: the console is free on them
         if sp.forced(p) and not all(sp.dest(r).startswith("gate/") for r in p["refspecs"] or [""]):
             return "a forced or deleting push"
-        if self.role == "console":
-            return None
         pats = [a.replace("<slug>", self.slug or "<no-change>") for a in self.refs.get(self._key(repo)) or []]
         for r in p["refspecs"] or ["HEAD"]:
             if not any(fnmatch.fnmatchcase(sp.dest(r), pat) for pat in pats):
