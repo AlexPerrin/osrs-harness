@@ -20,4 +20,6 @@ docs/PROBLEM.md, docs/PRD.md and docs/ARCHITECTURE.md and questions all four.
 - **The brief's first line is a protocol between three programs** (steps writes it, the Agent prompt carries it, the
   hook parses it back). v8: the spawner writes the run record; nothing is parsed out of a prompt.
 - **Repairs find orphans by the v7 run name.** Artefacts of earlier versions (v6 clones, state) are invisible to them
-  and were removed by hand. v8: name every artefact after its change and remove it when the change is done.
+  and were removed by hand; client windows carry no owner at all, so one left by an ended run stays open until a
+  person notices (desktop, 2026-10-25). v8: name every artefact after its change, clients included, and remove it when
+  the change is done.
