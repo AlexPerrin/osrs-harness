@@ -71,8 +71,15 @@ def render(ctx):
     alerts = "".join(f"<p class=alert>{e(a)}</p>" for a in v["alerts"])
     waiting = "".join(f"<details open><summary>{e(q['change'])}</summary><pre>{e(q['text'])}</pre></details>" for q in v["questions"]) + \
               "".join(f"<details><summary>approval: {e(c['change'])}</summary><pre>{e(c['text'])}</pre></details>" for c in v["cards"])
-    queue = _table(("pri", "track", "change", "stage", "last script step"),
-                   [(c["priority"], c["track"], c["slug"], " | ".join(c["stage"]), c["last"] or "") for c in v["changes"]])
+    busy = {r.get("change"): r["name"] for r in steps.alive_runs(ctx)}
+    nxt = {}
+    for ch, step in steps.next_steps(ctx):   # who acts next on each change: an agent, the pass, the user, or upstream
+        who = step.actor(ctx, ch)
+        nxt.setdefault(ch["slug"], []).append({"script": "the pass", "user": "you", steps.WAIT: "upstream"}.get(who, who) + f" ({step.name})")
+    queue = _table(("#", "pri", "track", "change", "stage", "next", "last script step"),
+                   [(i + 1, c["priority"], c["track"], c["slug"], " | ".join(c["stage"]),
+                     f"running: {busy[c['slug']]}" if c["slug"] in busy else ", ".join(nxt.get(c["slug"], ["waiting on a dependency"])),
+                     c["last"] or "") for i, c in enumerate(v["changes"])])
     return f"""<!doctype html><html><head><meta charset=utf-8><meta http-equiv=refresh content=30>
 <meta name=viewport content="width=device-width,initial-scale=1"><title>osrs-harness</title><style>
 :root{{--bg:#fff;--fg:#1d1d1f;--mut:#6e6e73;--line:#e3e3e8;--card:#f6f6f8;--warn:#b3261e}}
@@ -89,7 +96,7 @@ pre{{white-space:pre-wrap;background:var(--card);padding:10px;border-radius:6px;
 <h2>Waiting for you</h2>{waiting or '<small>nothing</small>'}
 <h2>Agents running</h2><div class=wrap>{_table(("run", "role", "change", "started", "last activity", "last said"), running)}</div>
 <h2>Next to spawn</h2><div class=wrap>{_table(("run", "role", "change", "step"), [(s["name"], s["role"], s["change"], s["step"]) for s in v["spawn"]])}</div>
-<h2>Task queue</h2><div class=wrap>{queue}</div>
+<h2>Task queue</h2><small>in execution order: priority, then age (the order the harness spawns in)</small><div class=wrap>{queue}</div>
 <h2>Upstream PRs</h2><div class=wrap>{_table(("PR", "change", "state", "draft", "head"), prs)}</div>
 <h2>Recent runs</h2><div class=wrap>{_table(("run", "role", "ended", "record", "last message"), recent)}</div>
 </body></html>"""

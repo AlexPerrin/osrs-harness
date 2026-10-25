@@ -403,7 +403,7 @@ def _unanswered(ctx, ch):
     pr = _pr(ctx, ch)
     if not pr:
         return []
-    return [c for c in ctx.changes if c.get("finding") and c.get("pr") == pr["number"]
+    return [c for c in ctx.changes if c.get("finding") and c.get("pr") == pr["number"] and c["slug"] != ch["slug"]
             and not (_handover_done(ctx, c) and _pushed(ctx, c) and _comment_done(ctx, c) and not _incomplete(c))]
 
 

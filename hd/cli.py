@@ -63,7 +63,7 @@ def view(ctx, briefs=True):
         "running": [{"name": r["name"], "role": r.get("role"), "change": r.get("change"), "since": r.get("started")}
                     for r in steps.alive_runs(ctx)],
         "changes": [{"slug": c["slug"], "track": c["track"], "priority": c.get("priority"), "stage": steps.stage(ctx, c),
-                     "last": _last_script(ctx, c)} for c in ctx.changes if steps.done(ctx, c) is not True],
+                     "last": _last_script(ctx, c)} for c in sorted(ctx.changes, key=steps._order) if steps.done(ctx, c) is not True],
     }
 
 

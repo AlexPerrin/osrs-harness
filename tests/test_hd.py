@@ -411,6 +411,7 @@ class ServerTrack(Sandbox):
         with open(os.path.join(self.ev, "s-f1", "pr-comment.md"), "w") as f:
             f.write("x\n## Checklist\n- [ ] Matches the OSRS wiki\n")
         self.assertTrue(steps._unanswered(self.ctx(F), self.ctx(F).by_slug["s"]))      # the finding's text is incomplete: still open
+        self.assertEqual(steps._unanswered(self.ctx(F), self.ctx(F).by_slug["s-f1"]), [])   # but not against itself: its own text is its dev's step
 
     def test_a_pr_moved_past_the_head_and_a_dead_console(self):
         self.change("s", track="server")
