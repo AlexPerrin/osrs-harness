@@ -33,6 +33,8 @@ Full client QA on the client's live tip (`origin/main`) at the exact commit; eve
 - `network-qa` (every release); sign-in (LOCAL_AUTH); the privacy patches present in the build's `repack.sh` log.
 - `reverse` for native claims (offsets, patched bytes, the telemetry rewrites' match counts and xrefs).
 - `pr-text-review` on the release notes; the APK carries no secrets or personal data.
+- **Scratch files**: the session scratchpad is shared by every agent of the console; keep build scripts and logs in
+  your worktree or under a folder named after your run, never at the scratchpad's top level.
 - **Artifacts**: your worktree is removed when you end. Copy the release build into the evidence dir first:
   `osrs-runelite.apk`, `THIRD_PARTY_NOTICES.md`, the repack log; the pass attaches them to the release.
 - **On the single APK**: one `adb install` on a device without the original game (an installed official copy gives
