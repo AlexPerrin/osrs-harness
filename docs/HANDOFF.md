@@ -8,7 +8,6 @@ docs/ARCHITECTURE.md. Live state is what `hd status`, `hd drive` and `hd actions
   no other process.
 - The console session runs the loop of `.claude/skills/drive/SKILL.md` and must stay alive for dispatch; pace it with
   /loop or ScheduleWakeup.
-- Do not start the daemon with `HD_MAX_CLIENTSCRIPT_ID` set (open work 2).
 
 ## Layout
 Fork clone `~/src/OpenRune-Server`; work dir `~/src/openrune-work` (integration build, qa clones, images, agents'
@@ -17,21 +16,19 @@ clones `agents/<name>/or`, `server-tools` = fork branch `local/server-tools`); r
 `re/evidence/<slug>/`.
 
 ## Open work
-1. Verify custom clientscript ids (10197-10198) against stock ids above 9999 (10000-10188 in 241.4): the desktop
+1. Verify custom clientscript ids (10197-10198) against stock ids above 9999 (10000-10196 in 241.4): the desktop
    RuneLite instances can confirm the cache and quest list; Android tolerance needs a BlueStacks client test.
-2. `check_cache.py` derives its limit from the cache's stock maximum (custom ids right after it); then
-   `HD_MAX_CLIENTSCRIPT_ID` leaves `image.sh`.
-3. Prune the remaining timed mechanisms (train debounce, gate/image/deploy-ready timeouts in policy `batches:`); replace with observed facts. Also dead hook
+2. Prune the remaining timed mechanisms (train debounce, gate/image/deploy-ready timeouts in policy `batches:`); replace with observed facts. Also dead hook
    rules for ship.sh and integrate.py.
-4. Wire `slot_stop.py` and `task_stop.py` into every dev/QA role file (only harness-dev and integrator have
+3. Wire `slot_stop.py` and `task_stop.py` into every dev/QA role file (only harness-dev and integrator have
    `task_stop`; nobody has `slot_stop`), so every agent hands over before it ends.
-5. `.claude/settings.json` hook wiring for the console session (publish_gate, github_scope) in this repo.
-6. A `decision` hold has no structured question and options; an `hd ask` (question + options as the hold reason)
+4. `.claude/settings.json` hook wiring for the console session (publish_gate, github_scope) in this repo.
+5. A `decision` hold has no structured question and options; an `hd ask` (question + options as the hold reason)
    would let agents pose choices the console asks with AskUserQuestion.
-7. `hd run-end` tokens come from the Agent tool's result and can be forgotten: a SubagentStop hook calling it, or a
+6. `hd run-end` tokens come from the Agent tool's result and can be forgotten: a SubagentStop hook calling it, or a
    checklist item.
-8. Many `failed` holds are "spec missing" on live branches: one change per spec.
-9. `kpi.py` reads `usd` (always empty): replace with tokens.
+7. Many `failed` holds are "spec missing" on live branches: one change per spec.
+8. `kpi.py` reads `usd` (always empty): replace with tokens.
 
 ## Gotchas
 - WSL to Windows interop (adb.exe, desktop bridge) times out intermittently (`UtilAcceptVsock accept4 failed 110`):

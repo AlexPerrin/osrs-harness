@@ -522,17 +522,6 @@ class ScriptTest(unittest.TestCase):
         self.image_env = dict(HD_CACHE_SCRIPTS=scripts, HD_IMAGE_ROOT=os.path.join(self.d, "images-ctx"), HD_IMAGE_TIMEOUT="5")
         return c
 
-    def test_image_check_cache_limit_is_passed_only_when_set(self):
-        c = self.clone()
-        with open(os.path.join(self.d, "cache-scripts", "check_cache.py"), "w") as f:
-            f.write("import os, sys\nopen(os.path.join(sys.argv[1], '.limit'), 'a').write(' '.join(sys.argv[2:]) + '|')\n")
-        for env in ({}, {"HD_MAX_CLIENTSCRIPT_ID": "10198"}):
-            r = self.run_script("image.sh", c, "int-t-1", **self.image_env, **env)
-            self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-            ctx = os.path.join(self.d, "images-ctx", f"image-{self.sha[:7]}")
-            with open(os.path.join(ctx, "data", "cache", "LIVE", ".limit")) as f:
-                self.assertEqual(f.read(), "|" if not env else "10198|")
-
     def test_image_boot_container_exit_fails_fast_with_its_logs(self):
         c = self.clone()
         r = self.run_script("image.sh", c, "int-t-1", STUB_NO_READY="1", STUB_BOOT_STATE="exited",

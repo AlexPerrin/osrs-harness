@@ -76,9 +76,7 @@ cp "$TEMPLATE" "$ctx/Dockerfile"
 cache=$ctx/data/cache/LIVE
 [ -d "$cache" ] || die "no cache at $cache"
 for s in add_varcs fix_long_varps fix_reftable check_cache; do
-    extra=()   # HD_MAX_CLIENTSCRIPT_ID: check_cache's id limit (default 9999), for a device verification only
-    [ "$s" = check_cache ] && [ -n "${HD_MAX_CLIENTSCRIPT_ID:-}" ] && extra=("$HD_MAX_CLIENTSCRIPT_ID")
-    python3 -I "$SCRIPTS/$s.py" "$cache" "${extra[@]}" || die "$s.py failed on $cache" 5
+    python3 -I "$SCRIPTS/$s.py" "$cache" || die "$s.py failed on $cache" 5
 done
 
 # 4. build with the live image's id pinned
