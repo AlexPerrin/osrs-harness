@@ -11,11 +11,12 @@ branch: content/witchs-potion
 commit: d782b5798a29ecbe924ea37998ddd73b428fecba
 repo: /home/alex/src/openrune-work/agents/sd43/or
 local_only: false
-owner: null
+owner: sd83
 evidence: /home/alex/osrs-plugins-reverse/re/evidence/witchs-potion-review-368
 network: true
 summary: 'Merge commit on the #368 head: the rebuilt Witch''s Potion on current main; no force-push.'
-booked: null
+booked:
+  dev: d782b5798a29ecbe924ea37998ddd73b428fecba|88b29c862e10
 cost:
   runs: 2
   turns: 0
@@ -23,7 +24,7 @@ cost:
   usd: 0
   tokens: 0
 created: '2026-10-24T19:31:52Z'
-updated: '2026-10-25T01:40:20Z'
+updated: '2026-10-25T01:43:26Z'
 ---
 ## Change
 Upstream #368 review P2 x2 (eaglepurerocketgrape 2026-10-22 11:42). Head content/witchs-potion 18afab0a7, CONFLICTING. The unstacked branch content/witchs-potion-unstacked 23e1b7c5d is a candidate base but is older than #366's merge.
@@ -52,3 +53,5 @@ Upstream #368 review P2 x2 (eaglepurerocketgrape 2026-10-22 11:42). Head content
 - 2026-10-25T01:23:11Z hold decision cleared: obsolete hold from the first dev run (fork CI blocked); the QA aggregate runs now
 - 2026-10-25T01:39:49Z QA aggregate FAIL at d782b5798 (6 finding(s)): 6 findings: added comment; PR text checklist not verbatim and revision wording; stale live #368 body and update comment; history/merge subject. CI+format green, in game PASS
 - 2026-10-25T01:40:20Z gate -> contribute: observed
+- 2026-10-25T01:43:25Z QA AGGREGATE (sq60, 2026-10-24) at the merge commit d782b5798 (rebuilt c407c2272f54 on #368 head 18afab0a7): behaviour PASS (CI 40148714790 + Formatting 40148804289 green on gate/witchs-potion-review-368, scope = exactly 6 files, fix_gameval_conflicts clean at 65447, in game end to end on a fresh account: offer/decline/accept, partial and full hand-in, cauldron, 1 QP, Magic XP, the rat tail drops at stage 1 and not after the quest). FINDINGS TO FIX (user: apply now): (1) style: an added comment above WitchsPotionRatTail in WitchsPotion.kt ('A kill hook, not a quest-gated drop...'): remove it (AGENTS.md: comments less is more); (2) text: the PR text checklist is not the template's verbatim (lines 2, 3, 5 have explanations; two unticked with justification inside the line): rebuild both bodies with /home/alex/.claude/jobs/24c56aeb/tmp/normalise.py and the template /home/alex/.claude/jobs/24c56aeb/tmp/template.md, explanations as plain notes with no checkboxes; (3) the PR text and the .comment contain revision history ('63718 and 65449 in earlier versions', 'the earlier version's dialogue tests... as with #366', the 'impossible to finish' rationale; the comment file is entirely change history) and stale facts (main 829b9477d, the id 65449 / clash with #366, f69c8ed4c): rewrite so the body states what the PR does (current main, id 65447, no stacked content) with no history; write a fresh short status comment file for the contribution (what changed in this push, what is verified) with the hidden marker not needed (hd contribute adds it); (4) the live #368 body is still the old stacked text: provide the replacement body as pr-texts/witchs-potion.upstream.body (the console posts it with the user's approval); (5) commit subjects must be feat:/fix: for the tip and the merge commit (the merge subject must claim only what is true); rebuild the contribution merge commit (tree = the fixed tip, parents = #368 head 18afab0a7 and the fixed tip; fast-forward, no force-push) in /home/alex/src/openrune-work/agents/sd43/or and point local content/witchs-potion at it; (6) observation only: RATS/INGREDIENTS are Kotlin lists (AGENTS.md discourages game data in Kotlin): keep them, the PR text discloses the rat list. Run only the quest module's tests and spotlessCheck (the full suite is the fork CI). Fork pushes need no approval; NEVER push content/witchs-potion or anything upstream; never edit the live #368 body or comment.
+- 2026-10-25T01:43:26Z run sd83 started (server-dev, stage dev)

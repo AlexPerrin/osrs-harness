@@ -11,7 +11,7 @@ branch: content/genie
 commit: 07f629a8e6d01c0d644b6871ed8926d012d91a79
 repo: /home/alex/src/openrune-work/agents/sd45/or
 local_only: false
-owner: sq61
+owner: null
 evidence: /home/alex/osrs-plugins-reverse/re/evidence/genie-review-355
 network: true
 summary: 'Clean Genie tip 57887e5c8 on upstream main 5c4c9c106 (4 Genie files, comments removed), merge 07f629a8e6d01c0d644b6871ed8926d012d91a79 onto #355 head 1d9b6fa49. Ran only :content:events:random-events
@@ -19,13 +19,13 @@ summary: 'Clean Genie tip 57887e5c8 on upstream main 5c4c9c106 (4 Genie files, c
 booked:
   gate: 07f629a8e6d01c0d644b6871ed8926d012d91a79
 cost:
-  runs: 20
+  runs: 21
   turns: 0
   minutes: 0
   usd: 0
   tokens: 0
 created: '2026-10-24T19:31:52Z'
-updated: '2026-10-25T01:29:03Z'
+updated: '2026-10-25T01:44:14Z'
 ---
 ## Change
 Upstream #355 (draft) has two review findings from eaglepurerocketgrape (2026-10-22 11:42). Head content/genie 1d9b6fa49. Folds in the pending gate findings held on `genie`.
@@ -135,3 +135,5 @@ Upstream #355 (draft) has two review findings from eaglepurerocketgrape (2026-10
 - 2026-10-25T01:28:44Z ready -> gate: hand-over recorded
 - 2026-10-25T01:28:44Z handover content/genie@07f629a8e: Clean Genie tip 57887e5c8 on upstream main 5c4c9c106 (4 Genie files, comments removed), merge 07f629a8e6d01c0d644b6871ed8926d012d91a79 onto #355 head 1d9b6fa49. Ran only :content:events:random-events spotlessCheck, test and integration (2 tests); gameval check clean.
 - 2026-10-25T01:29:03Z run sq61 started (server-qa, stage gate)
+- 2026-10-25T01:44:10Z QA aggregate FAIL at 07f629a8e (6 finding(s)): 6 findings: original GenieRandomEventTest (not justified by AGENTS.md), spawn/genieOf/consts public for the test, checklist ticks (tests, quirks.md, rsprox unverified); CI, Formatting, scope, accuracy, in game PASS
+- 2026-10-25T01:44:14Z run sq61 ended: ? turns, ? tokens, exit stopped:lingering: gate recorded

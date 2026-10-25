@@ -11,7 +11,7 @@ branch: content/cannon
 commit: 0df5c63a009b75fffb33f8ead897b432f55fcead
 repo: /home/alex/src/openrune-work/agents/sd76/or
 local_only: false
-owner: sd80
+owner: null
 evidence: /home/alex/osrs-plugins-reverse/re/evidence/cannon-review-354
 network: true
 summary: 'Contributed to #354 (head 0df5c63a0): tests dropped, comment, body, ready; in review.'
@@ -20,13 +20,13 @@ booked:
   dev: 0df5c63a009b75fffb33f8ead897b432f55fcead|da39a3ee5e6b
 batch: int-20261025-2
 cost:
-  runs: 9
+  runs: 10
   turns: 0
   minutes: 0
   usd: 0
   tokens: 0
 created: '2026-10-24T19:31:52Z'
-updated: '2026-10-25T01:24:32Z'
+updated: '2026-10-25T01:43:25Z'
 review_seen: '2026-10-25T00:45:33Z'
 ---
 ## Change
@@ -98,3 +98,4 @@ Upstream #354 is CHANGES_REQUESTED (Mark7625 2026-10-22 07:57, eaglepurerocketgr
 - 2026-10-25T01:09:44Z in train int-20261025-2: integration 5dccf9d0b pushed; gate, image and deploy pending
 - 2026-10-25T01:09:44Z in train int-20261025-2: integration 5dccf9d0b pushed; gate, image and deploy pending
 - 2026-10-25T01:24:32Z live on the test server: deployed by int-20261025-2 (integration 5dccf9d0b)
+- 2026-10-25T01:43:25Z run sd80 ended: ? turns, ? tokens, exit ok
