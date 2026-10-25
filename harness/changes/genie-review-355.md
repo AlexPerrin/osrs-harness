@@ -4,7 +4,7 @@ track: server
 title: 'Genie #355: address maintainer review and our gate findings'
 prio: P0
 role: server-dev
-stage: gate
+stage: contribute
 hold: null
 deps: []
 branch: content/genie
@@ -25,7 +25,7 @@ cost:
   usd: 0
   tokens: 0
 created: '2026-10-24T19:31:52Z'
-updated: '2026-10-25T01:44:14Z'
+updated: '2026-10-25T01:45:05Z'
 ---
 ## Change
 Upstream #355 (draft) has two review findings from eaglepurerocketgrape (2026-10-22 11:42). Head content/genie 1d9b6fa49. Folds in the pending gate findings held on `genie`.
@@ -137,3 +137,4 @@ Upstream #355 (draft) has two review findings from eaglepurerocketgrape (2026-10
 - 2026-10-25T01:29:03Z run sq61 started (server-qa, stage gate)
 - 2026-10-25T01:44:10Z QA aggregate FAIL at 07f629a8e (6 finding(s)): 6 findings: original GenieRandomEventTest (not justified by AGENTS.md), spawn/genieOf/consts public for the test, checklist ticks (tests, quirks.md, rsprox unverified); CI, Formatting, scope, accuracy, in game PASS
 - 2026-10-25T01:44:14Z run sq61 ended: ? turns, ? tokens, exit stopped:lingering: gate recorded
+- 2026-10-25T01:45:05Z gate -> contribute: observed
