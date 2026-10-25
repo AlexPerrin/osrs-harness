@@ -11,13 +11,18 @@ branch: local/server-tools
 commit: cebd3ba572b8168f811ce75060450b484345f40b
 repo: /home/alex/src/openrune-work/agents/sd82/server-tools
 local_only: false
-owner: sd82
+owner: null
 evidence: /home/alex/osrs-plugins-reverse/re/evidence/qa-sh-targeted
 summary: qa.sh targeted gate by default (--full), cs2-check/refresh-cs2, clone remotes local/fork/upstream with origin/main=upstream/main; README+QA.md
 booked:
   dev: '|da39a3ee5e6b'
+cost:
+  runs: 1
+  turns: 0
+  tokens: 0
+  minutes: 0
 created: '2026-10-25T01:31:10Z'
-updated: '2026-10-25T01:33:54Z'
+updated: '2026-10-25T01:39:24Z'
 ---
 ## Change
 Fork tooling (local/server-tools): qa.sh gate runs targeted module tests by default; the shared cs2 volume is refreshed when stale; dev clones get fork and upstream remotes
@@ -35,3 +40,4 @@ Fork tooling (local/server-tools): qa.sh gate runs targeted module tests by defa
 - 2026-10-25T01:31:11Z run sd82 started (server-dev, stage dev)
 - 2026-10-25T01:33:54Z dev -> gate: hand-over recorded
 - 2026-10-25T01:33:54Z handover local/server-tools@cebd3ba57: qa.sh targeted gate by default (--full), cs2-check/refresh-cs2, clone remotes local/fork/upstream with origin/main=upstream/main; README+QA.md
+- 2026-10-25T01:39:24Z run sd82 ended: ? turns, ? tokens, exit ok
