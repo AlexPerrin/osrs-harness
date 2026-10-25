@@ -1,0 +1,16 @@
+# hd configuration: repos, roles, capacity. Read by hd and the hooks.
+repos:
+  client: AlexPerrin/osrs-plugins-reverse
+  fork: AlexPerrin/OpenRune-Server
+  harness: AlexPerrin/osrs-harness
+  upstream: OpenRune/OpenRune-Server
+
+roles:                       # record: what a run owes before it may stop; uses: capacity classes held while alive
+  client-dev:  {track: client,  record: handover,   uses: [agent, device, build], worktree: true,  push: {client: ["client/<slug>"]}}
+  client-qa:   {track: client,  record: verdict,    uses: [agent, client, build], worktree: true}
+  server-dev:  {track: server,  record: handover,   uses: [agent, build],         push: {fork: ["dev/<slug>"]}, gh: [fork]}
+  server-qa:   {track: server,  record: verdict,    uses: [agent, client, build], push: {fork: ["gate/*", "docs"]}, gh: [fork]}
+  integrator:  {track: server,  record: resolution, uses: [agent, build],         push: {fork: ["local/server-tools", "local/integration-tools"]}}
+  harness-dev: {track: harness, record: handover,   uses: [agent],                worktree: true}
+
+capacity: {agent: 3, build: 2, image: 1, client: 2, device: 2}

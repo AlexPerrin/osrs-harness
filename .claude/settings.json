@@ -6,88 +6,31 @@
         "hooks": [
           {
             "type": "command",
-            "if": "Bash(gh pr create*)",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/hooks/publish_gate.py"
-          },
-          {
-            "type": "command",
-            "if": "Bash(gh release create*)",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/hooks/publish_gate.py"
-          },
-          {
-            "type": "command",
-            "if": "Bash(git tag*)",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/hooks/publish_gate.py"
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/hooks/github_scope.py",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/hooks/guard.py",
             "timeout": 30
           }
         ]
       }
     ],
-    "SessionStart": [
+    "SubagentStart": [
       {
-        "matcher": "compact",
+        "matcher": "client-dev|client-qa|server-dev|server-qa|integrator|harness-dev",
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR\"/hooks/session_state.sh"
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/hooks/run_start.py"
           }
         ]
       }
     ],
     "SubagentStop": [
       {
-        "matcher": "client-dev",
+        "matcher": "client-dev|client-qa|server-dev|server-qa|integrator|harness-dev",
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/hooks/slot_stop.py client"
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/hooks/task_stop.py"
-          }
-        ]
-      },
-      {
-        "matcher": "client-qa",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/hooks/slot_stop.py client-qa"
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/hooks/task_stop.py"
-          }
-        ]
-      },
-      {
-        "matcher": "server-dev",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/hooks/slot_stop.py server"
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/hooks/task_stop.py"
-          }
-        ]
-      },
-      {
-        "matcher": "server-qa",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/hooks/slot_stop.py server-qa"
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/hooks/task_stop.py"
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/hooks/run_stop.py",
+            "timeout": 660
           }
         ]
       }

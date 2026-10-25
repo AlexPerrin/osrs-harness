@@ -1,401 +1,236 @@
-"""deny_publish.py (the role guard), plus the shared shell parser, github_scope.py and publish_gate.py where they
-share its target resolution. Temp repos whose remotes point at the fork or at OpenRune; no network."""
+"""The hooks (R6, R7, R8, R31): run start and stop bound to the change from the transcripts, the stop block, usage
+from the transcript, and the one guard table. The hooks run as subprocesses with a temp state dir."""
 import json
 import os
+import shutil
 import subprocess
 import sys
+import tempfile
 import unittest
 
-from helpers import (FORK_SSH, FORK_URL, HOOKS, OURS_URL, UPSTREAM_URL, init_repo, tempdir)
-
+HOME = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+HOOKS = os.path.join(HOME, "hooks")
+sys.path.insert(0, HOME)
 sys.path.insert(0, HOOKS)
-import deny_publish  # noqa: E402
-import github_scope  # noqa: E402
-import shellparse  # noqa: E402
 
-FORK, DOCS, NONE = ["--fork-writes"], ["--docs-writes"], []
-ALLOW, DENY = True, False
+BRIEF = "Harness change `stile-approach` (server track, stage `dev`). Read the change file first.\nmore"
 
 
-class DenyPublishTest(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        import tempfile
-        cls._tmp = tempfile.TemporaryDirectory(prefix="harness-hooks-")
-        t = os.path.realpath(cls._tmp.name)
-        # re/upstream-pr/or: origin IS OpenRune, fork is ours.
-        cls.upr = init_repo(os.path.join(t, "upstream-pr", "or"), remotes={"origin": UPSTREAM_URL, "fork": FORK_SSH})
-        # re/agents/<name>/or and docs clones: origin is the fork.
-        cls.agent = init_repo(os.path.join(t, "agents", "sd1", "or"), remotes={"origin": FORK_URL})
-        cls.docs = init_repo(os.path.join(t, "agents", "sq1", "docs"), remotes={"origin": FORK_URL})
-        cls.ours = init_repo(os.path.join(t, "main"), remotes={"origin": OURS_URL})
-        # The real agent clones: origin is the local push clone (re/upstream-pr/or), fork is the fork.
-        cls.local = init_repo(os.path.join(t, "agents", "sd2", "or"), remotes={"origin": cls.upr, "fork": FORK_SSH})
-        cls._env = os.environ.get("HOOK_PUSH_CLONE")
-        os.environ["HOOK_PUSH_CLONE"] = cls.upr
-
-    @classmethod
-    def tearDownClass(cls):
-        cls._tmp.cleanup()
-        if cls._env is None:
-            os.environ.pop("HOOK_PUSH_CLONE", None)
-        else:
-            os.environ["HOOK_PUSH_CLONE"] = cls._env
-
-    def decide(self, cmd, cwd, flags):
-        cmd = cmd.format(upr=self.upr, agent=self.agent, docs=self.docs, ours=self.ours, local=self.local)
-        return deny_publish.decide({"tool_input": {"command": cmd}, "cwd": getattr(self, cwd)}, flags)
-
-    CASES = [
-        # (command, cwd, flags, expected)
-        # --- words as data are not commands (hd4, 2026-10-21: a grep pattern naming docker-compose and openrune.sh)
-        ("grep -rnE 'openrune/(upstream|docker-compose|switch\\.env)|openrune\\.sh|qa\\.sh' tools docs | cut -c1-200", "ours", NONE, ALLOW),
-        ('echo "docker rm osrs-openrune is the orchestrator\'s job"', "ours", NONE, ALLOW),
-        ("docker rm -f osrs-openrune", "ours", FORK, DENY),
-        ('bash -c "cd openrune && docker compose --env-file switch.env up -d --no-deps openrune"', "ours", FORK, DENY),
-        ("docker compose -f openrune/docker-compose.yml ps", "ours", NONE, ALLOW),
-        # --- reading a harness script is not running it (sd32, 2026-10-21)
-        ("sed -n 1,47p tools/harness/integrate.py; cat re/harness/integration-tools/integration.lock | head", "ours", FORK, ALLOW),
-        ("grep -n lease tools/harness/ship.sh tools/harness/deploy.sh", "agent", NONE, ALLOW),
-        ("python3 tools/harness/integrate.py build --now", "ours", FORK, DENY),
-        ("tools/harness/deploy.sh int-1", "ours", FORK, DENY),
-        # --- the legitimate fork actions the old bare-word `upstream` rule denied
-        ("tools/fork.sh pr-edit 21 pr-texts/stile-approach.upstream.body", "agent", FORK, ALLOW),
-        ('git commit -m "qa: upstream gate FAIL" && git push origin x:docs', "docs", DOCS, ALLOW),
-        ("git -C {upr} push fork fix/x", "ours", FORK, ALLOW),
-        # --- fork pushes, resolved through the remote URL
-        ("git -C {upr} push fork fix/x 2>&1 | tail -n 3", "ours", FORK, ALLOW),
-        ("cd {upr} && git push fork fix/x", "ours", FORK, ALLOW),
-        ("cd {upr}; git push -u fork HEAD:refs/heads/fix/x", "ours", FORK, ALLOW),
-        ("git push origin fix/x", "agent", FORK, ALLOW),
-        ("git push --force-with-lease origin fix/x", "agent", FORK, ALLOW),
-        ('git commit -m "address upstream review" && git push origin fix/x', "agent", FORK, ALLOW),
-        ("git push " + FORK_SSH + " fix/x", "ours", FORK, ALLOW),
-        ("git -C {upr} push -o ci.skip fork fix/x >/dev/null 2>&1", "ours", FORK, ALLOW),
-        # --- agent clones whose origin is the local push clone (a folder, not GitHub)
-        ("git push origin docs", "local", FORK, ALLOW),
-        ("git push origin fix/x", "local", DOCS, DENY),
-        ("git push origin docs", "local", DOCS, ALLOW),
-        ("git push fork fix/x", "local", FORK, ALLOW),
-        ("git push upstream fix/x", "local", FORK, DENY),
-        # --- pushes to OpenRune upstream, or targets the hook can't tell
-        ("git push origin fix/x", "upr", FORK, DENY),
-        ("git -C {upr} push origin fix/x", "agent", FORK, DENY),
-        ("cd {upr} && git push origin fix/x", "agent", FORK, DENY),
-        ("cd {agent} && git -C {upr} push origin fix/x", "agent", FORK, DENY),
-        ("git push", "agent", FORK, DENY),
-        ("git push --set-upstream", "agent", FORK, DENY),
-        ("git push " + UPSTREAM_URL + " fix/x", "agent", FORK, DENY),
-        ("git push nosuchremote fix/x", "agent", FORK, DENY),
-        ("git -C {upr} push fork main", "ours", FORK, DENY),
-        ("git push --mirror origin", "agent", FORK, DENY),
-        ('bash -c "git push origin fix/x"', "agent", FORK, DENY),
-        ("echo $(git push origin fix/x)", "agent", FORK, DENY),
-        ("git push origin fix/x && git -C {upr} push origin fix/x", "agent", FORK, DENY),
-        # --- gh writes
-        ("gh pr edit 362 -R OpenRune/OpenRune-Server --body-file b", "agent", FORK, DENY),
-        ("gh api -X PATCH repos/OpenRune/OpenRune-Server/pulls/362 -F body=@b", "agent", FORK, DENY),
-        ("gh pr comment 362 --repo https://github.com/OpenRune/OpenRune-Server -b hi", "agent", FORK, DENY),
-        ("gh api -X PATCH repos/AlexPerrin/OpenRune-Server/pulls/21 -F body=@pr-texts/x.upstream.body", "agent", FORK, ALLOW),
-        ("gh pr create -R AlexPerrin/OpenRune-Server --base main --head fix/x --title upstream-ready", "agent", FORK, ALLOW),
-        ("gh pr edit 21 --body-file b", "agent", FORK, DENY),   # target not named
-        ("gh pr comment 21 -R AlexPerrin/OpenRune-Server -b x && gh pr comment 362 -R OpenRune/OpenRune-Server -b x",
-         "agent", FORK, DENY),
-        # --- fork.sh is fork-only by construction, unless the command names OpenRune upstream
-        ("tools/fork.sh push fix/x --force-with-lease", "ours", FORK, ALLOW),
-        ("tools/fork.sh pr-comment 21 notes/upstream-review.md", "ours", FORK, ALLOW),
-        ("tools/fork.sh pr-create fix/x t OpenRune/OpenRune-Server", "ours", FORK, DENY),
-        ("tools/fork.sh push fix/x", "ours", NONE, DENY),
-        ("tools/fork.sh push fix/x", "ours", DOCS, DENY),
-        # --- --docs-writes: a non-forced, single refspec onto docs, remote resolving to the fork
-        ("git push origin HEAD:refs/heads/docs", "docs", DOCS, ALLOW),
-        ("git push origin docs", "docs", DOCS, ALLOW),
-        ("git -C {upr} push fork local-docs:docs", "ours", DOCS, ALLOW),
-        ("git push --force origin x:docs", "docs", DOCS, DENY),
-        ("git push -f origin x:docs", "docs", DOCS, DENY),
-        ("git push origin +x:docs", "docs", DOCS, DENY),
-        ("git push origin fix/x", "docs", DOCS, DENY),
-        ("git push origin x:docs y:docs2", "docs", DOCS, DENY),
-        ("git push origin x:docs", "upr", DOCS, DENY),
-        ("git push", "docs", DOCS, DENY),
-        ("gh pr comment 21 -R AlexPerrin/OpenRune-Server -b x", "docs", DOCS, DENY),
-        # --- BR-P1: server-qa pushes the fork's gate scratch branches (forced allowed) and docs, nothing else
-        ("git -C {upr} push --force fork HEAD:refs/heads/gate/feat", "ours", DOCS, ALLOW),
-        ("git push origin abc123:refs/heads/gate/feat", "docs", DOCS, ALLOW),
-        ("git push origin +abc123:gate/feat", "local", DOCS, ALLOW),
-        ("git push origin :gate/feat", "docs", DOCS, DENY),
-        ("git push origin --delete gate/feat", "docs", DOCS, DENY),
-        ("git push origin x:gate/a y:gate/b", "docs", DOCS, DENY),
-        ("git push origin x:gate/feat", "upr", DOCS, DENY),
-        ("git push origin x:gate/feat", "docs", NONE, DENY),
-        ("git push --force origin x:content/feat", "docs", DOCS, DENY),
-        # --- the console runs the contribution after the user's yes: denied to every role
-        ("python3 ~/osrs-harness/hd.py contribute feat --approved abc1234", "ours", FORK, DENY),
-        ("python3 ~/osrs-harness/hd.py contribute feat --approved abc1234", "docs", DOCS, DENY),
-        ("python3 ~/osrs-harness/hd.py gate-ci feat", "docs", DOCS, ALLOW),
-        ("python3 ~/osrs-harness/hd.py gate feat PASS", "docs", DOCS, ALLOW),
-        # --- client roles (no flags): no pushes or GitHub writes at all
-        ("git push origin x", "agent", NONE, DENY),
-        ("git -C {upr} push fork fix/x", "ours", NONE, DENY),
-        ("tools/fork.sh pr-edit 21 b", "ours", NONE, DENY),
-        ("gh pr edit 21 -R AlexPerrin/OpenRune-Server --body-file b", "ours", NONE, DENY),
-        ("git push origin master:main", "ours", NONE, DENY),
-        ("git stash push -m wip", "ours", NONE, ALLOW),
-        ("git status && git log --oneline -3", "ours", NONE, ALLOW),
-        ("gh pr view 362 -R OpenRune/OpenRune-Server", "ours", NONE, ALLOW),
-        ("grep -rn upstream docs/", "ours", NONE, ALLOW),
-        # --- orchestrator-only actions, whatever the flags
-        ("openrune/upstream/openrune.sh deploy abc123", "ours", FORK, DENY),
-        ("docker compose --env-file switch.env up -d", "ours", DOCS, DENY),
-        ("python3 tools/progress.py", "ours", NONE, DENY),
-        ("python3 tools/progress.py --dry-run", "ours", FORK, ALLOW),
-    ]
-
-    def test_table(self):
-        for cmd, cwd, flags, expected in self.CASES:
-            with self.subTest(cmd=cmd, cwd=cwd, flags=flags):
-                reason = self.decide(cmd, cwd, flags)
-                self.assertEqual(reason is None, expected, f"{'denied' if reason else 'allowed'}: {reason}")
-
-    def test_reason_names_the_target(self):
-        reason = self.decide("git push origin fix/x", "upr", FORK)
-        self.assertIn("OpenRune/OpenRune-Server", reason)
-
-    def test_hook_cli(self):
-        """The hook as the agents run it: JSON on stdin, a deny decision or nothing on stdout."""
-        def run(cmd, flags):
-            data = json.dumps({"tool_name": "Bash", "tool_input": {"command": cmd}, "cwd": self.agent})
-            return subprocess.run([sys.executable, os.path.join(HOOKS, "deny_publish.py"), *flags], input=data,
-                                  capture_output=True, text=True, env=dict(os.environ, HD_EVENTS=os.devnull)).stdout
-        self.assertEqual(run("git push origin fix/x", FORK), "")
-        self.assertIn('"deny"', run("git push origin fix/x", NONE))
+def line(kind, content, usage=None, agent="a1"):
+    msg = {"role": "user" if kind == "user" else "assistant", "content": content}
+    if usage:
+        msg["usage"] = usage
+    return json.dumps({"type": kind, "agentId": agent, "sessionId": "s1", "message": msg})
 
 
-class ShellParseTest(unittest.TestCase):
-    def test_segments_keep_redirections(self):
-        self.assertEqual(shellparse.segments("git push fork x 2>&1 | tail -3 && echo ok"),
-                         ["git push fork x 2>&1", "tail -3", "echo ok"])
-        self.assertEqual(shellparse.segments("a &>/dev/null; b"), ["a &>/dev/null", "b"])
-
-    def test_words_drop_redirections_and_assignments(self):
-        self.assertEqual(shellparse.words("FOO=1 git push fork x 2> /dev/null >out"), ["git", "push", "fork", "x"])
-
-    def test_parse_push(self):
-        p = shellparse.parse_push(["git", "-C", "/r", "-c", "a=b", "push", "-o", "x", "--force", "fork", "a:b"], "/")
-        self.assertEqual((p["dir"], p["remote"], p["refspecs"]), ("/r", "fork", ["a:b"]))
-        self.assertTrue(shellparse.forced(p))
-        self.assertIsNone(shellparse.parse_push(["git", "stash", "push"], "/"))
-
-    def test_upstream_name(self):
-        self.assertTrue(shellparse.UPSTREAM_NAME.search("gh pr view -R OpenRune/OpenRune-Server"))
-        self.assertTrue(shellparse.UPSTREAM_NAME.search("https://github.com/OpenRune/x"))
-        self.assertFalse(shellparse.UPSTREAM_NAME.search("AlexPerrin/OpenRune-Server upstream re/upstream-pr/or"))
-
-
-class GithubScopeTest(unittest.TestCase):
-    def test_push_targets(self):
-        t = tempdir(self)
-        upr = init_repo(os.path.join(t, "or"), remotes={"origin": UPSTREAM_URL, "fork": FORK_SSH})
-        self.assertEqual(github_scope.classify("git push origin fix/x 2>&1", upr)[0], "upstream")
-        self.assertEqual(github_scope.classify("git push", upr)[0], "unknown")
-        self.assertEqual(github_scope.classify("git status", upr)[0], "read")
-
-    def run_scope(self, cmd, cwd):
-        import subprocess
-        data = json.dumps({"tool_name": "Bash", "tool_input": {"command": cmd}, "cwd": cwd})
-        r = subprocess.run([sys.executable, os.path.join(HOOKS, "github_scope.py")], input=data, capture_output=True,
-                           text=True)
-        return json.loads(r.stdout)["hookSpecificOutput"]["permissionDecision"] if r.stdout.strip() else None
-
-    def test_variables_assigned_in_the_command(self):
-        # The command that made the user approve a fork push (2026-10-20): `wt=...` then `git -C $wt push fork ...`.
-        t = tempdir(self)
-        os.makedirs(os.path.join(t, "re", "harness"))
-        init_repo(os.path.join(t, "re", "harness", "integration-tools"), remotes={"fork": FORK_SSH})
-        upr = init_repo(os.path.join(t, "or"), remotes={"origin": UPSTREAM_URL, "fork": FORK_SSH})
-        self.assertEqual(self.run_scope("wt=re/harness/integration-tools && git -C $wt commit -q -m x -- a && "
-                                        "git -C $wt push -q fork local/integration-tools:local/integration-tools", t),
-                         None)   # no prompt (mixed command: the normal permission flow)
-        self.assertEqual(self.run_scope("wt=re/harness/integration-tools && "
-                                        "git -C $wt push -q fork local/integration-tools:local/integration-tools", t),
-                         "allow")
-        self.assertEqual(self.run_scope('d="' + upr + '"; git -C "${d}" push origin fix/x', t), "ask")
-
-    def test_command_substitution_in_an_option(self):
-        # The second fork push that prompted (2026-10-20): the lease value comes from $(git -C <dir> rev-parse ...).
-        t = tempdir(self)
-        os.makedirs(os.path.join(t, "re", "harness"))
-        init_repo(os.path.join(t, "re", "harness", "integration"), remotes={"fork": FORK_SSH})
-        upr = init_repo(os.path.join(t, "or"), remotes={"origin": UPSTREAM_URL, "fork": FORK_SSH})
-        cmd = ("git -C re/harness/integration push -q --force-with-lease=integration:$(git -C re/harness/integration "
-               "rev-parse fork/integration) fork HEAD:refs/heads/integration")
-        self.assertEqual(self.run_scope(cmd, t), "allow")
-        self.assertEqual(self.run_scope("git -C " + upr + " push --force-with-lease=x:$(git rev-parse y) origin x", t),
-                         "ask")
-        self.assertEqual(self.run_scope("echo $(git -C " + upr + " push origin x)", t), "ask")
-        # the harness repo is ours too (2026-10-21: its first push asked)
-        hr = init_repo(os.path.join(t, "osrs-harness"), remotes={"origin": "git@github.com:AlexPerrin/osrs-harness.git"})
-        self.assertEqual(self.run_scope("git -C " + hr + " push -q origin main", t), "allow")
-        # a read inside a substitution is not a write (sd35, 2026-10-21: `out=$(gh run list -R <fork> ...)` prompted)
-        self.assertNotEqual(self.run_scope("out=$(gh run list -R AlexPerrin/OpenRune-Server --commit abc --json url); echo $out", t), "ask")
-        self.assertEqual(self.run_scope("x=$(gh pr create -R OpenRune/OpenRune-Server --head AlexPerrin:fix/x --title t --body b)", t), "ask")
-
-    def test_push_from_a_worktree_created_in_the_same_command(self):
-        # The archive push that prompted (2026-10-20): `git -C clone worktree add $W fork/docs && ... cd $W && git push`.
-        t = tempdir(self)
-        upr = init_repo(os.path.join(t, "or"), remotes={"origin": UPSTREAM_URL, "fork": FORK_SSH})
-        cmd = ("S=" + t + "/scratch; W=$S/docs-archive; rm -rf $W; git -C " + upr + " worktree add -q --detach $W fork/docs"
-               " && cp a $W/b && cd $W && git add -A && git commit -q -m archive && git push fork HEAD:docs 2>&1 | tail -1")
-        self.assertNotEqual(self.run_scope(cmd, t), "ask")
-        self.assertNotEqual(self.run_scope("git -C " + upr + " worktree add " + t + "/w2 main && git -C " + t +
-                                           "/w2 push fork HEAD:refs/heads/x", t), "ask")
-        self.assertEqual(self.run_scope("git -C " + upr + " worktree add " + t + "/w3 main && cd " + t +
-                                        "/w3 && git push origin HEAD:refs/heads/x", t), "ask")
-        d = deny_publish.decide({"tool_input": {"command": "git -C " + upr + " worktree add -b y " + t + "/w4 && cd " + t +
-                                                "/w4 && git push fork y"}, "cwd": t}, ["--fork-writes"])
-        self.assertIsNone(d)
-
-    def test_contribution_and_fork_actions(self):
-        """`hd contribute` is the user's yes bound to a commit (publish_gate checks it): no second prompt; fork CI and
-        gate scratch pushes never prompt; any other upstream write does."""
-        t = tempdir(self)
-        upr = init_repo(os.path.join(t, "or"), remotes={"origin": UPSTREAM_URL, "fork": FORK_SSH})
-        self.assertEqual(self.run_scope("python3 /home/alex/osrs-harness/hd.py contribute feat --approved abc1234", t), "allow")
-        self.assertEqual(self.run_scope("gh workflow run ci.yml -R AlexPerrin/OpenRune-Server --ref gate/feat", t), "allow")
-        self.assertEqual(self.run_scope("gh workflow run ci.yml -R OpenRune/OpenRune-Server --ref main", t), "ask")
-        self.assertEqual(self.run_scope("git -C " + upr + " push --force fork abc:refs/heads/gate/feat", t), "allow")
-        self.assertEqual(self.run_scope("gh pr ready 7 -R OpenRune/OpenRune-Server", t), "ask")
-        self.assertEqual(self.run_scope("gh pr ready 7 --undo -R OpenRune/OpenRune-Server", t), "ask")
-        self.assertEqual(self.run_scope("gh pr comment 7 -R OpenRune/OpenRune-Server -b x", t), "ask")
-
-    def test_help_is_read_only(self):
-        t = tempdir(self)
-        self.assertNotEqual(self.run_scope("gh pr edit 367 -R OpenRune/OpenRune-Server --help", t), "ask")
-        self.assertEqual(self.run_scope("gh pr edit 367 -R OpenRune/OpenRune-Server --title x", t), "ask")
-
-
-class PublishGateHeredocTest(unittest.TestCase):
-    def test_note_mentioning_pr_create_is_not_gated(self):
-        import subprocess
-        cmd = "cat > /tmp/x.md <<'EOF'\nuse gh pr create -R OpenRune/OpenRune-Server and git tag v1.2.3\nEOF"
-        data = json.dumps({"tool_name": "Bash", "tool_input": {"command": cmd}})
-        r = subprocess.run([sys.executable, os.path.join(HOOKS, "publish_gate.py")], input=data, capture_output=True,
-                           text=True)
-        self.assertEqual(r.returncode, 0, r.stderr)
-        self.assertEqual(r.stdout.strip(), "")
-
-
-class PublishGateTest(unittest.TestCase):
+class Env(unittest.TestCase):
     def setUp(self):
-        import hd_helpers as H
-        self.d = H.sandbox(self)
+        self.tmp = tempfile.mkdtemp()
+        self.state = os.path.join(self.tmp, "state")
+        self.proj = os.path.join(self.tmp, "projects")
+        os.makedirs(os.path.join(self.proj, "s1", "subagents"))
+        self.parent = os.path.join(self.proj, "s1.jsonl")
+        open(self.parent, "w").close()
+        self.env = dict(os.environ, HD_STATE=self.state, HD_HOME=HOME)
+        from hd import records
+        self.records = records
+        os.environ["HD_STATE"] = self.state
 
-    def run_gate(self, cmd, **env):
-        t = tempdir(self)
-        data = json.dumps({"tool_name": "Bash", "tool_input": {"command": cmd}})
-        return subprocess.run([sys.executable, os.path.join(HOOKS, "publish_gate.py")], input=data, capture_output=True,
-                              text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=t, **env)).stdout
+    def tearDown(self):
+        shutil.rmtree(self.tmp)
+        os.environ.pop("HD_STATE", None)
 
-    def release(self, cmd, record=None, where="evidence", verdict="PASS"):
-        """Run the gate on a release command in a client repo with one commit; the record (the commit, a sha, or
-        None) is written under qa/ or the evidence tree."""
-        from helpers import commit_file
-        base = tempdir(self)
-        root = init_repo(os.path.join(base, "client"))
-        sha = commit_file(root, "a.txt", "a\n")
-        ev = os.path.join(base, "ev")
-        if record:
-            c = sha if record == "head" else record
-            path = (os.path.join(root, "qa", "client-1.2.3.md") if where == "qa"
-                    else os.path.join(ev, "rel-1", "client-record.md"))
-            os.makedirs(os.path.dirname(path))
-            open(path, "w").write(f"- Commit: `{c}`\n\n## Verdict: **{verdict}**\n")
-        return sha, self.run_gate(cmd.replace("SHA", sha), HD_CLIENT_ROOT=root, HD_EVIDENCE_DIR=ev)
+    def subagent(self, agent="a1", first=BRIEF, usages=()):
+        p = os.path.join(self.proj, "s1", "subagents", f"agent-{agent}.jsonl")
+        with open(p, "w") as f:
+            f.write(line("user", first, agent=agent) + "\n")
+            for u in usages:
+                f.write(line("assistant", [{"type": "text", "text": "x"}], usage=u, agent=agent) + "\n")
+        return p
 
-    def test_release_target_flag_and_evidence_record(self):
-        for cmd in ("gh release create v1.2.3 --target SHA", "gh release create v1.2.3 --target=SHA --title t"):
-            self.assertEqual(self.release(cmd, "head")[1], "")
+    def hook(self, name, payload):
+        r = subprocess.run([sys.executable, os.path.join(HOOKS, name)], input=json.dumps(payload), capture_output=True,
+                           text=True, env=self.env, timeout=60)
+        return json.loads(r.stdout) if r.stdout.strip() else None
 
-    def test_release_old_qa_record_and_positional_sha(self):
-        self.assertEqual(self.release("gh release create v1.2.3 SHA", "head", where="qa")[1], "")
-        self.assertEqual(self.release("git tag v1.2.3", "head", where="qa")[1], "")
+    def start(self, agent="a1", role="server-dev", **extra):
+        return self.hook("run_start.py", {"session_id": "s1", "transcript_path": self.parent, "cwd": HOME,
+                                          "agent_id": agent, "agent_type": role, **extra})
 
-    def test_release_denied_without_a_passing_record_at_the_commit(self):
-        c = "gh release create v1.2.3 --target SHA"
-        self.assertIn("no release record", self.release(c)[1])
-        self.assertIn("no record passes", self.release(c, "head", verdict="FAIL")[1])
-        self.assertIn("no record passes", self.release(c, "d" * 40)[1])
+    def stop(self, agent="a1", role="server-dev", active=False, last="done"):
+        return self.hook("run_stop.py", {"session_id": "s1", "transcript_path": self.parent, "agent_id": agent,
+                                         "agent_type": role, "stop_hook_active": active,
+                                         "agent_transcript_path": self.subagent_path(agent),
+                                         "last_assistant_message": last})
 
-    def test_fork_pr_not_gated(self):
-        self.assertEqual(self.run_gate("gh pr create -R AlexPerrin/OpenRune-Server --head AlexPerrin:fix/x --title t"), "")
-        self.assertEqual(self.run_gate("gh pr create --title 'upstream gate notes' --body-file re/upstream-pr/b"), "")
+    def subagent_path(self, agent):
+        return os.path.join(self.proj, "s1", "subagents", f"agent-{agent}.jsonl")
 
-    def test_upstream_pr_gated(self):
-        self.assertIn('"deny"', self.run_gate("gh pr create -R OpenRune/OpenRune-Server --head AlexPerrin:fix/x"))
-        self.assertIn('"deny"', self.run_gate("gh pr create --head AlexPerrin:fix/x --title t"))
-
-    def test_direct_upstream_pr_needs_qa_record_at_the_branch_commit(self):
-        import hd_helpers as H
-        clone = init_repo(os.path.join(self.d, "clone"))
-        from helpers import commit_file, git
-        sha = commit_file(clone, "a.txt", "a\n")
-        git(clone, "branch", "content/feat")
-        cmd = "gh pr create -R OpenRune/OpenRune-Server --head AlexPerrin:content/feat --title t"
-        env = {"INTEGRATION_CLONE": clone}
-        H.change("feat", "server", stage="gate", commit=sha)
-        self.assertIn("QA record missing", self.run_gate(cmd, **env))
-        H.write_gate("feat", sha)
-        self.assertEqual(self.run_gate(cmd, **env), "")
-        H.write_gate("feat", "f" * 40)
-        self.assertIn('"deny"', self.run_gate(cmd, **env))
-
-    def test_draft_upstream_pr_needs_no_record_but_an_existing_explicit_head(self):
-        clone = init_repo(os.path.join(self.d, "clone"))
-        from helpers import commit_file, git
-        commit_file(clone, "a.txt", "a\n")
-        git(clone, "branch", "content/feat")
-        env = {"INTEGRATION_CLONE": clone}
-        base = "gh pr create -R OpenRune/OpenRune-Server "
-        self.assertEqual(self.run_gate(base + "--draft --head AlexPerrin:content/feat --title t", **env), "")
-        self.assertEqual(self.run_gate(base + "--head AlexPerrin:content/feat --draft", **env), "")
-        self.assertIn('"deny"', self.run_gate(base + "--draft --title t", **env))
-        self.assertIn("no branch", self.run_gate(base + "--draft --head AlexPerrin:content/none", **env))
-        # the flag only: a title or body that says --draft does not make it one
-        self.assertIn('"deny"', self.run_gate(base + "--head AlexPerrin:content/feat --title 'not --draft'", **env))
-        self.assertIn('"deny"', self.run_gate(base + "--head AlexPerrin:content/feat --draft-x", **env))
-
-    def test_contribute_is_bound_to_the_approved_commit_and_a_qa_record(self):
-        import hd_helpers as H
-        sha = "a" * 40
-        H.change("feat", "server", stage="contribute", commit=sha)
-        cmd = "python3 /h/hd.py contribute feat --approved "
-        self.assertIn("no QA record", self.run_gate(cmd + sha))
-        H.write_gate("feat", sha, "FAIL", findings=["x"])   # findings are on the card; they do not block the user's yes
-        self.assertEqual(self.run_gate(cmd + sha[:12]), "")
-        self.assertIn("approval is for bbbbbbbbb", self.run_gate(cmd + "b" * 40))
-        self.assertIn("bound to the commit", self.run_gate("python3 /h/hd.py contribute feat"))
-        self.assertIn("no change nope", self.run_gate("python3 /h/hd.py contribute nope --approved " + sha))
-        H.write_gate("feat", "c" * 40)   # a record for another commit voids the approval
-        self.assertIn("no QA record", self.run_gate(cmd + sha))
-
-    def test_a_note_mentioning_contribute_is_not_a_command(self):
-        cmd = "cat > /tmp/x.md <<'EOF'\npython3 hd.py contribute feat --approved abc1234\nEOF"
-        self.assertEqual(self.run_gate(cmd), "")
+    def events(self, kind=None):
+        p = os.path.join(self.state, "events.jsonl")
+        if not os.path.exists(p):
+            return []
+        with open(p) as f:
+            evs = [json.loads(l) for l in f]
+        return [e for e in evs if kind is None or e["kind"] == kind]
 
 
-class QaWriteScopeTest(unittest.TestCase):
-    def run_scope(self, path):
-        import qa_write_scope  # noqa: F401
-        data = json.dumps({"tool_input": {"file_path": path}})
-        return subprocess.run([sys.executable, os.path.join(HOOKS, "qa_write_scope.py")], input=data, capture_output=True,
-                              text=True).stdout
+class RunStartTest(Env):
+    def test_binds_the_change_from_the_subagent_transcript(self):
+        self.subagent()
+        self.start()
+        r = self.records.run("a1")
+        self.assertEqual((r["role"], r["change"], r["ended"]), ("server-dev", "stile-approach", None))
+        self.assertIn("console_pid", r)
+        self.assertEqual(self.events("run")[0]["action"], "start")
 
-    def test_qa_writes_its_record_in_the_evidence_dir_and_never_code(self):
-        self.assertEqual(self.run_scope("/home/x/osrs-plugins-reverse/re/evidence/feat/gate.md"), "")
-        self.assertEqual(self.run_scope("/home/x/osrs-plugins-reverse/re/evidence/feat/gate-ci.json"), "")
-        self.assertEqual(self.run_scope("/home/x/osrs-plugins-reverse/qa/client-1.2.3.md"), "")
-        self.assertIn('"deny"', self.run_scope("/home/x/src/OpenRune-Server/server/Foo.kt"))
-        self.assertIn('"deny"', self.run_scope("/home/x/osrs-harness/hd/stages.py"))
+    def test_ignores_an_agent_of_no_harness_role_and_no_change(self):
+        self.subagent(first="Find every caller of foo.")
+        self.start(role="general-purpose")
+        self.assertIsNone(self.records.run("a1"))
+
+    def test_falls_back_to_the_agent_call_in_the_parent_transcript(self):
+        with open(self.parent, "w") as f:
+            f.write(json.dumps({"type": "assistant", "message": {"content": [
+                {"type": "tool_use", "name": "Agent", "input": {"subagent_type": "server-dev", "prompt": BRIEF}}]}}) + "\n")
+        self.start()
+        self.assertEqual(self.records.run("a1")["change"], "stile-approach")
+
+
+class RunStopTest(Env):
+    USAGE = ({"input_tokens": 5, "output_tokens": 10, "cache_read_input_tokens": 100, "cache_creation_input_tokens": 1},
+             {"input_tokens": 1, "output_tokens": 20, "cache_read_input_tokens": 200})
+
+    def test_blocks_the_first_stop_without_the_handover(self):
+        self.subagent()
+        self.start()
+        out = self.stop()
+        self.assertEqual(out["decision"], "block")
+        self.assertIn("handover", out["reason"])
+        self.assertIsNone(self.records.run("a1")["ended"])
+
+    def test_second_stop_ends_with_no_record_and_a_hold(self):
+        self.subagent(usages=self.USAGE)
+        self.start()
+        self.assertIsNone(self.stop(active=True, last="I give up"))
+        r = self.records.run("a1")
+        self.assertEqual(r["exit"], "no-record")
+        self.assertEqual(r["usage"], {"input": 6, "output": 30, "cache_read": 300, "cache_creation": 1, "turns": 2})
+        hold = self.records.record("stile-approach", "hold")
+        self.assertEqual(hold["by"], "a1")
+        self.assertIn("I give up", hold["text"])
+
+    def test_handover_written_since_the_start_lets_it_stop(self):
+        self.subagent(usages=self.USAGE)
+        self.start()
+        self.records.save_record("stile-approach", "handover", {"sha": "abc"})
+        self.assertIsNone(self.stop())
+        r = self.records.run("a1")
+        self.assertEqual((r["exit"], r["usage"]["output"]), ("ok", 30))
+        self.assertEqual(self.events("run")[-1]["exit"], "ok")
+
+    def test_an_old_handover_does_not_count(self):
+        self.records.save_record("stile-approach", "handover", {"sha": "old", "ts": "2000-01-01T00:00:00Z"})
+        self.subagent()
+        self.start()
+        self.assertEqual(self.stop()["decision"], "block")
+
+    def test_a_question_asked_by_this_run_lets_it_stop(self):
+        self.subagent()
+        self.start()
+        self.records.save_record("stile-approach", "hold", {"text": "which id?", "by": "a1"})
+        self.assertIsNone(self.stop())
+        self.assertEqual(self.records.run("a1")["exit"], "ok")
+
+    def test_qa_owes_a_verdict_and_the_integrator_a_resolution(self):
+        self.subagent(agent="q1")
+        self.start(agent="q1", role="server-qa")
+        self.assertIn("verdict", self.stop(agent="q1", role="server-qa")["reason"])
+        self.records.save_record("stile-approach", "verdict", {"sha": "abc", "verdict": "PASS"})
+        self.assertIsNone(self.stop(agent="q1", role="server-qa"))
+        self.subagent(agent="i1", first="Harness change `t-1` (train)")
+        self.start(agent="i1", role="integrator")
+        self.assertIn("resolve", self.stop(agent="i1", role="integrator")["reason"])
+        self.records.save_train({"id": "t-1", "resolution": {"note": "dropped x", "ts": self.records.now()}})
+        self.assertIsNone(self.stop(agent="i1", role="integrator"))
+
+    def test_a_stop_the_start_hook_missed_is_still_recorded(self):
+        self.subagent(usages=self.USAGE)
+        self.records.save_record("stile-approach", "handover", {"sha": "abc"})
+        self.assertIsNone(self.stop())
+        self.assertEqual(self.records.run("a1")["change"], "stile-approach")
+
+
+class GuardTest(Env):
+    def setUp(self):
+        super().setUp()
+        from guard import Guard
+        self.Guard = Guard
+        self.repo = os.path.join(self.tmp, "repo")
+        subprocess.run(["git", "init", "-q", self.repo], check=True)
+        for name, url in (("fork", "https://github.com/AlexPerrin/OpenRune-Server.git"),
+                          ("upstream", "git@github.com:OpenRune/OpenRune-Server.git"),
+                          ("client", "https://github.com/AlexPerrin/osrs-plugins-reverse"),
+                          ("local", os.path.join(self.tmp, "clone"))):
+            subprocess.run(["git", "-C", self.repo, "remote", "add", name, url], check=True)
+        self.cfg = self.records.config()
+
+    def deny(self, role, cmd, slug="stile-approach"):
+        return self.Guard(self.cfg, role, slug).decide(cmd, self.repo)
+
+    def test_pushes_by_role_and_ref(self):
+        self.assertIsNone(self.deny("server-dev", "git push fork HEAD:dev/stile-approach"))
+        self.assertIsNone(self.deny("server-dev", "git push -u fork dev/stile-approach"))
+        self.assertIn("may push only", self.deny("server-dev", "git push fork dev/other"))
+        self.assertIn("may push only", self.deny("server-dev", "git push fork HEAD:content/stile-approach"))
+        self.assertIn("may push only", self.deny("server-dev", "git push fork main"))
+        self.assertIn("not one of our repos", self.deny("server-dev", "git push upstream dev/stile-approach"))
+        self.assertIn("OpenRune upstream", self.deny("server-dev", "git push git@github.com:OpenRune/OpenRune-Server.git x"))
+        self.assertIn("bare", self.deny("server-dev", "git push"))
+        self.assertIsNone(self.deny("server-dev", "git push local anything:main"))
+        self.assertIn("forced", self.deny("server-dev", "git push -f fork dev/stile-approach"))
+        self.assertIsNone(self.deny("server-qa", "git push -f fork HEAD:gate/stile-approach"))
+        self.assertIsNone(self.deny("server-qa", "git push fork HEAD:docs"))
+        self.assertIn("forced", self.deny("server-qa", "git push -f fork HEAD:docs"))
+        self.assertIn("may push only", self.deny("harness-dev", "git push fork HEAD:dev/stile-approach"))
+        self.assertIsNone(self.deny("client-dev", "git push client HEAD:client/stile-approach"))
+        self.assertIsNone(self.deny("console", "git push fork main"))
+        self.assertIn("not one of our repos", self.deny("console", "git push upstream main"))
+        self.assertIn("substitution", self.deny("console", "echo $(git push fork x)"))
+        self.assertIsNone(self.deny("server-dev", "cd sub && git -C .. push fork HEAD:dev/stile-approach"))
+
+    def test_github_writes(self):
+        self.assertIsNone(self.deny("server-dev", "gh pr create -R AlexPerrin/OpenRune-Server --title t --body b"))
+        self.assertIn("upstream", self.deny("server-dev", "gh pr create -R OpenRune/OpenRune-Server --title t"))
+        self.assertIn("name one", self.deny("server-dev", "gh pr create --title t --body b"))
+        self.assertIn("may not write", self.deny("client-dev", "gh pr comment 3 -R AlexPerrin/OpenRune-Server -b x"))
+        self.assertIsNone(self.deny("console", "gh pr comment 1 -R AlexPerrin/osrs-harness -b hi"))
+        self.assertIn("release", self.deny("console", "gh release create v0.1.3 -R AlexPerrin/osrs-plugins-reverse"))
+        self.assertIsNone(self.deny("client-dev", "gh pr view 3 -R OpenRune/OpenRune-Server"))
+        self.assertIn("upstream", self.deny("console", "gh api -X POST repos/OpenRune/OpenRune-Server/issues/1/comments -f body=x"))
+
+    def test_live_stack_and_publish_are_the_ticks(self):
+        self.assertIn("compose", self.deny("console", "docker compose --env-file switch.env up -d --no-deps openrune"))
+        self.assertIsNone(self.deny("console", "docker compose ps"))
+        self.assertIn("docker write", self.deny("server-dev", "docker stop osrs-openrune"))
+        self.assertIsNone(self.deny("server-dev", "docker stop qa-dev-sd1"))
+        self.assertIn("tick", self.deny("server-dev", "bash ~/osrs-harness/train/deploy.sh int-1"))
+        self.assertIn("tick", self.deny("console", "python3 hd/publish.py stile-approach"))
+        self.assertIn("tag", self.deny("console", "git tag v0.1.3"))
+        self.assertIsNone(self.deny("console", "git tag -l"))
+        self.assertIn("compose", self.deny("console", "bash -c 'docker compose up -d openrune'"))
+
+    def test_hd_approve_is_the_consoles(self):
+        self.assertIn("console alone", self.deny("server-dev", "python3 ~/osrs-harness/hd.py approve x abc"))
+        self.assertIsNone(self.deny("console", "python3 ~/osrs-harness/hd.py approve x abc"))
+        self.assertIsNone(self.deny("server-dev", "python3 ~/osrs-harness/hd.py handover x --sha abc"))
+
+    def test_denial_is_an_event_through_the_hook(self):
+        out = self.hook("guard.py", {"tool_name": "Bash", "tool_input": {"command": "git push upstream main"},
+                                     "cwd": self.repo, "agent_type": "server-dev", "agent_id": "a1"})
+        self.assertEqual(out["hookSpecificOutput"]["permissionDecision"], "deny")
+        self.assertEqual(self.events("denial")[0]["role"], "server-dev")
+        self.assertIsNone(self.hook("guard.py", {"tool_name": "Bash", "tool_input": {"command": "ls"}, "cwd": self.repo}))
 
 
 if __name__ == "__main__":

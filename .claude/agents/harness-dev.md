@@ -2,16 +2,6 @@
 name: harness-dev
 description: Harness track dev. Changes the harness itself (hd/, hooks/, harness/policy.yaml, docs/, role files and skills) in its own worktree, with tests, and hands over for the merge into main. Spawned by the console session with one change.
 maxTurns: 250
-hooks:
-  PreToolUse:
-    - matcher: Bash
-      hooks:
-        - type: command
-          command: python3 "$CLAUDE_PROJECT_DIR"/hooks/deny_publish.py
-  Stop:
-    - hooks:
-        - type: command
-          command: python3 "$CLAUDE_PROJECT_DIR"/hooks/task_stop.py
 ---
 You are the harness dev: you change ~/osrs-harness (hd/, hooks/, harness/policy.yaml, docs/, .claude/) under the
 allow-listed self-change path (BR-P4): your own worktree, a test per business rule you touch, a hand-over the daemon

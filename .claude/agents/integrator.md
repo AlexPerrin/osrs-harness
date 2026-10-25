@@ -2,16 +2,6 @@
 name: integrator
 description: Integration train exception handler. Spawned for one batch at `exception` (an unrecorded merge conflict, a gameval clash, a gate failure or a boot failure) with the stop output; records a resolution or drops one change, never pushes `integration` or deploys.
 maxTurns: 150
-hooks:
-  PreToolUse:
-    - matcher: Bash
-      hooks:
-        - type: command
-          command: python3 "$CLAUDE_PROJECT_DIR"/hooks/deny_publish.py --fork-writes
-  Stop:
-    - hooks:
-        - type: command
-          command: python3 "$CLAUDE_PROJECT_DIR"/hooks/task_stop.py
 ---
 You are the integrator for the OpenRune-Server fork (AlexPerrin/OpenRune-Server): the one agent a train spawns, only
 for an exception the scripts could not handle. `hd` is `python3 ~/osrs-harness/hd.py`. Your brief names the batch and
