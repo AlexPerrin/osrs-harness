@@ -1,131 +1,109 @@
-# Harness v7 — proposal (rewrite from first principles)
+# Harness v7 — proposal
 
-For review. If accepted, PROBLEM, PRD and ARCHITECTURE are rewritten to match (a PRD of 12 lines, not 89) and this file is
-deleted. Nothing here changes the product goals: unattended, self-healing, legible, user only for upstream and releases.
+A summary of docs/PROBLEM.md, docs/PRD.md and docs/ARCHITECTURE.md on this branch, for review. It adds what they do not
+carry: what v7 removes, the build order, the assumptions to verify and the decisions for you. It is deleted when v7 is
+live.
 
-## 1. Problem — the process
+## 1. Problem
 
-One shape for every track. Symbols: rounded = start/end · rectangle = action · diamond = decision · parallelogram =
-record on disk (one owner) · hexagon = the user in chat · double-bar box = detached process · cylinder = a fact outside
-the harness (git, GitHub, docker, `/proc`).
+You want goals reached with nobody watching. A goal belongs to one track and has a measurable fact; the client's goal is
+**100% of the RuneLite API interface methods working in the Android app**. Three tracks deliver toward goals and depend
+on each other:
 
-```mermaid
-flowchart TD
-  start([Change defined<br/>slug · track · deps · done-when]) --> deps{every dep<br/>live?}
-  deps -- no --> wait1([wait: the tick re-asks])
-  deps -- yes --> hold{hold or<br/>alive run?}
-  hold -- yes --> wait2([wait: answer or run end])
-  hold -- no --> dev[Dev agent builds on its ref]
-  dev --> ho[/hand-over record<br/>bound to sha/]
-  ho --> complete{complete?}
-  complete -- no --> dev
-  complete -- yes --> kind{track}
+| Track | Delivers | Live when | Done when |
+|---|---|---|---|
+| Client | plugins in the Android app, APK releases | `master` contains it | live |
+| Server | behaviour the client needs, contributed to OpenRune | the test server runs it | merged upstream |
+| Harness | the machinery that moves both | `main` contains it | live |
 
-  kind -- "client · harness" --> merge[Tick merges into master / main<br/>and pushes]
-  merge --> live1([LIVE = DONE])
-  kind -- server --> fork
-
-  subgraph fork [Server: two targets advance independently]
-    direction TB
-    q[Queue for the train] --> train[[Train: pin · rebuild · gate · image · deploy]]
-    train --> ok{ok?}
-    ok -- "no (conflict, red gate)" --> integ[Integrator resolves once]
-    integ --> train
-    ok -- yes --> liveS([LIVE on test server])
-    qa[QA agent checks the exact sha] --> ver[/verdict record/]
-    ver --> pass{PASS at<br/>head?}
-    pass -- no --> dev
-    pass -- yes --> card{{User reads the card,<br/>says yes in chat}}
-    card --> appr[/approval record<br/>bound to sha/]
-    appr --> pub[Tick: next unmet step<br/>push · PR · CI green · comment · ready]
-    pub --> gh[(GitHub)]
-    gh --> merged{merged<br/>upstream?}
-    merged -- no, finding --> fix[Finding filed as P0 change<br/>on the same branch]
-    fix --> dev
-    merged -- yes --> doneS([DONE])
-  end
-  ho --> q
-  ho --> qa
-
-  rel([Release requested by user]) --> gate[client-qa gates master at one sha] --> rv[/verdict/] --> rcard{{User yes}} --> rpub[Tick tags and publishes the APK] --> rdone([DONE])
-```
-
-The loop around it, which is the only thing that runs:
+An **orchestrator** agent closes the gap between each goal's measurement and its target by filing changes, with
+dependencies across tracks. Each change goes through the same flow: a dev hands over a commit, checks run, it ships.
+Only a write to OpenRune and a client release wait for you.
 
 ```mermaid
 flowchart LR
-  timer([systemd timer<br/>every minute]) --> tick[hd tick]
-  stop([agent run ends]) --> tick
-  tick --> obs[(observe: git · gh · docker · /proc)]
-  obs --> der[derive state from facts + records]
-  der --> act[do the ONE next unmet step per change<br/>heal · ship · publish · start train]
-  act --> list[/spawns · cards · questions · alerts/]
-  list --> con{{Console: spawns agents,<br/>asks the user, records yes}}
-  con --> rec[/records/]
-  rec --> der
+  g([Goal and target]) --> m[(Measurement)]
+  m --> o[Orchestrator files changes]
+  o --> d[[Dev hands over]]
+  d --> c[Script gate, then agent review]
+  c --> s{Needs the user?}
+  s -- "OpenRune write or release" --> u{{Your yes in chat}}
+  s -- no --> l([Live])
+  u --> l
+  l --> m
 ```
 
-## 2. PRD — first principles
+## 2. Requirements (six, in outcomes)
 
-Strip the 32 requirements to what a machine that moves changes must be true of. Everything else is a checklist for an
-agent (a skill), not a requirement of the harness.
+| Id | Requirement |
+|---|---|
+| R1 Goals | progress is measured and work is chosen to close the gap |
+| R2 Flow | a defined change reaches its live target with no person involved |
+| R3 Integrity | what was checked and approved is exactly what ships; claims count only if verifiable |
+| R4 Authority | only a write to OpenRune and a release need you |
+| R5 Recovery | every failure is repaired without you; only what you alone can fix is raised, once |
+| R6 Visibility | you can see what runs, what waits for you, each goal's progress, what happened |
 
-| # | Invariant | Replaces |
-|---|---|---|
-| 1 | **State is derived.** Stage, liveness and "what next" are computed from facts and records on every read. Nothing else is stored but definitions, records, locks, train, events. | R1, R15, R9 |
-| 2 | **One owner per record, bound to a sha.** dev → hand-over, QA → verdict, user → approval and answers, hooks → runs. A moved head voids them. | R3, R8, R13 |
-| 3 | **Progress is the next unmet step.** Every action is idempotent and checks its own result first; a re-run resumes. No decision reads the clock. | R2, R12, R27, R28 (resume) |
-| 4 | **A run is alive iff its console is.** Hooks write start/end/usage; nothing the model says counts. A dead console frees everything it held. | R6, R7, R16 |
-| 5 | **Only two actions need the user:** a write to OpenRune and a client release. Both run only at an approved sha, and only the harness's own publish step can do them. | R11, R12, R18, R31 |
-| 6 | **Anything owned by nothing alive is removed** by the tick, one event each. What only the user can fix is an alert. | R28, R29 |
-| 7 | **Scarce things are locked or counted:** one train at a time; Ghidra and the Android device by a lock; agents by one number. | R16, R17 |
-| 8 | **Every write is an event; `hd` shows only facts.** | R15, R30 |
+The previous 32 requirements are gone; the checklists among them (QA, accuracy, hand-over contents, release gate,
+hygiene) live in the role files and skills.
 
-Moved out of the PRD into the skills and role files, where agents read them: the QA checklist (R20), accuracy source order
-(R23), hand-over contents (R24), release gate details (R25), privacy and process hygiene (R32), review-fix filing (R22,
-a tick rule in `server.py`, not a requirement).
+## 3. Architecture
 
-Acceptance (unchanged in kind): a night of unattended merges and deploys; each fault in §3 healed within a tick; a
-harness change live on the next tick; code ≤ 1 800 lines, tests ≤ 1 000, `hd.yaml` ≤ 30.
+One idea: a function over observed facts returns the next unmet step of each change; `hd tick` runs it every minute (a
+systemd timer) and after every agent run. No daemon.
 
-## 3. Architecture — where complexity goes
+- **Stored:** committed definitions (goals, changes); records, each written by one owner and valid only for the commit
+  and base it covers; locks for `ghidra` and `device`; the train; events.
+- **Derived on every read:** stage, who works on what, dispatch, cards, alerts, goal progress.
+- **Checks, cheapest first:** a script gate (no tokens) for everything a machine can decide, then an agent review only for
+  judgment, then a smoke test only when the base moved. A check passed for the same commit and base is not re-run.
+- **Goal:** a definition with a `measure` command and a target; the orchestrator runs it in the real app and records one
+  number with its evidence. The harness keeps no per-method list.
+- **Tracks:** one row of config each, differing in dev role, gate, review and ship step; only the server has code of its
+  own (train, publish steps, findings).
+- **Publish and release:** not processes; each tick does the next unmet step at an approved commit.
+- **Healing:** a dead console, lock, train, container or clone is found as a fact and repaired in one tick.
+- **Guard:** three hooks (`run_start`, `run_stop`, `guard`); nothing but the harness writes to OpenRune.
 
-| Cut | From → to | Why it is safe |
-|---|---|---|
-| **No `publish.py` process, no publish record** | detached process with steps → the tick does the next unmet step | every publish step is a fact on GitHub (branch pushed? PR open? CI green? commented? ready?). Waiting for CI is "do nothing this tick". Same for release (tag exists? asset attached?) and ship |
-| **Client and harness are one track** | two modules → one `merge` behaviour, two rows in `hd.yaml` (repo, branch, check) | both are "merge the handed-over sha into a branch and push" |
-| **Only `server.py` is special** | 9 functions per track → `server.py` (train queue, publish steps, finding filing, upstream sync) | the core has no PR or CI knowledge |
-| **Capacity classes → locks + one number** | 5 classes → `agents: N`; train is single-flight; `ghidra` and `device` are locks | builds already serialise in `buildq.sh`; clients are per-agent |
-| **Train/`integration` locks by `flock`** | lock files with stale detection → the process holds `flock`; the kernel frees it on death | no reclaim code for the processes that matter |
-| **Train has no step state machine** | per-step records, resume, `exception` stage → `trains/<id>.json {pid, heads, failed_step, detail}`; rerun from `pin` | rebuild from pins is deterministic, so rerun equals resume |
-| **Conflict resolutions by `git rerere`** | recorded-resolution files and replay code → a shared rr-cache | git already replays a recorded resolution; the integrator resolves once. *Verify in step 1* |
-| **Integrator is a dev of the train** | own record kind and `hd resolve` → `hd handover <train-id> <sha>` like any dev | one hand-over path |
-| **Commands** | 15 → 11: `hd`, `tick`, `new`, `dod`, `approve`, `answer`, `handover`, `verdict`, `ask`, `lock`, `cost` | `events` is `tail`, `show` is `cat`, `resolve` is `handover` |
-| **Modules** | 14 → 7: `cli`, `store` (defs, records, locks, events), `observe`, `derive`, `act` (tick, heal, ship, publish steps), `server`, `brief` | no behaviour removed, only seams |
-| **Hooks** | unchanged: `run_start`, `run_stop`, `guard` (+ `shellparse`) — already built and committed | their weight is real enforcement, not ceremony |
+Size targets, unmeasured: code ≤ 1 800 lines, tests ≤ 1 000, `hd.yaml` ≤ 30, 12 commands, 7 modules.
 
-Kept because removing it breaks a goal: definitions committed apart from state; hand-over/verdict/approval/hold records
-bound to sha; the three hooks; the console loop with four verbs (`hd`, `approve`, `hold`, `answer`); the systemd timer;
-the train as one detached process; `dev/<slug>` as the only ref a dev writes.
+## 4. What v7 removes from v6
 
-## 4. Decisions carried over (user, 2026-10-25)
-
-Agent tool, never OS subprocesses · definitions committed, state never · systemd timer, no daemon · `dev/<slug>` private
-ref, public branch moved only by an approved publish · evidence in this repo, git-ignored · releases on request ·
-priority then age, review fixes at P0 · maintainer findings filed by the tick, one change per finding · the tick pushes
-`main` after each merge.
+| v6 | v7 |
+|---|---|
+| stored stage, hold, owner, booking, cost, log in the change file | derived on read, or a record with one owner |
+| run link/end commands, lingering runs | two hooks write run start and end |
+| the daemon, two tickers, restarts | one timer-run `hd tick` under `flock` |
+| `hd contribute` with a sleep-poll; a publish process | tick steps that read GitHub first |
+| train as a ten-step state machine, `queue.json`, `repin.json` | one script, rerun from the start; `git rerere` replays resolutions |
+| five capacity classes, lease heartbeats | one agent count and two locks |
+| 20-method track interface, three track modules | one config row per track, `server.py` only |
+| six hooks, two shell parsers | three hooks |
+| 32 requirements | six |
+| 7 172 lines, 4 463 of tests, 68-line policy | targets above |
 
 ## 5. Build order (branch `v7`)
 
-1. Hooks verified live (built: `d1fa952`). Add: `git rerere` replay works across two clones; `SubagentStart` sees the
-   prompt (fallback: bind at stop and count an unbound start alive for its console pid).
+1. Hooks, verified live (built in `d1fa952`). Also verify: `SubagentStart` sees the prompt (fallback: bind at stop and
+   count an unbound start alive for its console pid); `git rerere` replays across two clones.
 2. `store`, `observe`, `derive`, `act`, `cli`, `brief`; the merge track; one harness change merged and pushed by the tick.
-3. `server.py`, `train.py` (wrapping reviewed `image.sh` / `deploy.sh`), publish steps, review-fix filing.
-4. Fault injection, purge (list as in the previous proposal, unchanged), docs rewritten, this file deleted.
-5. Cutover on your yes: stop v6, `loginctl enable-linger alex`, enable the timer, merge `v7` → `main`.
+3. `server.py`, the train, publish steps, finding filing.
+4. Goal: `hd measure`, the orchestrator role, the first client measurement.
+5. Fault injection, purge of v6 (the list in the earlier proposal commit `488cc1c` stands), docs reset, this file deleted.
+6. Cutover on your yes: stop v6, `loginctl enable-linger alex`, enable the timer, merge `v7` into `main`.
 
-## 6. For your decision
+## 6. Assumptions I made, to confirm or overrule
 
-1. Accept the PRD cut to 8 invariants, with checklists moved to skills?
-2. Accept dropping `publish.py` for next-step-per-tick (publish may lag up to a minute per step)?
-3. Accept `git rerere` for integrator resolutions (falls back to recorded patches if step 1 disproves it)?
+1. The orchestrator files P1 to P3 changes freely within the agent count; P0 is reserved for review fixes.
+2. A goal stays open as a guard after the target is met.
+3. The client probe is `tools/api-probe.sh` in the client repo and prints the percentage; it may not exist yet.
+4. A measurement holds the `device` lock for its whole run.
+5. Publish lags up to a minute per step.
+6. `git rerere` works for the integrator's resolutions.
+7. The v7 hooks and `hd/records.py` already committed may cite the old R1 to R32 ids; not yet swept.
+
+## 7. For your decision
+
+1. Accept the six requirements and the architecture above?
+2. Is the probe an existing tool, or the first thing to build for the client goal?
+3. May I start build step 1 verification (rerere and the subagent start hook) now?
