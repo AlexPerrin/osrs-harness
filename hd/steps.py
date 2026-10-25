@@ -598,7 +598,7 @@ def brief(ctx, ch, step, name):
     owed = {HANDOVER: f"hd handover {ch['slug']} <sha> --summary \"...\"", REVIEW: f"hd verdict {ch['slug']} {h} PASS|FAIL [findings...]",
             MEASURE: f"hd measure {ch['slug']} <value> --evidence <report>, then `hd new` for each change that closes a gap",
             QUEUE: "a resolution pushed to fork local/integration-tools (a recorded rr-cache or a dropped branch, with `hd ask` on it)"}
-    if step in (GATE, CI):
+    if step in (GATE, CI) or (step is REVIEW and role == _dev(ctx, ch)):
         owed[step] = f"a new commit on the dev ref, then hd handover {ch['slug']} <sha>"
     if step in (PR, COMMENT):
         owed[step] = f"the PR text in the evidence dir, then hd handover {ch['slug']} {h}"

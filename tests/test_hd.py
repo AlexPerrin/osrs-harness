@@ -313,6 +313,11 @@ class R6Economy(Sandbox):
         F = Fake(refs={"fork/dev/s": A, "origin/main": B})
         self.assertEqual(names(self.ctx(F)), [("s", "gate", "server-dev")])
         self.assertIn("gate failed", steps.brief(self.ctx(F), self.ctx(F).by_slug["s"], steps.GATE, "s-1").lower())
+        self.store.save_record("s", "gate", {"head": A, "base": B, "ok": True, "detail": ""})
+        self.store.save_record("s", "verdict", {"head": A, "base": B, "pass": False, "findings": ["x"]})
+        b = steps.brief(self.ctx(F), self.ctx(F).by_slug["s"], steps.REVIEW, "s-2")
+        self.assertIn("review failed", b.lower())
+        self.assertIn("hd handover s <sha>", b)                                      # the dev owes a commit, not a verdict
 
 
 class R7Visibility(Sandbox):
