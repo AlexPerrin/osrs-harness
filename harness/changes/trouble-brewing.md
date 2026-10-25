@@ -1,21 +1,11 @@
 ---
 slug: trouble-brewing
 track: server
+kind: change
 title: Trouble Brewing minigame
-prio: P3
-role: server-dev
-stage: ready
-hold:
-  kind: decision
-  reason: 'held (user 2026-10-24): settle open PRs first; client changes wait for BlueStacks; unhold when ready'
-  since: '2026-10-25T00:39:45Z'
-deps: []
-branch: content/trouble-brewing
-commit: null
-local_only: false
-owner: null
+priority: P3
 created: '2026-10-20T04:57:23Z'
-updated: '2026-10-25T00:39:45Z'
+branch: content/trouble-brewing
 ---
 ## Change
 Found by client task hub-batch-next (the user's own Plugin Hub list, orchestrator 2026-10-20): the plugin builds, passes netcheck/stubcheck and starts on the device, but OpenRune has no content for it to read, so it can't be exercised. Survey 2026-10-20 of re/upstream-pr/or (docs tree e71437e and local integration e5b18a8): absent (PROGRESS.md minigame list). Wiki: Trouble Brewing. Check upstream again first, spec with accuracy-check (OSRS Wiki and cache are the baseline), one PR per change, no stacking. Client re-test after it is live: hub trouble-brewing overlay in a game
@@ -25,11 +15,3 @@ Found by client task hub-batch-next (the user's own Plugin Hub list, orchestrato
 - [ ] feature works end to end on the test server as on the wiki
 - [ ] accuracy spec on the fork's docs branch (wiki/cache baseline per rule)
 - [ ] fork PR open with green CI at the handed-over commit
-
-## Log
-- 2026-10-21T00:25:19Z migrated from v2 tasks: content-trouble-brewing
-- 2026-10-22T00:23:52Z RSProx recordings: 801 (rev 234, 111 matches; text Trouble Brewing), 3275 (rev 234, 90 matches; text Trouble Brewing), 1849 (rev 227, 63 matches; npc 1816, npc 1817, text Trouble Brewing), 3276 (rev 234, 41 matches; text Trouble Brewing), 3329 (rev 235, 32 matches; text Trouble Brewing), 3279 (rev 234, 25 matches; text Trouble Brewing), 819 (rev 234, 22 matches; text Trouble Brewing), 3378 (rev 235, 22 matches; text Trouble Brewing) [+114 more] | 122 recordings; keys: npc 1816,1817,1818; text Trouble Brewing
-- 2026-10-22T02:08:33Z backlog -> ready: the user's own plugins need this (gnome-restaurant, trouble-brewing, ba-minigame/ba-call-highlight, guardians-of-the-rift-*, perilous-moons-splits); large: after the smaller content
-- 2026-10-22T02:08:33Z triage: the user's own plugins need this (gnome-restaurant, trouble-brewing, ba-minigame/ba-call-highlight, guardians-of-the-rift-*, perilous-moons-splits); large: after the smaller content
-- 2026-10-22T02:16:30Z renamed from content-trouble-brewing (grooming: slug = the branch slug, BR-C1)
-- 2026-10-25T00:39:45Z hold decision: held (user 2026-10-24): settle open PRs first; client changes wait for BlueStacks; unhold when ready

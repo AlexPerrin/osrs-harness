@@ -1,21 +1,11 @@
 ---
 slug: sheep-shearer-thing-runaway
 track: server
+kind: change
 title: 'Sheep Shearer: The Thing runs away when sheared'
-prio: P3
-role: server-dev
-stage: ready
-hold:
-  kind: decision
-  reason: 'held (user 2026-10-24): settle open PRs first; client changes wait for BlueStacks; unhold when ready'
-  since: '2026-10-25T00:39:45Z'
-deps: []
-branch: fix/sheep-shearer-thing-runaway
-commit: null
-local_only: false
-owner: null
+priority: P3
 created: '2026-10-20T01:42:40Z'
-updated: '2026-10-25T00:39:45Z'
+branch: fix/sheep-shearer-thing-runaway
 ---
 ## Change
 Implement the penguin (The Thing) running away on shear per the OSRS Wiki, lifting the caveat in #366's PR text.
@@ -25,9 +15,3 @@ Implement the penguin (The Thing) running away on shear per the OSRS Wiki, lifti
 - [ ] accuracy/sheep-shearer-thing-runaway.md on the fork's docs branch (wiki/cache baseline per rule, RSProx comparison recorded)
 - [ ] fork PR open with green CI at the handed-over commit
 - [ ] one change only, branch off upstream main (no stacking)
-
-## Log
-- 2026-10-21T00:25:19Z migrated from v2 tasks: sheep-shearer-thing-runaway
-- 2026-10-22T02:08:34Z triage: parity gap, small; after the user's plugins' content
-- 2026-10-22T02:16:31Z branch fix/<slug> (grooming)
-- 2026-10-25T00:39:45Z hold decision: held (user 2026-10-24): settle open PRs first; client changes wait for BlueStacks; unhold when ready
