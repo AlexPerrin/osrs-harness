@@ -272,7 +272,7 @@ def _push(ctx, ch):
 
 
 def _pr(ctx, ch):
-    return ctx.m(("pr", ch["slug"]), lambda: ctx.F.pr(public_branch(ch)))
+    return ctx.m(("pr", public_branch(ch)), lambda: ctx.F.pr(public_branch(ch)))
 
 
 def _pr_done(ctx, ch):
@@ -469,13 +469,16 @@ def next_steps(ctx):
     """[(ch, step)] for every list whose first unmet step is known and whose deps are live; one entry per step."""
     out, seen = [], set()
     for ch in ctx.goals + ctx.changes:
-        if "target" not in ch and not deps_live(ctx, ch):
-            continue
-        for steps in lists(ctx, ch):
-            u = first_unmet(ctx, ch, steps)
-            if u and u[1] is False and (ch["slug"], u[0].name) not in seen:
-                seen.add((ch["slug"], u[0].name))
-                out.append((ch, u[0]))
+        try:
+            if "target" not in ch and not deps_live(ctx, ch):
+                continue
+            for steps in lists(ctx, ch):
+                u = first_unmet(ctx, ch, steps)
+                if u and u[1] is False and (ch["slug"], u[0].name) not in seen:
+                    seen.add((ch["slug"], u[0].name))
+                    out.append((ch, u[0]))
+        except Exception as e:   # one change's bad fact stops that change, not the pass
+            store.event("error", change=ch["slug"], detail=repr(e)[:300])
     return out
 
 
@@ -488,6 +491,15 @@ def alive_runs(ctx):
 def _last_run(ctx, slug, role):
     rs = [r for r in ctx.runs if r.get("change") == slug and r.get("role") == role and r.get("ended")]
     return max(rs, key=lambda r: r.get("ended")) if rs else None
+
+
+def _repeat(ctx, ch, step, role):
+    """The ended run of this role that worked on the same input: head, definition and step (a hand-over at X and a gate
+    fix at X are different inputs)."""
+    last = _last_run(ctx, ch["slug"], role)
+    same = last and last.get("head") == run_head(ctx, ch, step) and last.get("def_hash") == ch["hash"] \
+        and (last.get("step") or step.name) == step.name
+    return last if same else None
 
 
 def run_head(ctx, ch, step):
@@ -513,8 +525,7 @@ def dispatch(ctx):
             continue
         if role == "integrator":
             single.add(role)
-        last = _last_run(ctx, ch["slug"], role)
-        if last and last.get("head") == run_head(ctx, ch, step) and last.get("def_hash") == ch["hash"]:
+        if _repeat(ctx, ch, step, role):
             continue
         if free <= 0:
             break
@@ -535,8 +546,8 @@ def questions(ctx):
         role = step.actor(ctx, ch)
         if role in ("script", "user", WAIT) or ctx.rec(ch, "ask"):
             continue
-        last = _last_run(ctx, ch["slug"], role)
-        if last and last.get("head") == run_head(ctx, ch, step) and last.get("def_hash") == ch["hash"]:
+        last = _repeat(ctx, ch, step, role)
+        if last:
             out.append((ch["slug"], f"run {last['name']} ({role}) ended without its record on the same input: "
                                     f"{(last.get('last') or '')[-300:]}  answer with `hd answer {ch['slug']} \"...\"`"))
     return out
@@ -551,7 +562,7 @@ def cards(ctx):
         h, v, t = head(ctx, ch), ctx.rec(ch, "verdict") or {}, _texts(ch)
         lines = [f"## {ch['slug']}: {ch.get('title', '')}", f"head {h}  base {base(ctx, ch)}  evidence {evidence(ch)}",
                  "verdict PASS: " + "; ".join(v.get("findings") or ["no findings"]),
-                 "gate: " + ((ctx.rec(ch, "gate") or {}).get("detail") or "").splitlines()[-1:][0] if ctx.rec(ch, "gate") else "gate: -"]
+                 "gate: " + ((ctx.rec(ch, "gate") or {}).get("detail") or "-").splitlines()[-1]]
         if ch.get("kind") == "release":
             lines += [f"release {ch['version']} at {h}", f"then: hd approve {ch['slug']} {h}"]
         else:
@@ -567,7 +578,7 @@ def brief(ctx, ch, step, name):
     """The agent's prompt: the change, the step's task, the facts and the records it needs, the record it owes."""
     h, b = head(ctx, ch), base(ctx, ch)
     role = step.actor(ctx, ch)
-    lines = [f"Harness change `{ch['slug']}` run `{name}` head `{run_head(ctx, ch, step) or ''}` def `{ch['hash']}`", "",
+    lines = [f"Harness change `{ch['slug']}` run `{name}` head `{run_head(ctx, ch, step) or ''}` def `{ch['hash']}` step `{step.name}`", "",
              f"# {ch.get('title', ch['slug'])}",
              f"track {ch['track']}  kind {ch.get('kind', 'change')}  priority {ch.get('priority')}  head {h or '-'}  base {b or '-'}",
              f"definition {ch['path']}  evidence {evidence(ch)}", "", ch.get("body", "").strip(), ""]

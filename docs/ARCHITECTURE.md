@@ -120,10 +120,10 @@ A change's **stage** is the name of its first unmet step (`?` when a fact is unk
 change. **Live** and **done** are the containment facts of A6.
 
 **Dispatch.** An agent step is listed for spawning when the change has no `ask.json`, no alive run, and no ended run of
-that role with the same input (`head`, or the failed train's tools commit for the integrator, and the definition's
-`hash`); otherwise that run's `last` message is a question for the user. Order: priority, then age. Take while alive runs
-are fewer than the agent count. The brief's first line carries the input: ``Harness change `<slug>` run `<name>` head
-`<sha>` def `<hash>` ``.
+that role with the same input (`head`, or the failed train's tools commit for the integrator, the definition's `hash`
+and the step: a hand-over at X and a gate fix at X are different inputs); otherwise that run's `last` message is a
+question for the user. Order: priority, then age. Take while alive runs are fewer than the agent count. The brief's
+first line carries the input: ``Harness change `<slug>` run `<name>` head `<sha>` def `<hash>` step `<step>` ``.
 
 ## 4. Tracks
 
@@ -151,7 +151,7 @@ One program, `hooks/hook.py`, on three events (`hook_event_name`), wired in `.cl
 | Event | Does |
 |---|---|
 | `SubagentStart` | writes `runs/<name>.json` from the brief's first line, the agent id, the role, the console pid and its start time; binds from the parent transcript when the subagent's is not on disk yet; an agent the start event could not bind (its transcript not yet written) is bound by the guard at its first command |
-| `SubagentStop` | writes `ended`, `record` (the role's record exists and is newer than the start), `last` and `usage` from the transcript; binds from the transcript when the start saw nothing; runs `hd tick`. A stop cannot be refused |
+| `SubagentStop` | writes `ended`, `record` (the role's record exists and is newer than the start), `last` and `usage` from the transcript; binds from the transcript when the start saw nothing; runs `hd tick`. A stop cannot be refused; a stop without a `SubagentHandback` call in the agent's transcript is a pause for background work and changes nothing |
 | `PreToolUse: Bash` (every role and the console) | **deny by default** for OpenRune: a `git` or `gh` command naming the upstream repo passes only as a read; fork and client pushes and `gh` writes only to the role's refs in `hd.yaml`; forced and deleting pushes denied to every role (but `gate/*`), the console free on our repos; tags, releases, the train scripts and docker writes on the live stack denied to all; `hd approve` only from the console; a write the parser cannot see (`$(...)`, a bare `git push`) denied. Every denial is an event |
 
 ## 7. Train

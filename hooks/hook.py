@@ -2,11 +2,12 @@
 """The one hook program (ARCHITECTURE 6), on three Claude Code events read from the input's `hook_event_name`:
 
   SubagentStart     writes runs/<name>.json from the brief's first line
-                    (``Harness change `<slug>` run `<name>` head `<sha>` def `<hash>` ``), the agent id, its role and the
+                    (``Harness change `<slug>` run `<name>` head `<sha>` def `<hash>` step `<step>` ``), the agent id, its role and the
                     console pid with its start time. Without that line nothing is written.
-  SubagentStop      writes `ended`, `record` (the role's record exists and is newer than the start), `last` and the
-                    token usage from the transcript; binds the run from the transcript when the start saw no prompt;
-                    then runs `hd tick`. A stop cannot be refused.
+  SubagentStop      when the agent handed back (a SubagentHandback call in its transcript): writes `ended`, `record` (the
+                    role's record exists and is newer than the start), `last` and the token usage; binds the run from the
+                    transcript when the start saw no prompt; then runs `hd tick`. A stop without a hand-back is a pause
+                    for background work and changes nothing. A stop cannot be refused.
   PreToolUse (Bash) the guard (R4), deny by default for OpenRune: a `git` or `gh` command naming the upstream repo passes
                     only as a read; fork pushes and gh writes only to the role's refs (hd.yaml `roles`); forced pushes,
                     tags, releases, the train scripts and docker writes on the live stack denied to all; `hd approve`
@@ -26,11 +27,11 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import shellparse as sp  # noqa: E402
 from hd import store  # noqa: E402
 
-BRIEF = re.compile(r"Harness change `([a-z0-9][a-z0-9.-]*)` run `([a-z0-9][a-z0-9.-]*)`(?: head `([0-9a-f]*)`)?(?: def `(\w+)`)?")
+BRIEF = re.compile(r"Harness change `([a-z0-9][a-z0-9.-]*)` run `([a-z0-9][a-z0-9.-]*)`(?: head `([0-9a-f]*)`)?(?: def `(\w+)`)?(?: step `(\w+)`)?")
 PUSH = re.compile(r"\bgit\b(\s+-\S+(\s+[^-\s]\S*)?)*\s+push\b")
 GH_READ = re.compile(r"\bgh\s+(pr\s+(view|list|diff|checks|status)|run\s+(view|list|watch|download)|repo\s+view|search\s|"
                      r"issue\s+(view|list)|api\s(?![^|;&]*(-X\s*(POST|PATCH|PUT|DELETE)|--method|\s-[fF]\s|--field|--raw-field|--input)))")
-GIT_READ = re.compile(r"\bgit\b(\s+-C\s+\S+)?\s+(fetch|ls-remote|clone|log|show|diff|remote\s+(-v|show|get-url))\b")
+GIT_READ = re.compile(r"\bgit\b(\s+-C\s+\S+)?\s+(fetch|ls-remote|clone|log|show|diff|remote\s+(-v|show|get-url|add|set-url))\b")
 GH_WRITE = re.compile(r"\bgh\s+(pr|issue|release|gist|repo|label|workflow|run|api)\b")
 REPO_ARG = re.compile(r"(?:^|\s)(?:-R|--repo)[=\s]+(\S+)|github\.com[:/]+([^/\s]+/[^/\s]+)")
 LIVE = re.compile(r"osrs-openrune|(?<![\w.-])openrune(?![\w.-])")
@@ -120,6 +121,16 @@ def usage(path):
     return out
 
 
+def handed_back(path):
+    """The agent called SubagentHandback: its work is over. A stop without it is a pause for background work."""
+    for e in _lines(path):
+        if e.get("type") == "assistant":
+            for b in (e.get("message") or {}).get("content") or []:
+                if isinstance(b, dict) and b.get("type") == "tool_use" and b.get("name") == "SubagentHandback":
+                    return True
+    return False
+
+
 def _bind(data):
     m = BRIEF.search(first_prompt(transcript_of(data))) or BRIEF.search(prompt_from_parent(data))
     return m.groups() if m else None
@@ -129,10 +140,10 @@ def start(data):
     b = _bind(data)
     if not b:
         return
-    slug, name, head, dh = b
+    slug, name, head, dh, step = b
     pid, st = console()
     rec = {"name": name, "agent_id": data.get("agent_id"), "role": data.get("agent_type"), "change": slug, "head": head or None,
-           "def_hash": dh, "console_pid": pid, "console_start": st, "started": store.now(), "ended": None}
+           "def_hash": dh, "step": step, "console_pid": pid, "console_start": st, "started": store.now(), "ended": None}
     store.save_run(rec)
     store.event("run", action="start", run=name, role=rec["role"], change=slug)
 
@@ -140,13 +151,16 @@ def start(data):
 def stop(data):
     aid = data.get("agent_id")
     run = next((r for r in store.runs() if r.get("agent_id") == aid), None)
+    if not handed_back(data.get("agent_transcript_path") or transcript_of(data)):
+        store.event("run", action="pause", run=(run or {}).get("name"), agent=aid)
+        return
     if run is None:
         b = _bind(data)
         if not b:
             return
-        slug, name, head, dh = b
+        slug, name, head, dh, step = b
         run = {"name": name, "agent_id": aid, "role": data.get("agent_type"), "change": slug, "head": head or None,
-               "def_hash": dh, "console_pid": None, "console_start": None, "started": "", "ended": None}
+               "def_hash": dh, "step": step, "console_pid": None, "console_start": None, "started": "", "ended": None}
     kind = RECORD.get((store.config().get("roles") or {}).get(run["role"], {}).get("record") or "")
     rec = store.record(run["change"], kind) if kind else None
     produced = None if not kind else bool(rec) and (rec.get("ts") or "") >= (run.get("started") or "")
@@ -277,7 +291,7 @@ def guard(data):
     cmd = (data.get("tool_input") or {}).get("command") or ""
     role = data.get("agent_type") or "console"
     run = next((r for r in store.runs() if r.get("agent_id") == data.get("agent_id")), None) if data.get("agent_id") else None
-    if run is None and data.get("agent_type") and data.get("agent_id"):
+    if run is None and data.get("agent_id") and data.get("agent_type") in (store.config().get("roles") or {}):
         start(data)   # the start event can come before the agent's transcript exists: bind at its first command instead
         run = next((r for r in store.runs() if r.get("agent_id") == data.get("agent_id")), None)
     why = Guard(store.config(), role, (run or {}).get("change")).decide(cmd, data.get("cwd") or os.getcwd())

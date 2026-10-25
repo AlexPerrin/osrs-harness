@@ -154,6 +154,7 @@ class R4Authority(Sandbox):
         self.assertIsNotNone(self.guard("git -C /x push --force fork HEAD:refs/heads/dev/s"))
         self.assertIsNone(self.guard("git -C /x push fork HEAD:refs/heads/content/s", role="console"))
         self.assertIsNone(self.guard("git -C /x push fork --delete dev/s", role="console"))
+        self.assertIsNone(self.guard("git -C /x remote set-url origin https://github.com/OpenRune/OpenRune-Server.git"))
         self.assertIsNotNone(self.guard("git push"))
         self.assertIsNotNone(self.guard("x=$(git -C /x push fork HEAD:dev/s)"))
 
@@ -234,6 +235,41 @@ class R5Recovery(Sandbox):
         self.assertFalse(os.path.exists(os.path.join(self.tmp, "work", "agents", "r1")))
         self.assertEqual(len(out), 3)
         self.assertEqual(len(tick.alerts(self.ctx(F))), 1)
+        self.store.write({"integration": A, "image": "osrs-openrune:integration-aaaaaaa", "rollback": "osrs-openrune:rollback-x"}, "live.json")
+        F.f["images"] = ["osrs-openrune:integration-aaaaaaa", "osrs-openrune:integration-bbbbbbb"]
+        self.store.write({"pid": "7", "start": "1", "step": "image"}, "train.json")
+        F.f["procs"] = {("7", "1")}
+        with mock.patch.object(tick, "sh") as sh:
+            tick.repairs(self.ctx(F))
+        self.assertNotIn("rmi", [c.args[0][1] for c in sh.call_args_list])             # the train may be deploying it
+        F.f["procs"] = set()
+        with mock.patch.object(tick, "sh") as sh:
+            tick.repairs(self.ctx(F))
+        self.assertIn(["docker", "rmi", "osrs-openrune:integration-bbbbbbb"], [c.args[0] for c in sh.call_args_list])
+
+    def test_a_stop_without_a_hand_back_is_a_pause(self):
+        sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "hooks"))
+        import hook
+        self.store.save_run({"name": "s-1", "agent_id": "x", "role": "server-dev", "change": "s", "started": "t", "ended": None})
+        t = os.path.join(self.tmp, "agent-x.jsonl")
+        turn = lambda blocks: json.dumps({"type": "assistant", "message": {"content": blocks, "usage": {"output_tokens": 1}}}) + "\n"
+        open(t, "w").write(turn([{"type": "text", "text": "waiting on the build"}]))
+        data = {"hook_event_name": "SubagentStop", "agent_type": "server-dev", "agent_id": "x", "agent_transcript_path": t}
+        with mock.patch.object(hook.subprocess, "run") as tick_run:
+            hook.stop(data)
+            self.assertIsNone(self.store.run("s-1")["ended"])                       # paused, clone and container kept
+            self.assertFalse(tick_run.called)
+            open(t, "a").write(turn([{"type": "tool_use", "name": "SubagentHandback", "input": {}}]))
+            hook.stop(data)
+        self.assertTrue(self.store.run("s-1")["ended"])
+        self.assertTrue(tick_run.called)
+
+    def test_one_changes_fault_stops_that_change_only(self):
+        self.change("c1")
+        self.change("bad", track="nope")
+        F = Fake(refs={"origin/client/c1": A, "origin/main": B})
+        self.assertEqual([c["slug"] for c, s in steps.next_steps(self.ctx(F))], ["c1"])
+        self.assertIn('"kind": "error"', open(self.store.path("events.jsonl")).read())
 
 
 class R6Economy(Sandbox):
@@ -243,11 +279,18 @@ class R6Economy(Sandbox):
         ctx = self.ctx(F)
         h = ctx.by_slug["c1"]["hash"]
         self.store.save_run({"name": "c1-1", "agent_id": "x", "role": "client-dev", "change": "c1", "head": A, "def_hash": h,
-                             "ended": "t", "last": "gave up"})
+                             "step": "handover", "ended": "t", "last": "gave up"})
         self.assertEqual(steps.dispatch(self.ctx(F)), [])
         self.assertIn("gave up", steps.questions(self.ctx(F))[0][1])
         cli.main(["answer", "c1", "try the other way"])
         self.assertEqual([n for c, s, r, n in steps.dispatch(self.ctx(F))], ["c1-2"])
+        self.evidence("c1", "x")
+        self.store.save_record("c1", "handover", {"head": A, "base": B, "evidence": "e"})
+        self.store.save_run({"name": "c1-2", "agent_id": "y", "role": "client-dev", "change": "c1", "head": A,
+                             "def_hash": self.ctx(F).by_slug["c1"]["hash"], "step": "handover", "ended": "t", "record": True})
+        self.store.save_record("c1", "gate", {"head": A, "base": B, "ok": False, "detail": "FAIL"})
+        self.assertEqual([(s.name, n) for c, s, r, n in steps.dispatch(self.ctx(F))], [("gate", "c1-3")])   # a gate fix at A is new work
+        self.assertIn("step `gate`", steps.brief(self.ctx(F), self.ctx(F).by_slug["c1"], steps.GATE, "c1-3").splitlines()[0])
 
     def test_agent_count_and_busy_changes(self):
         for i in range(5):
@@ -277,7 +320,7 @@ class R7Visibility(Sandbox):
         self.assertEqual(sorted(s["name"] for s in d["spawn"]), ["c1-1", "client-api-1"])
         c1 = next(s for s in d["spawn"] if s["name"] == "c1-1")
         with open(c1["brief"]) as f:
-            self.assertRegex(f.read().splitlines()[0], r"^Harness change `c1` run `c1-1` head `` def `\w{12}`$")
+            self.assertRegex(f.read().splitlines()[0], r"^Harness change `c1` run `c1-1` head `` def `\w{12}` step `handover`$")
 
     def test_a_pending_gate_is_recorded_once(self):
         self.change("s", track="server")

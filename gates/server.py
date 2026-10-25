@@ -65,9 +65,8 @@ def main(slug, head, base, ev):
     path = scratch_clone(cfg, slug)
     if git(path, "fetch", "-q", "fork", head, f"refs/heads/{branch}").returncode != 0 and git(path, "fetch", "-q", "fork", head).returncode != 0:
         print(f"cannot fetch {head[:9]} from the fork")
-        return 1
+        return 2
     git(path, "fetch", "-q", "origin", "main")
-    existing = git(path, "rev-parse", "-q", "--verify", "FETCH_HEAD").stdout.strip() if False else None
     at = git(path, "ls-remote", "fork", f"refs/heads/{branch}").stdout.split()
     scratch = at[0] if at else ""
     if scratch:
@@ -86,7 +85,7 @@ def main(slug, head, base, ev):
         scratch = git(path, "rev-parse", "HEAD").stdout.strip()
         if git(path, "push", "-q", "--force", "fork", f"{scratch}:refs/heads/{branch}").returncode != 0:
             print("cannot push the scratch branch to the fork")
-            return 1
+            return 2
     print(f"scratch {scratch[:9]} = {head[:9]} + upstream main {base[:9]} on fork {branch}")
     for line in scan(git(path, "diff", "--unified=0", f"{base}...{head}").stdout):
         print(f"for the reviewer: {line}")

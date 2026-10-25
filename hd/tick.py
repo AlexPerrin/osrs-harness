@@ -44,7 +44,7 @@ def repairs(ctx, dry=False):
     live = store.read("live.json") or {}
     keep = {live.get("image"), live.get("rollback")}
     for img in F.images(LIVE_IMAGES) or []:
-        if img.startswith(f"{LIVE_IMAGES}:integration-") and img not in keep and live.get("image"):
+        if img.startswith(f"{LIVE_IMAGES}:integration-") and img not in keep and live.get("image") and not steps._train_alive(ctx):
             out.append(f"image {img}: neither live nor rollback; removed")
             if not dry:
                 sh(["docker", "rmi", img], timeout=120)
@@ -77,6 +77,7 @@ def run(F=None, dry=False):
                 out.append(f"{ch['slug']} {step.name}: would run")
                 continue
             detail = step.do(ctx, ch)
+            store.write({"step": step.name, "detail": detail[:300], "ts": store.now()}, ch["slug"], "step.json")
             store.event("step", change=ch["slug"], step=step.name, detail=detail[:300])
             out.append(f"{ch['slug']} {step.name}: {detail}")
         if not dry:

@@ -36,6 +36,12 @@ def _refuse(why):
     sys.exit("refused: " + "; ".join(why))
 
 
+def _last_script(ctx, ch):
+    """What the pass's script did last on a step that is still the next one: a pending or failing step says why."""
+    s = ctx.rec(ch, "step") or {}
+    return s.get("detail") if s.get("step") in steps.stage(ctx, ch) else None
+
+
 def cmd_list(a):
     ctx = _ctx()
     spawns = []
@@ -56,8 +62,8 @@ def cmd_list(a):
         "alerts": tick.alerts(ctx),
         "running": [{"name": r["name"], "role": r.get("role"), "change": r.get("change"), "since": r.get("started")}
                     for r in steps.alive_runs(ctx)],
-        "changes": [{"slug": c["slug"], "track": c["track"], "priority": c.get("priority"), "stage": steps.stage(ctx, c)}
-                    for c in ctx.changes if steps.done(ctx, c) is not True],
+        "changes": [{"slug": c["slug"], "track": c["track"], "priority": c.get("priority"), "stage": steps.stage(ctx, c),
+                     "last": _last_script(ctx, c)} for c in ctx.changes if steps.done(ctx, c) is not True],
     }
     if a.json:
         print(json.dumps(out, indent=1))
@@ -75,7 +81,7 @@ def cmd_list(a):
     for r in out["running"]:
         print(f"running {r['name']}: {r['role']} on {r['change']} since {r['since']}")
     for c in out["changes"]:
-        print(f"{c['priority']} {c['track']:7} {c['slug']}: {' | '.join(c['stage'])}")
+        print(f"{c['priority']} {c['track']:7} {c['slug']}: {' | '.join(c['stage'])}" + (f"  ({c['last']})" if c["last"] else ""))
 
 
 def cmd_tick(a):
