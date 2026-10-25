@@ -4,21 +4,22 @@ track: client
 title: 'Stretch goal: 117 HD on the Android app (feasibility)'
 prio: P2
 role: client-dev
-stage: ready
+stage: dev
 hold: null
 deps: []
 branch: null
 commit: null
 local_only: false
-owner: null
-booked: null
+owner: cd56
+booked:
+  dev: '|da39a3ee5e6b'
 cost:
   runs: 1
   turns: 0
   minutes: 0.0
   usd: 0
 created: '2026-10-20T04:39:08Z'
-updated: '2026-10-25T02:18:02Z'
+updated: '2026-10-25T03:50:40Z'
 ---
 ## Change
 Stretch goal: 117 HD on the Android app (feasibility)
@@ -39,3 +40,5 @@ Stretch goal: 117 HD on the Android app (feasibility)
 - 2026-10-25T00:39:45Z hold decision: held (user 2026-10-24): settle open PRs first; client changes wait for BlueStacks; unhold when ready
 - 2026-10-25T00:40:15Z dev -> ready: run cd52 ended without a hand-over
 - 2026-10-25T02:18:02Z hold decision cleared: BlueStacks is open (user 2026-10-24): client work resumes
+- 2026-10-25T03:50:40Z ready -> dev: dispatched to cd56
+- 2026-10-25T03:50:40Z run cd56 started (client-dev, stage dev)
