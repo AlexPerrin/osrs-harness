@@ -53,7 +53,7 @@ flowchart LR
 | `hd/agents.py` | names, briefs, booking a run (record, owner, `agent request` event), link, end, stop, lingering |
 | `hd/batches.py` + `train/` (`integrate.py`, `image.sh`, `deploy.sh`) | trains (queue, pins, rebuild, gate, image, deploy, re-pin) and release batches |
 | `hd/ship.py` | the merge of a handed-over client or harness change into its live target (`--no-ff`; the client push only) |
-| `hd/heal.py` | idle locks, lingering runs, a dev run ended without hand-over, dead containers, dead batch processes |
+| `hd/heal.py` | idle locks, lingering runs, a dev run ended without hand-over, dead containers, `qa-dev-<name>` containers of ended or unrecorded runs, dead batch processes |
 | `hd/actions.py` | the user's list: every track's cards plus the release batches (section 8) |
 | `hd/drive.py` | the console's work list (section 7) |
 | `hd/kpi.py`, `hd/metrics.py`, `hd/events.py` | the append-only event log, KPIs derived from it, derived progress metrics |
@@ -251,7 +251,7 @@ sequenceDiagram
   D->>S: next tick: ship / train / QA booked from the stage gate
 ```
 A run whose change no longer names it (owner cleared, batch step moved) is `lingering`; heal stops it (`agent
-stop-request` event, run ended `stopped:<why>`) and `hd drive` lists the TaskStop for the console, until `hd run-stopped`, a `run-end` of the same run, or heal sees the
+stop-request` event, run ended `stopped:<why>`) and `hd drive` lists the TaskStop for the console (so does any run that ends with a linked agent id), until `hd run-stopped`, a `run-end` of the same run, or heal sees the
 change's hand-back (a hand-over, gate, block or fail event since the run started; a batch past the step) and marks it done.
 
 ## 7. The console driver loop
@@ -408,4 +408,4 @@ tests rely on pinned (`write_test_policy`). `FakeObserver` stands in for git, Gi
 | BR-G1, G2, G4 | `agents.py` (briefs at spawn, `run-end` cost, lingering stops), role files |
 | BR-P1 to P3, X1 | `hooks/` (section 11), `events.emit` for denials; skill `accuracy-check` |
 | BR-P4, H7, I1 | harness track and `ship.py` (section 5), `maintain.py` (section 10b), `hd dod`, CLAUDE.md |
-| BR-H1 to H6 | `observe.py`, `tick.py` reconcile and heal, `heal.py`, `events.py`, `metrics.py`, `kpi.py`, `daemon.digest` (sections 4, 6) |
+| BR-H1 to H9 | `observe.py`, `tick.py` reconcile and heal, `heal.py`, `events.py`, `metrics.py`, `kpi.py`, `daemon.digest` (sections 4, 6) |

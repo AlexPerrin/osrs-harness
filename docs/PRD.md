@@ -102,6 +102,8 @@ contributions), **Harness** (safe, simple self-improvement), **Privacy** (nothin
 |---|---|---|
 | BR-H1 | Each tick reads fork and OpenRune refs and PR states, CI conclusions, `live.json`, docker, locks, running agents and the upstream `main` tip; any difference from the store is repaired and logged as `drift`. | Heals |
 | BR-H2 | Idle locks are reclaimed, agents alive past their stage stopped, dead branch servers and stale containers removed, a failed deploy rolled back; each is an event, the user hears of it in the digest only. | Heals |
+| BR-H8 | A running `qa-dev-<name>` container whose run ended, has no run record, or whose change left its stage is stopped; one whose run is alive never. | Heals |
+| BR-H9 | A run that ends with a linked agent id is listed under Stop in `hd drive` until `hd run-stopped` records the stop. | Heals |
 | BR-H3 | A lock held without use is detected within one tick; detect and recover are events. | Heals |
 | BR-H4 | `events.jsonl` is append-only, UTC, and records every stage change, hold, batch step, lock event, agent start and end (cost), denial, drift, deploy, re-pin and metric recount; the store can be rebuilt from it. | Status |
 | BR-H5 | Metrics are derived, never typed: client metrics on each client `master` merge; server parity on each deploy and re-pin. | Status |

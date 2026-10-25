@@ -6,6 +6,7 @@
     3. a dev run ended without a hand-over: the change goes back to `ready` with a note (BR-S5 style)
     4. dead branch servers / stale QA containers (`qa-or-*`, `hd-boot-*` not running): removed (HD_DOCKER
        overrides docker; tests record the command)
+       and running `qa-dev-<name>` containers whose run ended, has no record, or whose change left its stage: stopped
     5. a batch whose step process died while gating, imaging or deploying: step -> exception
   A step that raises is an `error` event and never stops the next step. Pure checks are separated from actions so
   tests can inject (FakeObserver).
@@ -97,6 +98,16 @@ def _containers(obs, idx):
             ok, text = _docker("rm", "-f", c["name"])
             events.emit("heal", action="container-removed", container=c["name"], status=st, ok=ok, detail=text[-200:])
             out.append(f"container {c['name']} removed ({st})" + ("" if ok else f": {text[-200:]}"))
+    for c in obs.containers("qa-dev-") or []:
+        if not (str(c.get("status") or "").lower().startswith("up") or c.get("status") == "running"):
+            continue
+        r = store.rec_load(agents.RUNS, c["name"][len("qa-dev-"):])
+        why = ("no run record" if not r else "run ended" if r.get("ended")
+               else (agents._left_stage(r, idx) or (None,))[0])
+        if why:
+            ok, text = _docker("stop", c["name"])
+            events.emit("heal", action="container-stopped", container=c["name"], why=why, ok=ok, detail=text[-200:])
+            out.append(f"container {c['name']} stopped ({why})" + ("" if ok else f": {text[-200:]}"))
     return out
 
 
