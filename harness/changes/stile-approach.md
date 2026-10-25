@@ -15,7 +15,7 @@ owner: null
 evidence: /home/alex/osrs-plugins-reverse/re/evidence/stile-approach
 summary: 'caacbf4ce restores StileScript.kt class KDoc to main''s text (fix: commit on 68ddd1b6c, fast-forward); PR body normalised (template checklist verbatim, notes plain, in-game claim restated to 513144d3d)
   in fork docs 7ec42523c; accuracy Tests section removed; spotlessCheck generic-locs PASS'
-live_commit: 68ddd1b6c0de78e18788b22dc52ff6df2909d348
+live_commit: caacbf4cefa6f8491c8afa2d3fc7fc624d581a57
 booked:
   gate: caacbf4cefa6f8491c8afa2d3fc7fc624d581a57
 batch: int-20261025-2
@@ -26,7 +26,7 @@ cost:
   usd: 11.77
   tokens: 0
 created: '2026-10-20T01:42:40Z'
-updated: '2026-10-25T01:09:44Z'
+updated: '2026-10-25T01:24:32Z'
 upstream_pr: 406
 review_seen: '2026-10-25T00:52:35Z'
 ---
@@ -91,3 +91,4 @@ fix/stile-approach 8a8c0ca7a failed the internal gate: the player walks onto the
 - 2026-10-25T00:50:33Z gate -> contribute: observed
 - 2026-10-25T00:52:32Z contribute -> review: observed
 - 2026-10-25T01:09:44Z in train int-20261025-2: integration 5dccf9d0b pushed; gate, image and deploy pending
+- 2026-10-25T01:24:32Z live on the test server: deployed by int-20261025-2 (integration 5dccf9d0b)
