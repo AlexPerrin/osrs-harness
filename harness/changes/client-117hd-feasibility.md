@@ -5,24 +5,20 @@ title: 'Stretch goal: 117 HD on the Android app (feasibility)'
 prio: P2
 role: client-dev
 stage: ready
-hold:
-  kind: decision
-  reason: 'held (user 2026-10-24): settle open PRs first; client changes wait for BlueStacks; unhold when ready'
-  since: '2026-10-25T00:39:45Z'
+hold: null
 deps: []
 branch: null
 commit: null
 local_only: false
 owner: null
-booked:
-  dev: '|da39a3ee5e6b'
+booked: null
 cost:
   runs: 1
   turns: 0
   minutes: 0.0
   usd: 0
 created: '2026-10-20T04:39:08Z'
-updated: '2026-10-25T00:40:15Z'
+updated: '2026-10-25T02:18:02Z'
 ---
 ## Change
 Stretch goal: 117 HD on the Android app (feasibility)
@@ -42,3 +38,4 @@ Stretch goal: 117 HD on the Android app (feasibility)
 - 2026-10-25T00:37:54Z run cd52 started (client-dev, stage dev)
 - 2026-10-25T00:39:45Z hold decision: held (user 2026-10-24): settle open PRs first; client changes wait for BlueStacks; unhold when ready
 - 2026-10-25T00:40:15Z dev -> ready: run cd52 ended without a hand-over
+- 2026-10-25T02:18:02Z hold decision cleared: BlueStacks is open (user 2026-10-24): client work resumes

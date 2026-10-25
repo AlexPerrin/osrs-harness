@@ -5,17 +5,15 @@ title: 'Host: the WorldEntity API (WorldEntity, WorldEntityConfig, WorldView.get
 prio: P3
 role: client-dev
 stage: ready
-hold:
-  kind: decision
-  reason: 'held (user 2026-10-24): settle open PRs first; client changes wait for BlueStacks; unhold when ready'
-  since: '2026-10-25T00:39:45Z'
+hold: null
 deps: []
 branch: null
 commit: null
 local_only: false
 owner: null
+booked: null
 created: '2026-10-22T02:08:34Z'
-updated: '2026-10-25T00:39:45Z'
+updated: '2026-10-25T02:18:02Z'
 ---
 ## Change
 The user's sailing and barracuda-trials-pathfinder hub plugins start but call WorldEntity/WorldEntityConfig getters and WorldView.getYellowClickAction the host stubs (re/evidence/hub-batch-next/user-plugins.md). The server content (content-sailing) is separate and larger.
@@ -28,3 +26,4 @@ The user's sailing and barracuda-trials-pathfinder hub plugins start but call Wo
 ## Log
 - 2026-10-22T02:08:34Z created (ready)
 - 2026-10-25T00:39:45Z hold decision: held (user 2026-10-24): settle open PRs first; client changes wait for BlueStacks; unhold when ready
+- 2026-10-25T02:18:02Z hold decision cleared: BlueStacks is open (user 2026-10-24): client work resumes
