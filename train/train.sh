@@ -52,6 +52,7 @@ if [ ! -d "$BUILD/.git" ] && [ ! -f "$BUILD/.git" ]; then
     git -C "$FORK" worktree add -q --detach "$BUILD" origin/main || stop "cannot add the build worktree"
 fi
 git -C "$BUILD" merge --abort >/dev/null 2>&1 || true
+rm -f "$(git -C "$BUILD" rev-parse --git-dir)/MERGE_RR.lock"   # left by a killed train; rerere then silently skips every recorded resolution
 git -C "$BUILD" reset -q --hard && git -C "$BUILD" checkout -q --detach origin/main || stop "cannot reset the build worktree"
 script=$(mktemp)
 git -C "$FORK" show "$tools:scripts/build-integration.sh" > "$script" || stop "no build-integration.sh on $TOOLS"

@@ -9,8 +9,7 @@ docs/PROBLEM.md, docs/PRD.md and docs/ARCHITECTURE.md and questions all four.
 
 - **Stale pinned branches stay in integration until a person drops them.** The v6-era entries of `integration.txt`
   (`fix/*`, `content/*`, `local/*`) belong to no v7 change, so nothing removes them when they rot against upstream main;
-  each rot is an integrator run, and a recorded resolution is brittle: rerere matches by conflict id but its replay fails
-  once the text around the conflict shifts (seen on fix/22 within the hour it was recorded). v8: every pinned branch belongs to a change or to the fork's permanent local list, and a
+  each rot is an integrator run. v8: every pinned branch belongs to a change or to the fork's permanent local list, and a
   branch leaves integration by a fact (its change is gone), not by a resolution.
 - **Throughput is bounded by the console.** Agents are spawned by hand with the Agent tool, so listed spawns wait for the
   user's presence, and a paused agent holds one of three slots. v8: measure how long spawns wait; decide whether the
