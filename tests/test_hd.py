@@ -427,7 +427,10 @@ class ServerTrack(Sandbox):
         self.assertIn(("s", "pr", "script"), names(self.ctx(F)))
         F.f["prs"] = {"content/s": {"number": 7, "state": "open", "draft": True, "head": A, "merged": False, "branch": "content/s"}}
         F.f["checks"] = {(7, A): "success"}
-        self.assertIn(("s", "ready", "script"), names(self.ctx(F)))          # nobody to update yet
+        self.assertIn(("s", "ready", "script"), names(self.ctx(F)))          # nobody to update and nothing prepared
+        self.evidence("s", "pr-comment.md")
+        self.assertIn(("s", "comment", "script"), names(self.ctx(F)))        # a prepared comment is always posted
+        os.remove(os.path.join(self.ev, "s", "pr-comment.md"))
         F.f["comments"] = {7: [{"id": "m", "author": "maint", "body": "x", "at": "t", "kind": "comment"}]}
         self.assertIn(("s", "comment", "server-dev"), names(self.ctx(F)))    # a maintainer spoke, no pr-comment.md
         F.f["comments"][7].append({"id": "o", "author": "alexperrin", "body": f"Pushed `{A[:9]}`", "at": "t", "kind": "comment"})
