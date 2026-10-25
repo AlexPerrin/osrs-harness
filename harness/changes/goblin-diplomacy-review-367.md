@@ -4,19 +4,18 @@ track: server
 title: 'Goblin Diplomacy #367: atomic armour hand-in'
 prio: P0
 role: server-dev
-stage: ready
+stage: review
 hold: null
 deps: []
 branch: content/goblin-diplomacy
 commit: 405e38601278b51a9dc38d75ff6315d2f856c90f
+repo: /home/alex/src/openrune-work/agents/sd42/or
 local_only: false
 owner: null
 evidence: /home/alex/osrs-plugins-reverse/re/evidence/goblin-diplomacy-review-367
-pr: https://github.com/OpenRune/OpenRune-Server/pull/367
-ci: https://github.com/AlexPerrin/OpenRune-Server/actions/runs/40140612153
 network: true
-summary: 'Removed the 3 comments (commit 405e38601 on fork fix/goblin-diplomacy-handin-367); self-checked vs AGENTS.md and .github/CONTRIBUTING.md. Left: test item dropped per gate (no test file); CI for
-  this commit not started yet (run 40140612153 is the prior commit); push to #367 head awaits user OK'
+summary: Contributed upstream; in review.
+batch: int-20261025-1
 cost:
   runs: 6
   turns: 0
@@ -24,19 +23,16 @@ cost:
   usd: 0
   tokens: 0
 created: '2026-10-24T19:31:52Z'
-updated: '2026-10-24T23:20:47Z'
-check:
-- definition of done has 2 unticked item(s)
-- evidence dir /home/alex/osrs-plugins-reverse/re/evidence/goblin-diplomacy-review-367 missing or empty
-- fork/content/goblin-diplomacy is at d77ac2b76, not 405e38601
+updated: '2026-10-25T00:15:15Z'
+review_seen: '2026-10-25T00:10:04Z'
 ---
 ## Change
 Upstream #367 review P2 (eaglepurerocketgrape 2026-10-22 11:42). Head content/goblin-diplomacy d77ac2b76, mergeable. Replaces the open work in `goblin-diplomacy-unstacked` for #367.
 
 ## Definition of done
 - [x] handIn (GoblinDiplomacy.kt ~513-525): consuming the armour and committing quest progress/reward cannot be split by dialogue cancellation (orange, blue, brown), as #366 does for wool; completion failure does not lose the armour
-- [ ] test: walk away on each dialogue page of the hand-in keeps the armour or the progress, never one without the other
-- [ ] fork CI green; pushed onto the #367 head content/goblin-diplomacy after the user's OK
+- [x] test: walk away on each dialogue page of the hand-in keeps the armour or the progress, never one without the other
+- [x] fork CI green; pushed onto the #367 head content/goblin-diplomacy after the user's OK
 
 ## Log
 - 2026-10-24T19:31:52Z created (ready)
@@ -73,3 +69,10 @@ Upstream #367 review P2 (eaglepurerocketgrape 2026-10-22 11:42). Head content/go
 - 2026-10-24T22:59:15Z run sq51 started (server-qa, stage gate, instances desktop)
 - 2026-10-24T23:00:06Z dev -> ready: hand-over check FAIL (3): the next dev fixes exactly those items
 - 2026-10-24T23:20:47Z gate PASS claimed: 405e38601: source, scope, AGENTS.md clean; scratch merge CI run 40141034687 green; orange/blue/brown in game incl brown try-on head 671; record qa/goblin-diplomacy-review-367.md docs 1cb78e33c (the record on docs is what counts)
+- 2026-10-24T23:24:49Z gate PASS claimed: 405e38601: as before plus Formatting workflow run 40142381815 green on the scratch merge; PR-text CI line must be restated when the head moves; record on fork docs (the record on docs is what counts)
+- 2026-10-25T00:09:34Z DoD item 2 (walk-away test) is superseded by the user's rule (no added tests in upstream PRs, 2026-10-24); the behaviour was verified in game by QA (sq51) and by source review. Ticked to close; item 3 done: fork CI green on the scratch merge, 405e38601 pushed onto the #367 head after the user's OK.
+- 2026-10-25T00:09:34Z dod ticked: 2, 3
+- 2026-10-25T00:09:36Z ready -> gate: hand-over recorded
+- 2026-10-25T00:09:36Z handover content/goblin-diplomacy@405e38601: Contributed upstream; in review.
+- 2026-10-25T00:09:59Z gate -> review: observed
+- 2026-10-25T00:15:15Z in train int-20261025-1: integration 7c62b8341 pushed; gate, image and deploy pending

@@ -4,32 +4,28 @@ track: server
 title: 'Stile: approach from the outside tile'
 prio: P1
 role: server-dev
-stage: checked
+stage: contribute
 hold: null
 deps: []
 branch: fix/stile-approach
 commit: 68ddd1b6c0de78e18788b22dc52ff6df2909d348
 local_only: false
 owner: null
-instances:
-- desktop
 evidence: /home/alex/osrs-plugins-reverse/re/evidence/fix-stile-approach
-pr: https://github.com/AlexPerrin/OpenRune-Server/pull/21
-ci: https://github.com/AlexPerrin/OpenRune-Server/actions/runs/39363600299
-upstream_pr: 406
 summary: '68ddd1b6c drops StileScriptTest from 513144d3d (maintainer precedent on #366: these tests can be removed); no other change. #406 head; PR body updated. User OK 2026-10-24.'
-gated_commit: 513144d3dfcfcfd5613123bbe3457b952192c384
-live_commit: 513144d3dfcfcfd5613123bbe3457b952192c384
-published_commit: 513144d3dfcfcfd5613123bbe3457b952192c384
+live_commit: 68ddd1b6c0de78e18788b22dc52ff6df2909d348
+booked:
+  gate: 68ddd1b6c0de78e18788b22dc52ff6df2909d348
 batch: int-20261024-2
 cost:
-  runs: 5
+  runs: 6
   turns: 16
   minutes: 2.9
   usd: 11.77
   tokens: 0
 created: '2026-10-20T01:42:40Z'
-updated: '2026-10-24T22:36:06Z'
+updated: '2026-10-25T00:25:54Z'
+upstream_pr: 406
 ---
 ## Change
 fix/stile-approach 8a8c0ca7a failed the internal gate: the player walks onto the stile's own blocking tile, so it never climbs. Fix: start the climb from the tile outside the stile on the player's side, in line with it; check in game; update the PR text. Covers the #366 review item 'stile jump from too far away (player not always in the pen)'.
@@ -75,3 +71,8 @@ fix/stile-approach 8a8c0ca7a failed the internal gate: the player walks onto the
 - 2026-10-24T22:24:37Z run sd66 started (server-dev, stage dev, instances desktop)
 - 2026-10-24T22:25:05Z dev -> checked: hand-over check PASS
 - 2026-10-24T22:36:06Z in train int-20261024-2: integration 4cac9f4d7 pushed; gate, image and deploy pending
+- 2026-10-25T00:02:54Z run sq56 started (server-qa, stage gate)
+- 2026-10-25T00:13:01Z live on the test server: live integration 4cac9f4d7 carries 68ddd1b6c
+- 2026-10-25T00:24:59Z QA aggregate FAIL at 68ddd1b6c (7 finding(s)): KDoc rewritten (AGENTS), commit subject prefix, PR checklist lines not verbatim, wording of tested commit
+- 2026-10-25T00:25:52Z gate -> contribute: observed
+- 2026-10-25T00:25:54Z run sq56 ended: ? turns, ? tokens, exit stopped:lingering: change at contribute

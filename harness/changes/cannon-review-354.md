@@ -4,7 +4,7 @@ track: server
 title: 'Cannon #354: address maintainer review'
 prio: P0
 role: server-dev
-stage: dev
+stage: ready
 hold: null
 deps: []
 branch: fix/cannon-drop-tests
@@ -12,20 +12,16 @@ commit: 0df5c63a009b75fffb33f8ead897b432f55fcead
 local_only: false
 owner: null
 evidence: /home/alex/osrs-plugins-reverse/re/evidence/cannon-review-354
-pr: https://github.com/AlexPerrin/OpenRune-Server/pull/20
-ci: https://github.com/OpenRune/OpenRune-Server/actions/runs/40135580270
 network: true
 summary: 'Drop #354''s tests: new commit on 60cffedfb on fork staging fix/cannon-drop-tests; PR text and accuracy/cannon.md updated on docs'
 cost:
-  runs: 8
+  runs: 9
   turns: 0
   minutes: 0
   usd: 0
   tokens: 0
 created: '2026-10-24T19:31:52Z'
-updated: '2026-10-24T23:21:39Z'
-check:
-- definition of done has 2 unticked item(s)
+updated: '2026-10-25T00:09:34Z'
 ---
 ## Change
 Upstream #354 is CHANGES_REQUESTED (Mark7625 2026-10-22 07:57, eaglepurerocketgrape 11:42). Head content/cannon 9c08b42ca. Supersedes the BR-C1 fold decision on `cannon`: the fix goes on the PR head itself.
@@ -33,8 +29,8 @@ Upstream #354 is CHANGES_REQUESTED (Mark7625 2026-10-22 07:57, eaglepurerocketgr
 ## Definition of done
 - [x] Mark7625 inline: replace the `while` loop in DwarfMulticannon.kt (no while functions)
 - [x] eaglepurerocketgrape P1: replaceLostCannon (Nulodion.kt 235-250) returns only the parts matching the saved assembly stage (varp.dropcannon), not CANNON_SET.take(4); test reclaim after partial assembly and after a full cannon
-- [ ] fork CI green; update pushed onto the #354 head content/cannon as a merge/new commit, no force-push, after the user's OK
-- [ ] reply on #354 listing each fix (after the user's OK)
+- [x] fork CI green; update pushed onto the #354 head content/cannon as a merge/new commit, no force-push, after the user's OK
+- [x] reply on #354 listing each fix (after the user's OK)
 
 ## Log
 - 2026-10-24T19:31:52Z created (ready)
@@ -81,3 +77,8 @@ Upstream #354 is CHANGES_REQUESTED (Mark7625 2026-10-22 07:57, eaglepurerocketgr
 - 2026-10-24T23:19:17Z run sd76 ended: ? turns, ? tokens, exit stopped:lingering: owner is None (change at ready)
 - 2026-10-24T23:21:39Z ready -> dev: hand-over recorded
 - 2026-10-24T23:21:39Z handover fix/cannon-drop-tests@0df5c63a0: Drop #354's tests: new commit on 60cffedfb on fork staging fix/cannon-drop-tests; PR text and accuracy/cannon.md updated on docs
+- 2026-10-24T23:22:36Z dev -> ready: hand-over check FAIL (2): the next dev fixes exactly those items
+- 2026-10-24T23:23:35Z run sq55 started (server-qa, stage gate)
+- 2026-10-24T23:23:42Z run sq55 ended: ? turns, ? tokens, exit stopped:lingering: change at ready
+- 2026-10-24T23:39:46Z gate PASS claimed: CI 40142538549 and Formatting 40142539998 green on scratch merge; 4-file scope, no tests, spotless ok, logic unchanged from 60cffedfb (the record on docs is what counts)
+- 2026-10-25T00:09:34Z dod ticked: 3, 4

@@ -20,7 +20,7 @@ cost:
   tokens: 0
   minutes: 0
 created: '2026-10-24T23:16:06Z'
-updated: '2026-10-24T23:21:28Z'
+updated: '2026-10-24T23:39:15Z'
 ---
 ## Change
 docs/PROBLEM.md: the minimal source of truth for the problem, constraints, assumptions, business logic and workflow
@@ -47,3 +47,6 @@ docs/PROBLEM.md: the minimal source of truth for the problem, constraints, assum
 - 2026-10-24T23:20:23Z dev -> checked: hand-over check PASS
 - 2026-10-24T23:20:23Z ship: already on main
 - 2026-10-24T23:21:28Z checked -> live: observed
+- 2026-10-24T23:29:09Z USER 2026-10-24 CLARIFICATION: we only need to gate on the APPROVAL to make a change action upstream. QA AGGREGATES the checks that occur for the approval: it runs them (accuracy, CI and Formatting on the scratch merge with upstream main, scope, style, in game where relevant) and the results go on the approval card (PASS/FAIL per check, all findings, evidence links). A QA finding does not itself block, fail a hold or re-dispatch a dev; the user decides on the card, and a dev fix is filed when the user wants one. So: no gate stage that returns a change to ready; the lifecycle is dev -> (QA aggregates) -> approval card -> the user's decision -> atomic contribution. hd gate records the aggregate, it is not a stage precondition.
+- 2026-10-24T23:36:55Z USER 2026-10-24 CI EQUIVALENCE: identify which fork check is equivalent to which upstream check, to avoid double runs or blocking; it tells the gate where each check occurs. Data table in harness/policy.yaml (ci_equivalence: fork workflow -> upstream check name): CI (ci.yml) -> 'build & boot'; Formatting -> 'spotless (advisory)'; Gameval Conflict Check -> 'gameval-conflicts' (verify the names against a real PR's statusCheckRollup). The QA aggregate runs each check ONCE, at the fork on the scratch branch merged with current upstream main; a green fork check satisfies its upstream twin; after the push, hd contribute only confirms the upstream twins (observed), never re-runs them and never blocks on a check without a twin (advisory checks do not block). Fork red = not ready for upstream. Document the table in PROBLEM.md (constraint) and ARCHITECTURE.md (mechanism).
+- 2026-10-24T23:39:15Z USER 2026-10-24 ARCHITECTURE: the harness only ORCHESTRATES between the three tracks (client, server, harness): changes, deps/blockers, priority, capacity, dispatch, holds, run bookkeeping, the console driver. The upstream contribution workflow (PR bucket, GitHub observer, CI equivalence, QA aggregate, approval card, hd contribute, maintainer-finding filer, scratch-branch gate CI, publish_gate/github_scope logic) is ISOLATED in the server dev track as a module behind a narrow track interface (derive stage, what a change still needs, the track's needs-you items). The core imports no GitHub/CI/PR code. Client track owns the release flow, harness track owns the merge into main, same interface; per-track settings under each track's policy section.
