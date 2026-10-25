@@ -2,16 +2,19 @@
 slug: hunter-feat-pr
 track: server
 kind: change
-title: 'Hunter #408: one feat PR for the completed hunter work'
+title: 'Hunter #408: the entire Hunter skill'
 priority: P1
 created: '2026-10-25T02:32:09Z'
 branch: feat/hunter
 ---
 ## Change
-Upstream #408 (draft) carries the completed hunter work as one feat: the module, traps, rumours, bird houses, butterflies,
-herbiboar, implings and kebbit tracking, as far as complete and verified on the test server. Net diff against upstream
-main is the hunter work only: no unrelated files, no generated .data files, no test files, no added comments (AGENTS.md
-read live), gamevals through the gameval conflict check, spotlessCheck clean.
+Upstream #408 (draft) is the entire Hunter skill (the user, 2026-10-25: "Scope is entire Hunter Skill"): every Hunter
+technique and activity on the OSRS wiki's Hunter page, matching the wiki, nothing left out. Today it carries bird
+snares and box traps, bird houses, Herbiboar, butterflies, implings and Hunters' Rumours; still to add: Razor-backed
+and other kebbit tracking, deadfalls, net traps, falconry, drift net fishing, pitfalls, and every item of the PR text's
+Not done list. Net diff against upstream main is the hunter work only: no unrelated files, no generated .data files,
+no test files, no added comments (AGENTS.md read live), gamevals through the gameval conflict check, spotlessCheck
+clean. Title: "feat: Hunter skill".
 
 ## Definition of done
 - the gate passes (accuracy specs in the evidence dir, fork CI and Formatting green on the scratch merge)
@@ -20,5 +23,6 @@ read live), gamevals through the gameval conflict check, spotlessCheck clean.
   branch server
 - mergeable as it stands (the user, 2026-10-25: "Hunter is not complete. It's missing a checklist item Matches the OSRS
   wiki and there's a list of 'not done'"): every template checklist item ticked and true, no Not done list; each Not
-  done item is implemented, recorded as a deviation in docs/quirks.md, or its technique taken out of this PR's scope
+  done item is implemented or, where the server cannot do it, recorded as a deviation in docs/quirks.md; no
+  technique is taken out of scope
 - after the user's yes: #408 leaves draft once upstream CI is green
