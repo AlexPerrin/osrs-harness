@@ -20,13 +20,16 @@ owner: null
 evidence: /home/alex/osrs-plugins-reverse/re/evidence/witchs-potion-review-368
 network: true
 summary: 'Merge commit on the #368 head: the rebuilt Witch''s Potion on current main; no force-push.'
+booked:
+  gate: d782b5798a29ecbe924ea37998ddd73b428fecba
 cost:
-  runs: 1
+  runs: 2
   turns: 0
-  minutes: 0.0
+  minutes: 0
   usd: 0
+  tokens: 0
 created: '2026-10-24T19:31:52Z'
-updated: '2026-10-25T00:56:30Z'
+updated: '2026-10-25T00:57:35Z'
 ---
 ## Change
 Upstream #368 review P2 x2 (eaglepurerocketgrape 2026-10-22 11:42). Head content/witchs-potion 18afab0a7, CONFLICTING. The unstacked branch content/witchs-potion-unstacked 23e1b7c5d is a candidate base but is older than #366's merge.
@@ -50,3 +53,5 @@ Upstream #368 review P2 x2 (eaglepurerocketgrape 2026-10-22 11:42). Head content
 - 2026-10-25T00:56:28Z dod ticked: 1, 2, 3, 4, 5
 - 2026-10-25T00:56:30Z ready -> gate: hand-over recorded
 - 2026-10-25T00:56:30Z handover content/witchs-potion@d782b5798: Merge commit on the #368 head: the rebuilt Witch's Potion on current main; no force-push.
+- 2026-10-25T00:57:03Z run sq60 started (server-qa, stage gate)
+- 2026-10-25T00:57:35Z run sq60 ended: ? turns, ? tokens, exit stopped:lingering: hold decision

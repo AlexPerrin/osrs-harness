@@ -11,10 +11,12 @@ branch: content/genie
 commit: ca5d988ff600809f9f936f84a3c6e94f73a1402a
 repo: /home/alex/src/openrune-work/agents/sd45/or
 local_only: false
-owner: null
+owner: sq59
 evidence: /home/alex/osrs-plugins-reverse/re/evidence/genie-review-355
 network: true
 summary: 'Merge commit on the #355 head: the rebuilt Genie event on current main; no force-push.'
+booked:
+  gate: ca5d988ff600809f9f936f84a3c6e94f73a1402a
 cost:
   runs: 19
   turns: 0
@@ -22,7 +24,7 @@ cost:
   usd: 0
   tokens: 0
 created: '2026-10-24T19:31:52Z'
-updated: '2026-10-25T00:56:31Z'
+updated: '2026-10-25T00:57:03Z'
 ---
 ## Change
 Upstream #355 (draft) has two review findings from eaglepurerocketgrape (2026-10-22 11:42). Head content/genie 1d9b6fa49. Folds in the pending gate findings held on `genie`.
@@ -124,3 +126,4 @@ Upstream #355 (draft) has two review findings from eaglepurerocketgrape (2026-10
 - 2026-10-25T00:56:28Z dod ticked: 5
 - 2026-10-25T00:56:31Z ready -> gate: hand-over recorded
 - 2026-10-25T00:56:31Z handover content/genie@ca5d988ff: Merge commit on the #355 head: the rebuilt Genie event on current main; no force-push.
+- 2026-10-25T00:57:03Z run sq59 started (server-qa, stage gate)
