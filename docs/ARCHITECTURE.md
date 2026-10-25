@@ -244,7 +244,7 @@ sequenceDiagram
   C->>D: hd drive (spawn list: runs without agent_id)
   C->>A: Agent tool (subagent_type=role, prompt=brief, isolation worktree for client-dev/client-qa/harness-dev)
   C->>S: hd run-link <name> <agent-id>
-  A->>S: hd handover <slug> --branch --commit --evidence [--repo] (the check runs now; refused or stage gate)
+  A->>S: hd handover <slug> --branch --commit --evidence [--repo] (the check runs now, refused or stage gate)
   A->>A: stop hook task_stop: result on disk? slot_stop: no lock held?
   A-->>C: completion notification
   C->>S: hd run-end <name> --tokens --turns (cost on change, locks freed, owner cleared)
@@ -272,7 +272,7 @@ sequenceDiagram
     C->>C: Agent tool per spawn then hd run-link, TaskStop per stop then hd run-stopped
     C->>U: each action card and decision
     U-->>C: yes or answer
-    C->>C: the card's commands (after a yes); hd unhold with the answer
+    C->>C: the card's commands (after a yes), hd unhold with the answer
   end
 ```
 
@@ -296,7 +296,7 @@ sequenceDiagram
   C->>U: AskUserQuestion: approve this commit / fix first / no
   U-->>C: approve
   C->>G: hd contribute <slug> --approved <sha> (push, open, CI, comment, ready)
-  C->>C: next tick: the PR is ready with the commit: stage review; the card is gone
+  C->>C: next tick: the PR is ready with the commit: stage review, the card is gone
 ```
 
 ## 9. Integration train and deploy (batches.py)
@@ -315,7 +315,7 @@ sequenceDiagram
   B->>X: gate (qa.sh), image (image.sh, boot check)
   T->>L: daemon takes live-server
   B->>X: deploy.sh (rollback tag first, compose up --no-deps, wait "Server ready in")
-  X-->>B: ready -> included changes live, live.json written; container exited -> auto-rollback -> exception
+  X-->>B: ready -> included changes live, live.json written, container exited -> auto-rollback -> exception
   B-->>I: on exception: brief with the stop output (booked, spawned by the console)
   I->>B: hd resolve <batch> "note" -> resume from the failed step
 ```
