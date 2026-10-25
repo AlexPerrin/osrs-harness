@@ -349,6 +349,21 @@ class PublishGateTest(unittest.TestCase):
         H.write_gate("feat", "f" * 40)
         self.assertIn('"deny"', self.run_gate(cmd, **env))
 
+    def test_draft_upstream_pr_needs_no_record_but_an_existing_explicit_head(self):
+        clone = init_repo(os.path.join(self.d, "clone"))
+        from helpers import commit_file, git
+        commit_file(clone, "a.txt", "a\n")
+        git(clone, "branch", "content/feat")
+        env = {"INTEGRATION_CLONE": clone}
+        base = "gh pr create -R OpenRune/OpenRune-Server "
+        self.assertEqual(self.run_gate(base + "--draft --head AlexPerrin:content/feat --title t", **env), "")
+        self.assertEqual(self.run_gate(base + "--head AlexPerrin:content/feat --draft", **env), "")
+        self.assertIn('"deny"', self.run_gate(base + "--draft --title t", **env))
+        self.assertIn("no branch", self.run_gate(base + "--draft --head AlexPerrin:content/none", **env))
+        # the flag only: a title or body that says --draft does not make it one
+        self.assertIn('"deny"', self.run_gate(base + "--head AlexPerrin:content/feat --title 'not --draft'", **env))
+        self.assertIn('"deny"', self.run_gate(base + "--head AlexPerrin:content/feat --draft-x", **env))
+
     def test_contribute_is_bound_to_the_approved_commit_and_a_qa_record(self):
         import hd_helpers as H
         sha = "a" * 40

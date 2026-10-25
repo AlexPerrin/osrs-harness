@@ -108,6 +108,8 @@ def main():
            or git("rev-parse", "--verify", "-q", f"refs/heads/{branch}") or "").strip()
     if not sha:
         deny(f"no branch {branch} on the fork or in the fork clone")
+    if re.search(r"(?<!\S)--draft(?!\S)", re.sub(r"\"[^\"]*\"|'[^']*'", "", cmd)):
+        return  # an unverified draft (the user's decision): only the record check is skipped
     reason = server_hooks.direct_pr_deny(branch, sha)
     if reason:
         deny(reason)
