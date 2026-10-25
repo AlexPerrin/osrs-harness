@@ -4,7 +4,7 @@ track: harness
 title: 'The tick picks up hangs: stop qa-dev containers of ended runs; a finished agent that is still running appears as a stop item until stopped'
 prio: P0
 role: harness-dev
-stage: gate
+stage: live
 hold: null
 deps: []
 branch: main
@@ -13,6 +13,7 @@ local_only: false
 owner: null
 evidence: /home/alex/osrs-harness/docs
 summary: 'Merged into main: heal stops qa-dev containers of ended runs; ended runs with a linked agent list under Stop.'
+live_commit: b0e38097e2a5eaf89f3ba79c0f4d4ea4d62e0453
 booked:
   dev: '|da39a3ee5e6b'
 cost:
@@ -21,7 +22,7 @@ cost:
   tokens: 0
   minutes: 0
 created: '2026-10-25T02:11:48Z'
-updated: '2026-10-25T02:13:57Z'
+updated: '2026-10-25T02:14:27Z'
 ---
 ## Change
 The tick picks up hangs: stop qa-dev containers of ended runs; a finished agent that is still running appears as a stop item until stopped
@@ -40,3 +41,4 @@ The tick picks up hangs: stop qa-dev containers of ended runs; a finished agent 
 - 2026-10-25T02:13:38Z run hd26 ended: ? turns, ? tokens, exit ok
 - 2026-10-25T02:13:57Z dev -> gate: hand-over recorded
 - 2026-10-25T02:13:57Z handover main@b0e38097e: Merged into main: heal stops qa-dev containers of ended runs; ended runs with a linked agent list under Stop.
+- 2026-10-25T02:14:27Z gate -> live: observed
