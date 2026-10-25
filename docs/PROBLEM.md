@@ -44,7 +44,8 @@ target is met as a guard: the metric must not drop. Changes of the other tracks 
 orchestrator pursues every open goal (below).
 
 **Client.** Plugins work in the official Android app. The client's goal is **100% of the RuneLite API** working in the
-app; its metric is the share of the RuneLite API that works there. Each change is built, checked on a real client and
+app; its metric is the share of the RuneLite API interface methods (the `Client` interface and the other API interfaces) that
+a probe calls in the app and confirms working. Each change is built, checked on a real client and
 merged into `master`; a release is cut after a network and privacy check, with the user's yes.
 
 **Server.** (1) Unblock client work: the test server runs a change as soon as it is handed over and gated, whatever
