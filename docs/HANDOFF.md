@@ -12,7 +12,8 @@ user's yes in chat.
 The v7 harness of docs/ARCHITECTURE.md, cut over on 2026-10-25: the pass runs from the systemd user timer
 `hd-tick.timer` (every minute) and after every agent run; `harness/state/` holds only v7 records. The v6 state is kept
 aside in `harness/state.v6/` (git-ignored) until the first server change has gone through a full pass; then delete it.
-The 51 open changes were migrated from v6: handed-over commits are the `dev/<slug>` and `client/<slug>` refs, the
+The backlog was cleared on 2026-10-25 to the open upstream PRs and the P1 work (11 changes); the rest is rebuilt
+from scratch by the user and the orchestrator. The kept changes were migrated from v6: handed-over commits are the `dev/<slug>` and `client/<slug>` refs, the
 review-stage PRs carry gate, verdict and approval records at their PR head. Upstream main moved since, so the gate of
 every handed-over server change reruns; most fail on missing PR texts (`pr-comment.md`) in the v6 evidence, which puts
 them back to the dev with that finding. That is the mechanism, not a fault.
@@ -23,11 +24,8 @@ Two v6 processes the console could not stop (the auto-mode classifier denies `ki
 `/tmp/hd-test-*` state dir). Both are harmless; kill them.
 
 ## Open decisions for the user
-- The eleven v6 backlog changes carry the question "start this change?" (`hd answer <slug> yes|"drop it"`).
 - The six `fin/*` and `acc/*` fork branches not named by a change: drop or convert.
 - Hunter #408: the review-fix work continues as the v7 change `hunter-feat-pr`.
-- Client decisions carried as open changes: Animation Smoothing and Camera host setters, hub plugins that contact a new
-  host, the WorldEntity API.
 - The client API probe (`tools/api-probe.sh`, the measure of goal `client-api`) does not exist yet; the orchestrator's
   first change builds it.
 
