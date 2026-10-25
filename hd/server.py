@@ -96,9 +96,6 @@ def start_train(ctx):
     return ctx.m(("train",), f)
 
 
-def _owner(ctx):
-    return ctx.cfg["repos"]["fork"].split("/")[0].lower()
-
 
 def findings(ctx):
     """[slug] of the changes filed this pass."""
@@ -116,7 +113,7 @@ def findings(ctx):
             continue
         for c in cs:
             who = str(c.get("author") or "").lower()
-            if not c.get("id") or not c["body"].strip() or who == _owner(ctx) or who.endswith("[bot]") \
+            if not c.get("id") or not c["body"].strip() or who == steps._owner(ctx) or c.get("bot") \
                     or c["kind"] in SKIP or (c.get("at") or "") < appr["ts"] or str(c["id"]) in carried:
                 continue
             carried.add(str(c["id"]))

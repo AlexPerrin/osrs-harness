@@ -58,7 +58,6 @@ def scratch_clone(cfg, slug):
 
 def main(slug, head, base, ev):
     cfg = store.config()
-    ch = next((c for c in store.changes() if c["slug"] == slug), {})
     if not glob.glob(os.path.join(ev, "accuracy*.md")):
         print("missing accuracy*.md in the evidence dir")
         return 1

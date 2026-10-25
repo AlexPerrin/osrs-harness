@@ -123,6 +123,10 @@ def _dev(ctx, ch):
     return ctx.track(ch)["dev"]
 
 
+def _owner(ctx):
+    return ctx.cfg["repos"]["fork"].split("/")[0].lower()
+
+
 def _reviewer(ctx, ch):
     return ctx.track(ch).get("reviewer")
 
@@ -323,9 +327,9 @@ def _comment_done(ctx, ch):
     cs = _comments(ctx, ch)
     if cs is None:
         return None
-    h, owner = head(ctx, ch), ctx.cfg["repos"]["fork"].split("/")[0].lower()
-    ours = [c["body"] for c in cs if c["author"].lower() == owner]
-    others = [c for c in cs if c["author"].lower() != owner and not c["author"].endswith("[bot]")]
+    h, owner = head(ctx, ch), _owner(ctx)
+    ours = [c["body"] for c in cs if (c["author"] or "").lower() == owner]
+    others = [c for c in cs if (c["author"] or "").lower() != owner and not c.get("bot")]
     marks = (MARK.format(h[:12]), f"<!-- hd-contribute:{h[:12]} -->", h[:9])   # v6 wrote the sha in prose
     return not others or any(m in body for body in ours for m in marks)
 

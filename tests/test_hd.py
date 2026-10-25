@@ -1,4 +1,5 @@
 """One test class per requirement of docs/PRD.md (R1–R7), on the sandbox and the fake facts of helpers.py."""
+import io
 import json
 import os
 import sys
@@ -289,6 +290,24 @@ class ServerTrack(Sandbox):
         self.assertIn(("s", "comment", "server-dev"), names(self.ctx(F)))    # a maintainer spoke, no pr-comment.md
         F.f["comments"][7].append({"id": "o", "author": "alexperrin", "body": f"Pushed `{A[:9]}`", "at": "t", "kind": "comment"})
         self.assertIn(("s", "ready", "script"), names(self.ctx(F)))          # our comment names the commit
+        F.f["comments"] = {7: [{"id": "b", "author": "github-actions", "bot": True, "body": "x", "at": "t", "kind": "comment"},
+                              {"id": "g", "author": None, "body": "x", "at": "t", "kind": "comment"}]}
+        self.assertIn(("s", "comment", "server-dev"), names(self.ctx(F)))    # a bot is nobody; a deleted account still counts
+
+    def test_the_gate_script_dispatches_ci_on_a_fresh_scratch_merge(self):
+        import importlib.util
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        spec = importlib.util.spec_from_file_location("gate_server", os.path.join(root, "gates", "server.py"))
+        gate = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(gate)
+        self.evidence("s", "accuracy.md")
+        fake_git = lambda path, *a: R(0, "c" * 40 if a[0] == "rev-parse" else "")
+        with mock.patch.object(gate, "scratch_clone", return_value="/x"), mock.patch.object(gate, "git", fake_git), \
+                mock.patch.object(gate, "sh", lambda *a, **k: R(0)), \
+                mock.patch.object(gate.Facts, "fork_ci", lambda self, b, s, w: "none"), \
+                mock.patch("sys.stdout", new_callable=io.StringIO) as out:
+            self.assertEqual(gate.main("s", A, B, os.path.join(self.ev, "s")), 2)
+        self.assertIn("dispatched", out.getvalue())
 
     def test_list_and_pins(self):
         text = "# Upstream fixes\nfix/a\n# Content\ncontent/b\n# Local only\nlocal/c\n"

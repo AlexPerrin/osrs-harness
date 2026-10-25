@@ -104,14 +104,15 @@ class Facts:
         return rollup(p.get("statusCheckRollup") or [])
 
     def pr_comments(self, number):
-        """Comments and reviews, oldest first: [{id, author, body, at, kind}]; None when gh failed."""
+        """Comments and reviews, oldest first: [{id, author, bot, body, at, kind}]; None when gh failed."""
         p = self.gh("pr", "view", str(number), "-R", self.cfg["repos"]["upstream"], "--json", "comments,reviews")
         if p is None:
             return None
-        out = [{"id": c.get("id"), "author": (c.get("author") or {}).get("login"), "body": c.get("body") or "",
-                "at": c.get("createdAt"), "kind": "comment"} for c in p.get("comments") or []]
-        out += [{"id": r.get("id"), "author": (r.get("author") or {}).get("login"), "body": r.get("body") or "",
-                 "at": r.get("submittedAt"), "kind": f"review:{str(r.get('state', '')).lower()}"} for r in p.get("reviews") or []]
+        out = [{"id": c.get("id"), "author": (c.get("author") or {}).get("login"), "bot": bool((c.get("author") or {}).get("is_bot")),
+                "body": c.get("body") or "", "at": c.get("createdAt"), "kind": "comment"} for c in p.get("comments") or []]
+        out += [{"id": r.get("id"), "author": (r.get("author") or {}).get("login"), "bot": bool((r.get("author") or {}).get("is_bot")),
+                 "body": r.get("body") or "", "at": r.get("submittedAt"), "kind": f"review:{str(r.get('state', '')).lower()}"}
+                for r in p.get("reviews") or []]
         return sorted(out, key=lambda c: c.get("at") or "")
 
     def fork_ci(self, branch, sha, workflow):
