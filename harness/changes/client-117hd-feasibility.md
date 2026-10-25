@@ -4,22 +4,26 @@ track: client
 title: 'Stretch goal: 117 HD on the Android app (feasibility)'
 prio: P2
 role: client-dev
-stage: dev
-hold: null
+stage: ready
+hold:
+  kind: decision
+  reason: 'user 2026-10-25: wrap up and hand off to v7; no new dispatch until the fresh console starts'
+  since: '2026-10-25T04:05:50Z'
 deps: []
 branch: null
 commit: null
 local_only: false
-owner: cd56
+owner: null
 booked:
   dev: '|da39a3ee5e6b'
 cost:
-  runs: 1
+  runs: 2
   turns: 0
-  minutes: 0.0
+  minutes: 0
   usd: 0
+  tokens: 0
 created: '2026-10-20T04:39:08Z'
-updated: '2026-10-25T03:50:40Z'
+updated: '2026-10-25T04:06:14Z'
 ---
 ## Change
 Stretch goal: 117 HD on the Android app (feasibility)
@@ -42,3 +46,6 @@ Stretch goal: 117 HD on the Android app (feasibility)
 - 2026-10-25T02:18:02Z hold decision cleared: BlueStacks is open (user 2026-10-24): client work resumes
 - 2026-10-25T03:50:40Z ready -> dev: dispatched to cd56
 - 2026-10-25T03:50:40Z run cd56 started (client-dev, stage dev)
+- 2026-10-25T04:05:40Z run cd56 ended: 0 turns, 0 tokens, exit ok
+- 2026-10-25T04:05:50Z hold decision: user 2026-10-25: wrap up and hand off to v7; no new dispatch until the fresh console starts
+- 2026-10-25T04:06:14Z dev -> ready: run cd56 ended without a hand-over

@@ -4,11 +4,8 @@ track: server
 title: Ground item despawn times (OSRS Drop rules)
 prio: P2
 role: server-dev
-stage: ready
-hold:
-  kind: blocked
-  reason: waiting for cannon-review-354, genie-review-355, goblin-diplomacy-review-367, witchs-potion-review-368
-  since: '2026-10-24T23:21:29Z'
+stage: dev
+hold: null
 deps:
 - cannon-review-354
 - genie-review-355
@@ -17,15 +14,14 @@ deps:
 branch: fix/ground-item-despawn-times
 commit: 7e3e0dc2bdaf04cbaca30dfc4fe4d9f4d5812e3f
 local_only: false
-owner: null
+owner: sd86
 evidence: /home/alex/osrs-plugins-reverse/re/evidence/ground-item-despawn-times
-pr: https://github.com/AlexPerrin/OpenRune-Server/pull/23
-ci: https://github.com/AlexPerrin/OpenRune-Server/actions/runs/39701238580
 spec: ground-item-despawn-times
 summary: spotlessApply on the touched modules (ObjRepository import order, Obj.kt blank line and HeldInteractions elvis spacing are all required by spotless); spotlessCheck clean on api:game-process, api:player,
   api:registry, api:repo, engine:game; no test file in net diff; spec Tests section updated on docs
-gated_commit: d0fe09c630e7456433348ee273f3e9cd8353cc82
 live_commit: d0fe09c630e7456433348ee273f3e9cd8353cc82
+booked:
+  dev: 7e3e0dc2bdaf04cbaca30dfc4fe4d9f4d5812e3f|da39a3ee5e6b
 batch: int-20261024-1
 cost:
   runs: 19
@@ -34,9 +30,7 @@ cost:
   usd: 7.78
   tokens: 0
 created: '2026-10-20T01:42:40Z'
-updated: '2026-10-24T23:39:38Z'
-check:
-- fork/fix/ground-item-despawn-times is at 5ae6a3aeb, not 7e3e0dc2b
+updated: '2026-10-25T04:06:14Z'
 ---
 ## Change
 Every player drop currently despawns after 200 ticks (constants.lootdrop_duration). Match OSRS Wiki 'Drop': tradeables become public after 60 s and despawn after a further 120 s (300 ticks total); untradeables 180 s; clue scrolls 61 min. Repro: ::item 10180 1, drop, gone 115 s later. Unblocks client: Clue Juggling Timers, Ground Items despawn (gen 44, scratchpad/g44/).
@@ -135,3 +129,5 @@ Ground items: keep the owner when an obj is copied (ObjRegistry.singleCopy, Zone
 - 2026-10-24T23:23:35Z run sq54 started (server-qa, stage gate)
 - 2026-10-24T23:23:42Z run sq54 ended: ? turns, ? tokens, exit stopped:lingering: change at ready
 - 2026-10-24T23:39:38Z gate PASS claimed: 7e3e0dc2b: CI+Formatting green on merge, spotless clean, 8 files (the record on docs is what counts)
+- 2026-10-25T04:06:14Z ready -> dev: dispatched to sd86
+- 2026-10-25T04:06:14Z run sd86 started (server-dev, stage dev)
