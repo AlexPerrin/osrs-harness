@@ -377,18 +377,42 @@ def _unanswered(ctx, ch):
             and not (_handover_done(ctx, c) and _pushed(ctx, c) and _comment_done(ctx, c))]
 
 
+def _incomplete(ch):
+    """What keeps the PR text from saying "mergeable": an unticked checklist item or a Not done list (the user's rule:
+    nothing deferred, every template check true)."""
+    import re as _re
+    t = _texts(ch)
+    text = t["comment"] if "## Checklist" in t["comment"] else t["body"]
+    out = []
+    m = _re.search(r"^## Checklist\s*$(.*?)(?=^## |\Z)", text, _re.M | _re.S)
+    out += [f"unticked: {l.strip()[6:]}" for l in (m.group(1).splitlines() if m else []) if l.strip().startswith("- [ ]")]
+    if _re.search(r"^\s*Not done\b", text, _re.M):
+        out.append("a Not done list")
+    return out
+
+
+def _may_be_ready(ctx, ch):
+    """Ready for review only when every upstream step before ready holds, no finding is unanswered and the text is complete."""
+    before = UPSTREAM[:UPSTREAM.index(READY)]
+    return all(s.done(ctx, ch) is True for s in before) and not _unanswered(ctx, ch) and not _incomplete(ch)
+
+
 def _ready_done(ctx, ch):
-    """A PR is a draft exactly while a finding on it is unanswered."""
+    """A PR is a draft exactly while it may not be ready."""
     pr = _pr(ctx, ch)
-    return None if pr is None else bool(pr) and pr["draft"] == bool(_unanswered(ctx, ch))
+    return None if pr is None else bool(pr) and pr["draft"] == (not _may_be_ready(ctx, ch))
+
+
+def _ready_actor(ctx, ch):
+    return _dev(ctx, ch) if _incomplete(ch) and not _unanswered(ctx, ch) else "script"
 
 
 def _ready(ctx, ch):
-    undo = bool(_unanswered(ctx, ch))
+    undo = not _may_be_ready(ctx, ch)
     r = sh(["gh", "pr", "ready", str(_pr(ctx, ch)["number"]), "-R", ctx.cfg["repos"]["upstream"]] + (["--undo"] if undo else []))
     if r is None or r.returncode != 0:
         return f"ready failed: {(r.stderr if r else '')[-300:]}"
-    return "drafted: a finding on it is being answered" if undo else "ready"
+    return "drafted: not mergeable yet (" + "; ".join(_incomplete(ch) or ["a step before ready, or a finding, is open"]) + ")" if undo else "ready"
 
 
 def _merged_done(ctx, ch):
@@ -442,7 +466,7 @@ PUSH = Step("push", _pushed, "script", _push)
 PR = Step("pr", _pr_done, _pr_actor, _open_pr)
 CI = Step("ci", _ci_done, _ci_actor)
 COMMENT = Step("comment", _comment_done, _comment_actor, _comment)
-READY = Step("ready", _ready_done, "script", _ready)
+READY = Step("ready", _ready_done, _ready_actor, _ready)
 MERGED = Step("merged", _merged_done, WAIT)
 RELEASE = Step("release", _release_done, "script", _release)
 MEASURE = Step("measure", _measure_done, "orchestrator")
@@ -610,6 +634,9 @@ def brief(ctx, ch, step, name):
     if step is MERGE and role == _dev(ctx, ch):
         lines += [f"## The merge into {ctx.track(ch)['base']} conflicted at this head",
                   (ctx.rec(ch, "step") or {}).get("detail", ""), "Merge the current base into your branch and resolve.", ""]
+    if step is READY and role == _dev(ctx, ch):
+        lines += ["## Not mergeable yet: the PR text is incomplete"] + [f"- {x}" for x in _incomplete(ch)] + \
+                 ["Finish the work or take it out of scope; tick only what is true; no Not done list.", ""]
     if step in (PR, COMMENT) and role == _dev(ctx, ch):
         lines += ["## Missing PR text in the evidence dir",
                   "pr-title.txt and pr-body.md" if step is PR else "pr-comment.md: what changed for the maintainers since their last look", ""]

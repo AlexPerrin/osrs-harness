@@ -18,4 +18,7 @@ read live), gamevals through the gameval conflict check, spotlessCheck clean.
 - the review passes: scope, upstream style, PR text (pull_request_template.md verbatim, ticks only when true, a plain
   scope list of what is in and what is not, data sources, guesses and gaps), the main hunter activities in game on a
   branch server
+- mergeable as it stands (the user, 2026-10-25: "Hunter is not complete. It's missing a checklist item Matches the OSRS
+  wiki and there's a list of 'not done'"): every template checklist item ticked and true, no Not done list; each Not
+  done item is implemented, recorded as a deviation in docs/quirks.md, or its technique taken out of this PR's scope
 - after the user's yes: #408 leaves draft once upstream CI is green

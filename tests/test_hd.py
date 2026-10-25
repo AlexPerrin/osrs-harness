@@ -410,6 +410,23 @@ class ServerTrack(Sandbox):
                              "step": "handover", "ended": "t", "last": "console died", "reason": "console-died"})
         self.assertIsNone(steps._repeat(self.ctx(F), self.ctx(F).by_slug["s"], steps.HANDOVER, "server-dev"))
 
+    def test_a_pr_is_ready_only_when_complete(self):
+        self.change("s", track="server")
+        for k, d in (("handover", {"evidence": "e"}), ("gate", {"ok": True, "detail": ""})):
+            self.store.save_record("s", k, {"head": A, "base": B, **d})
+        self.store.save_record("s", "verdict", {"head": A, "base": B, "pass": False, "findings": ["incomplete"]})
+        F = Fake(refs={"fork/dev/s": A, "origin/main": B, "fork/content/s": A}, anc={(A, A)},
+                 prs={"content/s": {"number": 7, "state": "open", "draft": False, "head": A, "merged": False, "branch": "content/s"}})
+        with mock.patch.object(steps, "sh", return_value=R(0)) as sh, mock.patch.object(server, "pin", return_value="pinned"), \
+                mock.patch.object(server, "start_train", return_value="started"):
+            out = tick.run(F)
+        self.assertTrue(any("s ready: drafted" in l for l in out))                 # review failed after ready: back to draft
+        self.assertIn("--undo", sh.call_args[0][0])
+        self.evidence("s", "pr-comment.md")
+        with open(os.path.join(self.ev, "s", "pr-comment.md"), "w") as f:
+            f.write("x\n## Checklist\n- [x] Builds\n- [ ] Matches the OSRS wiki\n\nNot done: pets\n")
+        self.assertEqual(steps._incomplete(self.ctx(F).by_slug["s"]), ["unticked: Matches the OSRS wiki", "a Not done list"])
+
     def test_a_squash_merged_pr_is_done(self):
         self.change("s", track="server")
         F = Fake(refs={"fork/dev/s": A, "origin/main": B},
