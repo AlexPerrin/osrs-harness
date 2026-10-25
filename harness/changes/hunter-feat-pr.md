@@ -14,7 +14,7 @@ owner: sd85
 booked:
   dev: '|da39a3ee5e6b'
 created: '2026-10-25T02:32:09Z'
-updated: '2026-10-25T02:32:09Z'
+updated: '2026-10-25T02:33:25Z'
 ---
 ## Change
 One upstream feat: PR for the completed hunter work
@@ -29,3 +29,4 @@ One upstream feat: PR for the completed hunter work
 - 2026-10-25T02:32:09Z USER 2026-10-24: 'We have a lot of hunter work completed, we should draft a single upstream feat: PR.' Sources: fork branches content/hunter (6310b11ef), content/hunter-module (c189c1969), hunter-traps (92d435055), hunter-rumours (544881bfe), hunter-bird-houses (7967d0fc5), hunter-butterflies (53a52d555), hunter-herbiboar (63d44a4a2), hunter-implings (f89a2fd60), the live combined fin/hunter (a4a74b5a9), changes hunter, hunter-split-ship (the old plan: 7 split PRs with the linearised rumours; superseded by this user decision of ONE PR), hunter-kebbit-tracking; earlier closed upstream PRs #196 and #229 (hunter module with bird snares and box traps) for maintainers' prior feedback (read their review threads before writing the text). Spec/QA records under re/evidence and fork docs accuracy/. Rules: no stacking (one branch off current main), no tests in the diff, no added comments, template-verbatim body, live AGENTS.md/CONTRIBUTING, targeted tests locally, fork actions free, nothing upstream before the user's approval card.
 - 2026-10-25T02:32:09Z ready -> dev: dispatched to sd85
 - 2026-10-25T02:32:09Z run sd85 started (server-dev, stage dev)
+- 2026-10-25T02:33:25Z USER 2026-10-24: 'We can open it unverified as draft.' The PR may be opened as a DRAFT before the QA aggregate and in-game verification; the body says plainly what is verified and what is not (ticks only when true). The move out of draft needs the full checks and the user's card. The console opens the draft directly after the hand-over, without the contribute command (which waits for CI and then readies).
