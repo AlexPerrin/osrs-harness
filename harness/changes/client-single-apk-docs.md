@@ -4,7 +4,7 @@ track: harness
 title: client-qa role file and client-track skill describe the single universal APK
 prio: P0
 role: harness-dev
-stage: gate
+stage: live
 hold: null
 deps: []
 branch: main
@@ -13,6 +13,7 @@ local_only: false
 owner: null
 evidence: /home/alex/osrs-harness/docs
 summary: 'Merged into main: single APK in the client-qa role file and the client-track skill.'
+live_commit: 2b19e576a6e9ce1c120dc5ebc2595ce9ff9c6fca
 booked:
   dev: '|da39a3ee5e6b'
 cost:
@@ -21,7 +22,7 @@ cost:
   tokens: 0
   minutes: 0
 created: '2026-10-25T03:08:17Z'
-updated: '2026-10-25T03:11:14Z'
+updated: '2026-10-25T03:12:07Z'
 ---
 ## Change
 client-qa role file and client-track skill describe the single universal APK
@@ -39,3 +40,4 @@ client-qa role file and client-track skill describe the single universal APK
 - 2026-10-25T03:10:56Z run hd31 ended: ? turns, ? tokens, exit ok
 - 2026-10-25T03:11:14Z dev -> gate: hand-over recorded
 - 2026-10-25T03:11:14Z handover main@2b19e576a: Merged into main: single APK in the client-qa role file and the client-track skill.
+- 2026-10-25T03:12:07Z gate -> live: observed
