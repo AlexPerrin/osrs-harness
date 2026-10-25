@@ -4,7 +4,7 @@ does (docs/ARCHITECTURE.md, Hooks): pushes, GitHub writes, tools/fork.sh, deploy
 writes. The orchestrator's own session doesn't load this hook.
 
 Integration images and deploys are the orchestrator's too, whatever the
-flags: tools/harness/deploy.sh, image.sh, ship.sh and integrate.py (phase 1), `orchestrate.py
+flags: train/deploy.sh, image.sh, ship.sh and integrate.py (phase 1), `orchestrate.py
 deploy|integrate|image`, `docker [image|container] tag|rm|rmi|stop|restart|kill` naming an osrs-openrune image or container, and `docker compose` / `docker-compose`
 naming osrs-openrune or the live stack's compose service `openrune` (or openrune/docker-compose.yml, or run from
 inside openrune/), except the read-only compose subcommands (ps, logs, config, ls, images, top, version).
