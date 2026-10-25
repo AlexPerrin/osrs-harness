@@ -5,16 +5,18 @@ title: 'Sidecar: serve the GE digest (404 now, client retries every 10 s)'
 prio: P3
 role: client-dev
 stage: ready
-hold: null
+hold:
+  kind: decision
+  reason: 'held (user 2026-10-24): settle open PRs first; client changes wait for BlueStacks; unhold when ready'
+  since: '2026-10-25T00:39:45Z'
 deps: []
 branch: null
 commit: null
 local_only: false
 owner: null
-instances: []
 network: true
 created: '2026-10-20T03:34:37Z'
-updated: '2026-10-22T02:08:34Z'
+updated: '2026-10-25T00:39:45Z'
 ---
 ## Change
 Sidecar: serve the GE digest (404 now, client retries every 10 s)
@@ -27,3 +29,4 @@ Sidecar: serve the GE digest (404 now, client retries every 10 s)
 ## Log
 - 2026-10-21T00:25:19Z migrated from v2 tasks: sidecar-ge-digest
 - 2026-10-22T02:08:34Z triage: not on the user's plugin list
+- 2026-10-25T00:39:45Z hold decision: held (user 2026-10-24): settle open PRs first; client changes wait for BlueStacks; unhold when ready

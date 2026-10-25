@@ -5,21 +5,22 @@ title: 'Stretch goal: RuneLite''s GPU plugin on the Android app (feasibility)'
 prio: P2
 role: client-dev
 stage: ready
-hold: null
+hold:
+  kind: decision
+  reason: 'held (user 2026-10-24): settle open PRs first; client changes wait for BlueStacks; unhold when ready'
+  since: '2026-10-25T00:39:45Z'
 deps: []
 branch: client/gpu-plugin-feasibility
 commit: null
 local_only: false
 owner: null
-instances:
-- device
 cost:
   runs: 1
   turns: 0
   minutes: 0.0
   usd: 0
 created: '2026-10-20T04:39:08Z'
-updated: '2026-10-24T21:08:40Z'
+updated: '2026-10-25T00:39:45Z'
 ---
 ## Change
 Stretch goal: RuneLite's GPU plugin on the Android app (feasibility)
@@ -37,3 +38,4 @@ Stretch goal: RuneLite's GPU plugin on the Android app (feasibility)
 - 2026-10-24T20:09:15Z run cd51 started (client-dev, stage dev, instances device)
 - 2026-10-24T21:08:22Z run cd51 ended: ? turns, 0.0 min, $0, exit cancelled
 - 2026-10-24T21:08:40Z dev -> ready: run cd51 ended without a hand-over
+- 2026-10-25T00:39:45Z hold decision: held (user 2026-10-24): settle open PRs first; client changes wait for BlueStacks; unhold when ready

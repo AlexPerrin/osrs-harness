@@ -5,15 +5,17 @@ title: Perilous Moons boss fights (Neypotzli)
 prio: P3
 role: server-dev
 stage: ready
-hold: null
+hold:
+  kind: decision
+  reason: 'held (user 2026-10-24): settle open PRs first; client changes wait for BlueStacks; unhold when ready'
+  since: '2026-10-25T00:39:44Z'
 deps: []
 branch: content/moons-of-peril
 commit: null
 local_only: false
 owner: null
-instances: []
 created: '2026-10-20T04:57:23Z'
-updated: '2026-10-22T02:16:30Z'
+updated: '2026-10-25T00:39:44Z'
 ---
 ## Change
 Found by client task hub-batch-next (the user's own Plugin Hub list, orchestrator 2026-10-20): the plugin builds, passes netcheck/stubcheck and starts on the device, but OpenRune has no content for it to read, so it can't be exercised. Survey 2026-10-20 of re/upstream-pr/or (docs tree e71437e and local integration e5b18a8): only the reward chest (zeah MoonChestScript.kt) and moonlight potions; PROGRESS lists Moons of Peril as missing. Wiki: Perilous Moons. Check upstream again first, spec with accuracy-check (OSRS Wiki and cache are the baseline), one PR per change, no stacking. Client re-test after it is live: hub perilous-moons-splits records split times
@@ -30,3 +32,4 @@ Found by client task hub-batch-next (the user's own Plugin Hub list, orchestrato
 - 2026-10-22T02:08:33Z backlog -> ready: the user's own plugins need this (gnome-restaurant, trouble-brewing, ba-minigame/ba-call-highlight, guardians-of-the-rift-*, perilous-moons-splits); large: after the smaller content
 - 2026-10-22T02:08:33Z triage: the user's own plugins need this (gnome-restaurant, trouble-brewing, ba-minigame/ba-call-highlight, guardians-of-the-rift-*, perilous-moons-splits); large: after the smaller content
 - 2026-10-22T02:16:30Z renamed from content-moons-of-peril (grooming: slug = the branch slug, BR-C1)
+- 2026-10-25T00:39:44Z hold decision: held (user 2026-10-24): settle open PRs first; client changes wait for BlueStacks; unhold when ready
