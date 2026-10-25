@@ -4,11 +4,12 @@ One short entry per issue, newest first: symptom, root cause, evidence, fix, how
 
 ## 2026-10-25 Audit of the v6 code: open defects (v7 inputs)
 
-Found by reading the code; none reproduced live. Nothing is fixed yet.
+Found by reading the code; none reproduced live. Fixed ones say so.
 
 - **Contribution publishes an unapproved commit.** `hd/tracks/server/contribute.py` `run` checks `refusal(ch, approved)`
   once; each pass reloads the change, so a hand-over during the CI wait makes the next pass push, comment and ready the
-  new commit. Fix: call `refusal` on every pass. Recognise: a PR head commit with no QA record or approval.
+  new commit. Fixed: `run` calls `refusal` on every pass (test: `ContributeTest`). Recognise: a PR head commit with no QA
+  record or approval.
 - **Lost change-file updates.** The tick works on `Ctx.idx` (loaded at tick start) and `hd handover`, `dod`, `log` do
   load, edit, save on the whole file; only `batches.lock` locks. A handover's commit or a `dod` tick can vanish, or
   `heal._dead_runs` can send a handed-over change back to `ready`. Fix: one `flock` around reload-edit-save.
