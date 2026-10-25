@@ -117,7 +117,7 @@ def cmd_verdict(a):
     ch = _change(ctx, a.slug)
     h, why = steps.head(ctx, ch), []
     if h != a.sha:
-        why.append(f"the head is {str(h)[:9]}, not {a.sha[:9]}")
+        why.append(f"the head is {h[:9] if h else 'nothing'}, not {a.sha[:9]}")
     if a.result == "FAIL" and not a.findings:
         why.append("a FAIL names its findings")
     if why:
@@ -162,7 +162,7 @@ def cmd_approve(a):
     h = steps.head(ctx, ch)
     why = []
     if h != a.sha:
-        why.append(f"the head is {str(h)[:9]}, not {a.sha[:9]}: approve the current commit")
+        why.append(f"the head is {h[:9] if h else 'nothing'}, not {a.sha[:9]}: approve the current commit")
     if steps.REVIEW.done(ctx, ch) is not True:
         why.append("no passing review at this head")
     if why:

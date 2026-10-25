@@ -155,7 +155,9 @@ def _run_gate(ctx, ch):
         return "gate: could not run"
     detail = (r.stdout + r.stderr).strip()[-2000:]
     ok = {0: True, 1: False}.get(r.returncode)
-    store.save_record(ch["slug"], "gate", {"head": h, "base": b, "ok": ok, "detail": detail})
+    rec = {"head": h, "base": b, "ok": ok, "detail": detail}
+    if {k: (ctx.rec(ch, "gate") or {}).get(k) for k in rec} != rec:   # a pending gate is not re-recorded every pass
+        store.save_record(ch["slug"], "gate", rec)
     return f"gate {'ok' if ok else 'FAIL' if ok is False else 'pending'}: {detail.splitlines()[-1] if detail else ''}"
 
 

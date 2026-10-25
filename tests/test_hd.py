@@ -5,7 +5,7 @@ import sys
 from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from helpers import SHA, Fake, Sandbox  # noqa: E402
+from helpers import SHA, R, Fake, Sandbox  # noqa: E402
 
 from hd import cli, server, steps, tick  # noqa: E402
 
@@ -251,6 +251,17 @@ class R7Visibility(Sandbox):
         c1 = next(s for s in d["spawn"] if s["name"] == "c1-1")
         with open(c1["brief"]) as f:
             self.assertRegex(f.read().splitlines()[0], r"^Harness change `c1` run `c1-1` head `` def `\w{12}`$")
+
+    def test_a_pending_gate_is_recorded_once(self):
+        self.change("s", track="server")
+        self.store.save_record("s", "handover", {"head": A, "base": B, "evidence": "e"})
+        F = Fake(refs={"fork/dev/s": A, "origin/main": B})
+        with mock.patch.object(steps, "sh", return_value=R(2, "CI: running")):
+            tick.run(F)
+            tick.run(F)
+        events = [json.loads(l) for l in open(self.store.path("events.jsonl"))]
+        self.assertEqual(len([e for e in events if e["kind"] == "record" and e["record"] == "gate"]), 1)
+        self.assertIsNone(self.store.record("s", "gate")["ok"])
 
 
 class ServerTrack(Sandbox):
