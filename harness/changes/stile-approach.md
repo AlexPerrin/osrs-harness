@@ -4,7 +4,7 @@ track: server
 title: 'Stile: approach from the outside tile'
 prio: P1
 role: server-dev
-stage: contribute
+stage: review
 hold: null
 deps: []
 branch: fix/stile-approach
@@ -26,8 +26,9 @@ cost:
   usd: 11.77
   tokens: 0
 created: '2026-10-20T01:42:40Z'
-updated: '2026-10-25T00:50:33Z'
+updated: '2026-10-25T00:52:35Z'
 upstream_pr: 406
+review_seen: '2026-10-25T00:52:35Z'
 ---
 ## Change
 fix/stile-approach 8a8c0ca7a failed the internal gate: the player walks onto the stile's own blocking tile, so it never climbs. Fix: start the climb from the tile outside the stile on the player's side, in line with it; check in game; update the PR text. Covers the #366 review item 'stile jump from too far away (player not always in the pen)'.
@@ -88,3 +89,4 @@ fix/stile-approach 8a8c0ca7a failed the internal gate: the player walks onto the
 - 2026-10-25T00:34:52Z run sq58 started (server-qa, stage gate)
 - 2026-10-25T00:49:59Z QA aggregate FAIL at caacbf4ce (4 finding(s)): 3 findings: wiki checklist item unticked (user decision), stale 'only test dropped' claim (KDoc also restored), commit 68ddd1b6c subject lacks fix: prefix; all checks else PASS
 - 2026-10-25T00:50:33Z gate -> contribute: observed
+- 2026-10-25T00:52:32Z contribute -> review: observed
