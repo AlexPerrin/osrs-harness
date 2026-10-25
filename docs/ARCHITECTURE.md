@@ -158,8 +158,8 @@ Every change meets two kinds of check, cheapest first, each valid only for its `
 
 | Hook | Event | Does |
 |---|---|---|
-| `run_start.py` | `SubagentStart` | writes `runs/<name>.json` from the Agent tool's prompt (first line ``Harness change `<slug>` run `<name>` ``), `agent_id`, role and the console pid |
-| `run_stop.py` | `SubagentStop` | blocks the stop when the change still needs the run's record (hand-over, verdict, resolution or a question); otherwise writes `ended`, `exit`, `last`, `usage` from the transcript and runs `hd tick` |
+| `run_start.py` | `SubagentStart` | writes `runs/<name>.json` from the Agent tool's prompt (first line ``Harness change `<slug>` run `<name>` ``), `agent_id`, role and the console pid. The prompt may not be on disk yet, so the change can stay unbound |
+| `run_stop.py` | `SubagentStop` | always writes `ended`; binds the change from the subagent transcript if unbound; exit `no-record` plus a hold with the last message when the record the role owes is missing; runs `hd tick`. It cannot refuse a stop: the agent has already handed back. Usage and last message are read from the transcript |
 | `guard.py` | `PreToolUse: Bash` (every role and the console) | one table: writes to OpenRune denied to all; fork pushes only to the role's refs; deploy, image and docker writes on the live stack denied; `hd approve` only to the console; targets resolved by remote URL and ref; every denial an event |
 
 The console loop (skill `drive`): `hd` → spawn each listed agent (`subagent_type` = role, brief as prompt) → show each card

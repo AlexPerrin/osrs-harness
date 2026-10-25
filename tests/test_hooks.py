@@ -101,18 +101,10 @@ class RunStopTest(Env):
     USAGE = ({"input_tokens": 5, "output_tokens": 10, "cache_read_input_tokens": 100, "cache_creation_input_tokens": 1},
              {"input_tokens": 1, "output_tokens": 20, "cache_read_input_tokens": 200})
 
-    def test_blocks_the_first_stop_without_the_handover(self):
-        self.subagent()
-        self.start()
-        out = self.stop()
-        self.assertEqual(out["decision"], "block")
-        self.assertIn("handover", out["reason"])
-        self.assertIsNone(self.records.run("a1")["ended"])
-
-    def test_second_stop_ends_with_no_record_and_a_hold(self):
+    def test_a_stop_without_the_record_ends_as_no_record_with_a_hold(self):
         self.subagent(usages=self.USAGE)
         self.start()
-        self.assertIsNone(self.stop(active=True, last="I give up"))
+        self.assertIsNone(self.stop(last="I give up"))
         r = self.records.run("a1")
         self.assertEqual(r["exit"], "no-record")
         self.assertEqual(r["usage"], {"input": 6, "output": 30, "cache_read": 300, "cache_creation": 1, "turns": 2})
@@ -133,7 +125,8 @@ class RunStopTest(Env):
         self.records.save_record("stile-approach", "handover", {"sha": "old", "ts": "2000-01-01T00:00:00Z"})
         self.subagent()
         self.start()
-        self.assertEqual(self.stop()["decision"], "block")
+        self.assertIsNone(self.stop())
+        self.assertEqual(self.records.run("a1")["exit"], "no-record")
 
     def test_a_question_asked_by_this_run_lets_it_stop(self):
         self.subagent()
@@ -145,14 +138,24 @@ class RunStopTest(Env):
     def test_qa_owes_a_verdict_and_the_integrator_a_resolution(self):
         self.subagent(agent="q1")
         self.start(agent="q1", role="server-qa")
-        self.assertIn("verdict", self.stop(agent="q1", role="server-qa")["reason"])
+        self.stop(agent="q1", role="server-qa")
+        self.assertEqual(self.records.run("q1")["exit"], "no-record")
+        self.subagent(agent="q2")
+        self.start(agent="q2", role="server-qa")
         self.records.save_record("stile-approach", "verdict", {"sha": "abc", "verdict": "PASS"})
-        self.assertIsNone(self.stop(agent="q1", role="server-qa"))
+        self.stop(agent="q2", role="server-qa")
+        self.assertEqual(self.records.run("q2")["exit"], "ok")
         self.subagent(agent="i1", first="Harness change `t-1` (train)")
         self.start(agent="i1", role="integrator")
-        self.assertIn("resolve", self.stop(agent="i1", role="integrator")["reason"])
-        self.records.save_train({"id": "t-1", "resolution": {"note": "dropped x", "ts": self.records.now()}})
-        self.assertIsNone(self.stop(agent="i1", role="integrator"))
+        self.stop(agent="i1", role="integrator")
+        self.assertEqual(self.records.run("i1")["exit"], "no-record")
+
+    def test_a_start_that_could_not_see_the_prompt_is_bound_at_stop(self):
+        self.records.save_run({"agent_id": "a1", "role": "server-dev", "change": None, "console_pid": 1,
+                               "started": self.records.now(), "ended": None, "exit": None})
+        self.subagent()
+        self.stop()
+        self.assertEqual(self.records.run("a1")["change"], "stile-approach")
 
     def test_a_stop_the_start_hook_missed_is_still_recorded(self):
         self.subagent(usages=self.USAGE)

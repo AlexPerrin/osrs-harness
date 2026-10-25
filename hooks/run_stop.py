@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""SubagentStop hook (R6, R8): an agent cannot stop while its change still needs the record this run owes; when it
-stops, the run record gets its end, exit, last message and the token usage summed from the subagent transcript.
+"""SubagentStop hook (R6, R8): the run record gets its end, exit, last message and the token usage summed from the subagent
+transcript. A stop cannot be refused: the agent has already handed back and a block is ignored, so a run that owes a
+record it did not write ends as exit `no-record` and a hold carrying its last message is put on the change, so nothing
+re-dispatches it (R8). The hook also binds the change from the subagent transcript when the start hook could not.
 
 The record a role owes (hd.yaml `roles.<role>.record`): `handover` (devs), `verdict` (QA), `resolution` (the
 integrator, on its train). A record written since the run started, or a hold this run asked (`hd ask`), settles it.
-The first stop without it is blocked with the command to run; the second (`stop_hook_active`) is let through as exit
-`no-record`, and a hold carrying the last message is put on the change so nothing re-dispatches it (R8). Then
-`hd tick` runs so the state moves at once. Never raises.
+Then `hd tick` runs so the state moves at once. Never raises.
 """
 import json
 import os
@@ -18,12 +18,6 @@ sys.path.insert(0, HD_HOME)
 from hd import records  # noqa: E402
 from run_start import agent_transcript, console_pid, first_prompt, slug_of  # noqa: E402
 
-HD = f"python3 {HD_HOME}/hd.py"
-HOW = {
-    "handover": "`{hd} handover <slug> --sha <sha> --evidence <dir> --summary \"...\"` (its check refuses an incomplete hand-over: fix what it prints and run it again)",
-    "verdict": "write the record in the evidence dir, then `{hd} verdict <slug> PASS|FAIL --sha <sha>`",
-    "resolution": "`{hd} resolve <train> \"<what you recorded or dropped>\"`",
-}
 
 
 def produced(run, slug, kind):
@@ -68,10 +62,6 @@ def usage(path):
     return out
 
 
-def block(reason):
-    print(json.dumps({"decision": "block", "reason": reason}))
-
-
 def main():
     data = json.load(sys.stdin)
     aid = data.get("agent_id")
@@ -86,16 +76,14 @@ def main():
         run = {"agent_id": aid, "role": data.get("agent_type"), "change": slug, "console_pid": console_pid(),
                "session_id": data.get("session_id"), "transcript": transcript, "started": "", "ended": None,
                "exit": None}
+    if not run.get("change"):   # the transcript did not exist at start; it holds the prompt now
+        run["change"] = slug_of(first_prompt(transcript))
     slug, role = run.get("change"), run.get("role")
     kind = ((records.config().get("roles") or {}).get(role) or {}).get("record")
     last = (data.get("last_assistant_message") or "")[-500:]
     exit_ = "ok"
     if slug and kind and not produced(run, slug, kind) and not asked(run, slug):
-        if not data.get("stop_hook_active"):
-            block(f"Change {slug}: your {kind} is not on disk. Finish with {HOW[kind].format(hd=HD)}; if you cannot, "
-                  f"`{HD} ask {slug} \"<what you need>\"`. Then stop.")
-            return
-        exit_ = "no-record"
+        exit_ = "no-record"   # a block is ignored once the agent has handed back, so the end is always written
     run.update(ended=records.now(), exit=exit_, last=last, usage=usage(data.get("agent_transcript_path") or transcript))
     records.save_run(run)
     if exit_ == "no-record":
