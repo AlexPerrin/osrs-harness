@@ -7,7 +7,7 @@ description: "Rules for the test instances and data tools: starting your own cli
 ## Your own client
 - No instance is shared or locked: start your own client when you need one and stop it when you are done (before
   you hand over, gate or end). It has its own profile, devtools port and account state, named after you
-  (desktop RuneLite: `DESKTOP_INSTANCE=<your-name>`, `DESKTOP_DEVTOOLS_PORT=<free port>`,
+  (desktop RuneLite: your own window, one instance per agent named after your run, never a shared one, however many agents run: `DESKTOP_INSTANCE=<your-run-name>`, `DESKTOP_DEVTOOLS_PORT=<free port>`,
   `~/osrs-harness/bench/multiclient/desktop.sh start|stop`; Android: your own BlueStacks instance (multi-instance, own
   app data), addressed by its own ADB port as `ANDROID_SERIAL`). Never use another agent's client, profile or port,
   never touch an instance already open (the user's own BlueStacks), and never leave yours running.
