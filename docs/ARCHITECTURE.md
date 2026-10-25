@@ -215,3 +215,146 @@ python3 ~/osrs-harness/hd.py                    # the console's list
 python3 ~/osrs-harness/hd.py tick --dry-run     # derive and print, change nothing
 python3 -m unittest discover -s tests           # a test per requirement; a fake observer stands in for git, gh, docker, /proc
 ```
+
+## 12. Model and sequences
+
+**Model.** A definition is committed; a record is bound to the definition's `head` and `base`.
+
+```mermaid
+classDiagram
+  class Definition {
+    slug
+    track
+    deps
+  }
+  class Goal {
+    target
+    measure
+  }
+  class Change {
+    kind
+    priority
+    branch
+    pr
+    finding
+  }
+  class Record {
+    head
+    base
+    owner
+  }
+  class Run {
+    agent_id
+    role
+    console_pid
+    ended
+    usage
+  }
+  class Lock {
+    resource
+    holder
+  }
+  class Train {
+    pid
+    heads
+    failed_step
+  }
+  Definition <|-- Goal
+  Definition <|-- Change
+  Change "*" --> "*" Change : deps
+  Change "*" --> "0..1" Goal : serves
+  Change "1" --> "*" Record : handover gate verdict approval hold
+  Goal "1" --> "0..1" Record : measurement
+  Change "1" --> "*" Run : worked by
+  Run "1" --> "*" Lock : holds
+  Train "1" --> "*" Change : heads pinned
+```
+
+**A client or harness change, end to end.**
+
+```mermaid
+sequenceDiagram
+  participant T as Tick
+  participant C as Console
+  participant D as Dev agent
+  participant H as Hooks
+  participant G as Gate
+  participant R as Repo
+  T->>T: observe and derive, change is ready
+  C->>T: hd lists the spawn
+  C->>D: Agent tool with the brief
+  H->>H: run_start writes the run
+  D->>D: build, check on a real client
+  D->>T: hd handover (refused if incomplete)
+  D-->>H: stop
+  H->>H: run_stop checks the record, writes usage
+  H->>T: hd tick
+  T->>G: script gate at head and base
+  G-->>T: gate.json
+  T->>R: merge and push
+  T->>T: live, done
+```
+
+**A server change: test server and upstream, independently.**
+
+```mermaid
+sequenceDiagram
+  participant T as Tick
+  participant D as server-dev
+  participant G as Gate
+  participant Q as server-qa
+  participant U as User via console
+  participant Tr as Train
+  participant GH as GitHub
+  D->>T: hd handover (dev/slug on the fork)
+  T->>G: script gate on a scratch merge with upstream main
+  G-->>T: gate.json
+  par test server
+    T->>Tr: start train when the queue is non-empty
+    Tr->>Tr: pin, rebuild, gate, image, deploy
+    Tr-->>T: live.json
+  and upstream
+    T->>Q: dispatch review after the gate passed
+    Q->>T: hd verdict at head
+    T->>U: card with commands, text, checks
+    U->>T: hd approve slug head
+    loop each tick, next unmet step
+      T->>GH: push, open PR, CI green, comment, ready
+    end
+  end
+  GH-->>T: maintainer finding
+  T->>T: file a P0 change on the same branch
+```
+
+**A goal and the orchestrator.**
+
+```mermaid
+sequenceDiagram
+  participant T as Tick
+  participant O as Orchestrator
+  participant P as measure command
+  participant S as Store
+  T->>T: measurement invalid or below target, no change serving it
+  T->>O: dispatch
+  O->>P: run in the real app (device lock)
+  P-->>O: percentage and per-method report
+  O->>S: hd measure goal value evidence
+  O->>S: hd new change with deps across tracks
+  Note over T,S: dev agents deliver the changes, base moves, the measurement is invalid again
+```
+
+**Healing a dead console.**
+
+```mermaid
+sequenceDiagram
+  participant Ti as Timer
+  participant T as Tick
+  participant O as Observe
+  participant S as Store
+  Ti->>T: every minute
+  T->>O: console pid of each run without an end
+  O-->>T: pid gone
+  T->>S: end the runs console-died, free their locks
+  T->>S: remove containers and clones they owned
+  T->>S: event per repair
+  Note over T: the changes are dispatchable again from the next list
