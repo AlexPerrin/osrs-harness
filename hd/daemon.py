@@ -1,4 +1,4 @@
-"""harnessd: the tick loop (PROBLEM.md). v4: no page, no server; the console session drives (`hd drive`).
+"""harnessd: the tick loop. v4: no page, no server; the console session drives (`hd drive`).
 
   run(interval, once=False)   tick.tick() every `interval` seconds; errors in a step never stop the loop (an
                               `error` event); SIGTERM ends it after the current tick; `harness/state/daemon.json`

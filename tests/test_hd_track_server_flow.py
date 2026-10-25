@@ -1,4 +1,4 @@
-"""The server lifecycle dev -> QA aggregate -> approval card -> contribution (docs/PROBLEM.md section 4): the hand-over that
+"""The server lifecycle dev -> QA aggregate -> approval card -> contribution (docs/PRD.md): the hand-over that
 refuses an incomplete one, QA's record (`hd gate`), the gate's build evidence on a scratch merge (`hd gate-ci`) and the
 atomic contribution (`hd contribute`), each against temp git repos or a simulated GitHub; no network."""
 import io

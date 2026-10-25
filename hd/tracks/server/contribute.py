@@ -1,5 +1,5 @@
 """The contribution (`hd contribute <slug> --approved <sha>`): the one atomic upstream sequence a change gets after the
-gate PASS and the user's yes in chat (docs/PROBLEM.md section 4, BR-A4):
+gate PASS and the user's yes in chat (docs/PRD.md BR-A4):
 
   push -> open -> ci -> comment -> ready
 

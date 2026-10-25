@@ -1,4 +1,4 @@
-"""harnessd (hd): built against docs/PROBLEM.md.
+"""harnessd (hd): built against docs/PRD.md.
 
 A change is the only unit of work; stages are observed, never set by hand; shared resources are locks; every state change
 is an event; agents execute one stage and are spawned by the console session; two kinds of action need the user's OK in chat. The package:

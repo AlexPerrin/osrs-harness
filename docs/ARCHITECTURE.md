@@ -1,6 +1,6 @@
 # Architecture of the harness (hd)
 
-How it is built. The problem, workflow and rules (BR-*) are in docs/PROBLEM.md; this file is the mechanism that implements them. Each module's docstring is its spec; this file is the map.
+How it is built: the implementation that meets the requirements (BR-*) of docs/PRD.md for the problem in docs/PROBLEM.md. Each module's docstring is its spec; this file is the map. Section 13 maps every requirement to its mechanism.
 
 ## 1. What it does, in one paragraph
 Two products move to their live targets: the client (RuneLite plugins in the OSRS Android app; live = `master` contains
@@ -81,6 +81,19 @@ flowchart LR
 | harness | `tracks/harness.py` (on `target.py`) | `backlog ready dev gate live`: this repo's `main` contains the commit | `tracks.harness` |
 | server | `tracks/server/` | `backlog ready dev gate contribute review merged` (`local/*`: `... gate live`) | `tracks.server`: `ci_equivalence` |
 
+```mermaid
+classDiagram
+  class BaseTrack{chain() tip() facts() executor() finding_set() settles_first() reconcile() ship() step() needs_you() check_items() brief() record_gate()}
+  BaseTrack <|-- TargetTrack
+  BaseTrack <|-- ServerTrack
+  TargetTrack <|-- ClientTrack
+  TargetTrack <|-- HarnessTrack
+  class Observer{git refs, docker, live server, pids}
+  Observer <|-- FakeObserver
+  GitHub <|-- FakeGitHub
+  ServerTrack ..> GitHub : PR bucket, fork CI
+  BaseTrack ..> Observer : facts(ch, obs)
+```
 Server track modules: `__init__` (the track), `qa` (QA's record and its checks), `gateci` (`hd gate-ci`: the scratch
 merge with upstream main, the fork's `gate/<slug>`, CI observed, the diff scan), `cards` (the approval card, the
 draft card), `contribute` (`hd contribute`: push, open, CI, comment, ready as observed steps), `review` (maintainer
@@ -248,6 +261,20 @@ commands, decisions (`decision` holds), (d) exceptions (a train at `exception` w
 holds, `failed` holds no dev will pick up). The `decision` holds are the user's "needs you": an agent's question, or the
 no-loop hold. Nothing in it is stored: each item disappears when its fact changes.
 The loop itself (spawn, link, end, ask, run, repeat; never EnterWorktree in the console) is `.claude/skills/drive/SKILL.md`.
+```mermaid
+sequenceDiagram
+  participant C as Console
+  participant H as hd drive
+  participant U as User (chat)
+  loop until nothing is listed
+    C->>H: hd drive
+    H-->>C: spawn, stop, actions, decisions, exceptions
+    C->>C: Agent tool per spawn then hd run-link; TaskStop per stop then hd run-stopped
+    C->>U: each action card and decision
+    U-->>C: yes or answer
+    C->>C: the card's commands (after a yes); hd unhold with the answer
+  end
+```
 
 ## 8. The user's list (actions.py)
 `pending_actions` collects every track's `needs_you` cards and the gated release batches. A card carries the exact commands,
@@ -268,7 +295,7 @@ sequenceDiagram
   C->>C: hd drive: the card (verdict, checks, findings, PR text, diff, steps)
   C->>U: AskUserQuestion: approve this commit / fix first / no
   U-->>C: approve
-  C->>G: hd contribute <slug> --approved <sha> (push, open, CI, comment, ready, review)
+  C->>G: hd contribute <slug> --approved <sha> (push, open, CI, comment, ready)
   C->>C: next tick: the PR is ready with the commit: stage review; the card is gone
 ```
 
@@ -291,6 +318,25 @@ sequenceDiagram
   X-->>B: ready -> included changes live, live.json written; container exited -> auto-rollback -> exception
   B-->>I: on exception: brief with the stop output (booked, spawned by the console)
   I->>B: hd resolve <batch> "note" -> resume from the failed step
+```
+```mermaid
+stateDiagram-v2
+  [*] --> queued
+  queued --> pinning
+  pinning --> rebuilding
+  rebuilding --> gating
+  gating --> imaging
+  imaging --> imaged
+  imaged --> deploying: daemon holds live-server
+  deploying --> live
+  pinning --> exception
+  rebuilding --> exception
+  gating --> exception
+  imaging --> exception
+  deploying --> exception: container exited, rolled back
+  exception --> pinning: hd resume, tools head moved
+  exception --> gating: hd resume
+  live --> [*]
 ```
 A re-pin fast-forwards the fork's main when upstream main moved and starts a train.
 A resume after a gate failure re-runs the train from pinning when the tools branch head differs from the batch's tools commit (entries the integrator removed from `integration.txt` leave the batch), else restarts the gate.
@@ -324,7 +370,7 @@ dep naming no change) is cached in `view/stale` and printed by `hd status`. `--d
 nothing.
 
 ## 11. Hooks and guards
-| Hook | Loaded by | Rule |
+| Hook | Loaded by | Enforces |
 |---|---|---|
 | `deny_publish.py` (`--fork-writes`, `--docs-writes`) | every agent role file | agents cannot push, write to GitHub, deploy or touch integration, nor run `hd contribute`; server-dev may write to the fork, server-qa to the fork's docs branch and `gate/*` only; pushes to OpenRune stay denied; image builds, deploys and docker or compose writes on the live stack (`osrs-openrune*`) are denied to every role; every denial is an event |
 | `task_stop.py` | harness-dev, integrator, server-qa | cannot end without a hand-over / QA aggregate / resolution on disk |
@@ -342,3 +388,24 @@ python3 ~/osrs-harness/hd.py status | actions | agents | events | digest | lease
 `python3 -m unittest discover -s tests`: a test per rule (`test_hd_*.py`, `test_hooks.py`, ...). `hd_helpers.sandbox`
 points the store, state, events and policy at a temp dir; its policy is the live structure with the numeric knobs the
 tests rely on pinned (`write_test_policy`). `FakeObserver` stands in for git, GitHub and docker.
+
+## 13. Requirements to mechanisms
+| Requirement | Mechanism |
+|---|---|
+| BR-C1, C3, C6 | `store.py` front matter, branch prefixes in `tracks.<name>`; `hd check` items (section 2, `check.py`); the server's default definition of done (`tracks/server`) |
+| BR-C2, S2, S5 | `stages.derive` (a moved branch re-enters at ready); `hd handover` runs the check and records nothing when it fails; holds only by `hd hold/fail/unhold` (section 4) |
+| BR-C4, C5 | `stages.deps_met`, `priority.rank` (section 10a) |
+| BR-C7, C8 | `ServerTrack.chain` (`LOCAL`), `batches.repin` (section 9) |
+| BR-S3, S9, S10 | `hd fail`; `stages.would_loop` with `booked` keys; facts-only steps in `batches`, `contribute`, `gateci` (section 4) |
+| BR-S4 | `tracks/server/review.py` |
+| BR-S6, S7, A2, A3, A4, A5, A8 | `tracks/server/gateci.py`, `qa.py`, `cards.py`, `contribute.py`; hooks `publish_gate.py`, `github_scope.py` (sections 5, 8, 11) |
+| BR-S8, B6, X2 | `tracks/target.py` check items; release batches in `batches.py` and `actions.py` (sections 8, 9) |
+| BR-B1 to B5 | `batches.py`, `train/` (section 9) |
+| BR-A1, A6, A7 | `hd drive`, `actions.py`, `daemon.digest` (sections 7, 8) |
+| BR-R1 to R3 | `leases.py`, `deploy.sh`, `integrate.py` (section 10) |
+| BR-R4, G3, X3 | skill `test-instances`, role files; `heal.py` stops only recorded runs |
+| BR-R5 | `capacity.py`, policy `capacity` (section 10a) |
+| BR-G1, G2, G4 | `agents.py` (briefs at spawn, `run-end` cost, lingering stops), role files |
+| BR-P1 to P3, X1 | `hooks/` (section 11), `events.emit` for denials; skill `accuracy-check` |
+| BR-P4, H7, I1 | harness track and `ship.py` (section 5), `maintain.py` (section 10b), `hd dod`, CLAUDE.md |
+| BR-H1 to H6 | `observe.py`, `tick.py` reconcile and heal, `heal.py`, `events.py`, `metrics.py`, `kpi.py`, `daemon.digest` (sections 4, 6) |

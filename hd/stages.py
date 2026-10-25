@@ -1,4 +1,4 @@
-"""The lifecycle (docs/PROBLEM.md section 4: dev -> gate -> done), generic over the tracks: each track gives its chain of
+"""The lifecycle (docs/PROBLEM.md: dev -> gate -> done), generic over the tracks: each track gives its chain of
 stages and the observed facts for the stages after `gate` (hd/tracks/); this module climbs the chain on those facts.
 
 `backlog -> ready -> dev` are recorded (dispatch); `hd handover` records `gate`; from `gate` on the facts decide, and a

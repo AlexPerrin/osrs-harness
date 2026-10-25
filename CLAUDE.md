@@ -5,7 +5,7 @@ RuneLite plugins in the official OSRS Android app, APK releases) and the test se
 AlexPerrin/OpenRune-Server, contributed upstream to OpenRune/OpenRune-Server). It is neither product's code: the
 client repo holds client code and releases only; server code and server tooling belong to the fork.
 
-**New session: read docs/PROBLEM.md (the problem, constraints, workflow and rules, BR-*), then docs/ARCHITECTURE.md (how it is
+**New session: read docs/PROBLEM.md (the problem), docs/PRD.md (the requirements, BR-*), docs/ARCHITECTURE.md (how it is
 built), docs/HANDOFF.md (current state) and, before repeating anything, docs/ISSUES.md (incidents).**
 Every session and agent runs from this repo (hooks, agents, skills and MCP servers are wired in `.claude/` and `.mcp.json`
 here). The client checkout (`HD_CLIENT_ROOT`, default `~/osrs-plugins-reverse`) is where agents' worktrees, evidence
@@ -20,7 +20,7 @@ hooks/           the Claude Code hooks (wired in .claude/settings.json and the r
 mcp/             MCP launchers (osrs-mcp); osrs-devtools and the desktop bridge launch from the client repo's tools/ (.mcp.json)
 harness/         policy.yaml and changes/ (committed); state/ (git-ignored)
 .claude/         agents/ (role files) and skills/ (drive = the console loop; the track rules; the QA procedures)
-docs/            PROBLEM.md (rules), ARCHITECTURE.md (mechanism), HANDOFF.md (current state), ISSUES.md (incidents)
+docs/            PROBLEM.md (goals, process), PRD.md (requirements), ARCHITECTURE.md (implementation), HANDOFF.md (current state), ISSUES.md (incidents)
 train/           image.sh deploy.sh Dockerfile.integration integrate.py: the train's steps
 tests/           python3 -m unittest discover -s tests
 ```
@@ -29,9 +29,11 @@ Agents are spawned from the console session only (`hd drive`, skill `drive`); th
 actions and client releases is given in chat, and the commands run only after it.
 
 ## Iteration protocol
-Every iteration starts by reading docs/PROBLEM.md and ends by updating it. Code, tests, policy keys and docs that trace
-to no PROBLEM.md rule are dead logic: prune them in the same iteration and list what was pruned in the hand-over
-report, never in the docs. docs/ARCHITECTURE.md states the mechanism only; no rule lives in both files.
+docs/PROBLEM.md (goals, process), docs/PRD.md (requirements) and docs/ARCHITECTURE.md (implementation) are the only
+source of truth. Every iteration reads them first, reduces the work surface (fewer concepts, steps, special cases,
+files, knobs; the least complex solution that meets the PRD), and updates them last, each fact in the one document that
+owns it. Code, tests, policy keys and docs traceable to no requirement are removed; the hand-over report lists what was
+pruned, the docs never do.
 
 ## Rules
 - The user's OK only for OpenRune upstream actions and client releases.
