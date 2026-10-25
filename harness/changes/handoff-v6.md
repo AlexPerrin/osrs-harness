@@ -4,17 +4,25 @@ track: harness
 title: docs/HANDOFF.md rewritten as the brief for a fresh console session (current state, how to run, open work, standing rules)
 prio: P1
 role: harness-dev
-stage: dev
-hold: null
+stage: ready
+hold:
+  kind: decision
+  reason: runs last, after v6 part B and the cutover work settle (the brief describes the final state); unhold then
+  since: '2026-10-25T03:10:22Z'
 deps: []
 branch: null
 commit: null
 local_only: false
-owner: hd21
+owner: null
 booked:
   dev: '|da39a3ee5e6b'
+cost:
+  runs: 1
+  turns: 0
+  tokens: 0
+  minutes: 0
 created: '2026-10-25T01:16:56Z'
-updated: '2026-10-25T02:03:01Z'
+updated: '2026-10-25T03:10:43Z'
 ---
 ## Change
 docs/HANDOFF.md rewritten as the brief for a fresh console session (current state, how to run, open work, standing rules)
@@ -33,3 +41,6 @@ docs/HANDOFF.md rewritten as the brief for a fresh console session (current stat
 - 2026-10-25T01:30:00Z USER 2026-10-24: NO QUICK FIXES NOW. Defects seen during the cutover period go on the v7 list instead of being patched; collect these into the v7 section of docs/HANDOFF.md and as dated entries in docs/ISSUES.md (one line each, where to look): (a) hd contribute/hd gate evidence dir is the change's own name (fix-stile-approach), not the slug; (b) the batch lists cannon-review-354 twice in includes; (c) imaging failure restarts on the old clone (resume rebuilds only for a gating failure); (d) fork-only changes (check-cache-stock-limit) get a QA run booked though they have no upstream PR (no local-only close); (e) a hand-contributed change must be re-handed over on the PR head branch name to reach review, and its DoD items about the contribution step must be ticked before hand-over; (f) stale stop requests in hd drive for finished runs (run-stopped by hand); (g) hd gate-ci does not dispatch the Formatting workflow; (h) a QA agent cannot push gate/<slug> reliably under the role hook (the console pushed scratch branches); (i) the local clone 'origin' is the shared local clone, not upstream (scratch merges merged the wrong main once); (j) qa.sh full-gate mode and the shared cs2 volume going stale (fork tools); (k) review request via API is impossible for the fork author (404); (l) client class capacity also counts QA desktop clients, so client-dev cannot be held separately; (m) doc of the harness in the fork tooling branch not versioned with pins.
 - 2026-10-25T02:01:29Z USER 2026-10-24: the docs are now THREE sources of truth (PROBLEM, PRD, ARCHITECTURE; change three-source-docs restructures them): the docs audit and the HANDOFF must follow that structure; run handoff-v6 AFTER three-source-docs merges.
 - 2026-10-25T02:03:01Z USER 2026-10-24 ADDENDUM for the v7 brief: v7 (a major revision) is judged by reducing to the LEAST COMPLEX, MOST EFFICIENT solution that meets docs/PRD.md: fewer concepts, steps, special cases, files and knobs; iterate quickly; the docs hold only the source of truth, no revision history or justification. State this at the top of the v7 section.
+- 2026-10-25T03:10:22Z hold decision: runs last, after v6 part B and the cutover work settle (the brief describes the final state); unhold then
+- 2026-10-25T03:10:22Z run hd21 ended: ? turns, ? tokens, exit ok
+- 2026-10-25T03:10:43Z dev -> ready: run hd21 ended without a hand-over
