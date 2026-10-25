@@ -233,7 +233,7 @@ def _queue(ctx, ch):
     out = server.pin(ctx, ch)
     if _train_alive(ctx):
         return out + "; train running"
-    if _train_failed(ctx):
+    if _train_failed(ctx) or any(r.get("role") == "integrator" for r in alive_runs(ctx)):   # the integrator works in the build worktree
         return out + "; train failed, waiting for the integrator"
     return out + "; " + server.start_train(ctx)
 

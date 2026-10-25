@@ -39,7 +39,7 @@ summary lists what was pruned, the docs never do.
 - Decide on observable facts, never on time estimates; one simple mechanism over stacked rules.
 - Docs state current truth only: no revision justification, history or dated rationale. A quick fix lands at once
   and is not logged; a root cause or a rewrite too large for the run goes to docs/ISSUES.md alone (short, newest
-  first), cleared at each hand-off. Docs live in docs/; CLAUDE.md is the only root doc.
+  first), cleared at each hand-off. Docs live in docs/; CLAUDE.md and README.md are the only root docs.
 - The console never enters a worktree (EnterWorktree) while agents run.
 - Times for the user are US Eastern.
 - Hooks live in the committed `.claude/settings.json`, never the personal `settings.local.json`.

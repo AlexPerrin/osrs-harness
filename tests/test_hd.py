@@ -223,6 +223,12 @@ class R5Recovery(Sandbox):
             self.store.save_record(s, "gate", {"head": A, "base": B, "ok": True, "detail": ""})
         self.store.write({"pid": "7", "start": "1", "step": "rebuild", "tools": D, "failed_step": "rebuild", "ended": "t"}, "train.json")
         self.assertEqual([(c["slug"], r) for c, s, r, n in steps.dispatch(self.ctx(F))], [("s", "integrator"), ("s", "server-qa"), ("t", "server-qa")])   # the review list runs beside it
+        self.store.save_run({"name": "s-9", "agent_id": "i", "role": "integrator", "change": "s", "head": D, "ended": None, "console_pid": os.getpid(), "console_start": "0"})
+        F.f["procs"] = {(os.getpid(), "0")}
+        F.f["refs"]["fork/local/integration-tools"] = C                                        # the integrator moved the tools branch
+        with mock.patch.object(server, "start_train") as start, mock.patch.object(server, "pin", return_value="pinned"):
+            self.assertIn("waiting for the integrator", steps.QUEUE.do(self.ctx(F), self.ctx(F).by_slug["s"]))
+        self.assertFalse(start.called)                                                        # no train while the integrator works in its worktree
 
     def test_orphans_removed_and_docker_down_is_one_alert(self):
         self.store.save_run({"name": "r1", "agent_id": "x", "role": "server-dev", "change": "s", "ended": "t"})
