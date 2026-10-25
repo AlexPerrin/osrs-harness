@@ -36,7 +36,9 @@ server (`integration`) as soon as its gate passes and, independently, upstream a
   verification without cheats where possible, state in varbits/varps, gameval symbols not raw ids, wiki deviations in
   upstream's `docs/quirks.md`. The accuracy check (skill `accuracy-check`) is the wiki check: when it passes, tick
   "Matches the OSRS wiki" and add every deviation it records to `docs/quirks.md` in the same PR; a PR is never
-  marked for review with that item unticked or a Not done list.
+  marked for review with that item unticked or a Not done list. Upstream texts (title, description, comments) never
+  mention our fork: no fork PR links (they render as a big red Closed), no "fork branch", "fork CI" or "the fork's main";
+  say "CI on a merge with `main`" or "an earlier branch" instead. The pass will not post a text that names the fork.
 
 ## Gameval ids
 Write each new gameval as `name = -1`, run `python3 tools/scripts/fix_gameval_conflicts.py` on the branch (needs
