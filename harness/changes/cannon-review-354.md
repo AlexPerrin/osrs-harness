@@ -4,16 +4,18 @@ track: server
 title: 'Cannon #354: address maintainer review'
 prio: P0
 role: server-dev
-stage: ready
+stage: dev
 hold: null
 deps: []
 branch: fix/cannon-drop-tests
 commit: 0df5c63a009b75fffb33f8ead897b432f55fcead
 local_only: false
-owner: null
+owner: sd80
 evidence: /home/alex/osrs-plugins-reverse/re/evidence/cannon-review-354
 network: true
 summary: 'Drop #354''s tests: new commit on 60cffedfb on fork staging fix/cannon-drop-tests; PR text and accuracy/cannon.md updated on docs'
+booked:
+  dev: 0df5c63a009b75fffb33f8ead897b432f55fcead|da39a3ee5e6b
 cost:
   runs: 9
   turns: 0
@@ -21,7 +23,7 @@ cost:
   usd: 0
   tokens: 0
 created: '2026-10-24T19:31:52Z'
-updated: '2026-10-25T00:09:34Z'
+updated: '2026-10-25T00:37:54Z'
 ---
 ## Change
 Upstream #354 is CHANGES_REQUESTED (Mark7625 2026-10-22 07:57, eaglepurerocketgrape 11:42). Head content/cannon 9c08b42ca. Supersedes the BR-C1 fold decision on `cannon`: the fix goes on the PR head itself.
@@ -82,3 +84,5 @@ Upstream #354 is CHANGES_REQUESTED (Mark7625 2026-10-22 07:57, eaglepurerocketgr
 - 2026-10-24T23:23:42Z run sq55 ended: ? turns, ? tokens, exit stopped:lingering: change at ready
 - 2026-10-24T23:39:46Z gate PASS claimed: CI 40142538549 and Formatting 40142539998 green on scratch merge; 4-file scope, no tests, spotless ok, logic unchanged from 60cffedfb (the record on docs is what counts)
 - 2026-10-25T00:09:34Z dod ticked: 3, 4
+- 2026-10-25T00:37:54Z ready -> dev: dispatched to sd80
+- 2026-10-25T00:37:54Z run sd80 started (server-dev, stage dev)

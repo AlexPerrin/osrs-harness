@@ -4,27 +4,29 @@ track: server
 title: 'Stile: approach from the outside tile'
 prio: P1
 role: server-dev
-stage: contribute
+stage: gate
 hold: null
 deps: []
 branch: fix/stile-approach
-commit: 68ddd1b6c0de78e18788b22dc52ff6df2909d348
+commit: caacbf4cefa6f8491c8afa2d3fc7fc624d581a57
+repo: /home/alex/src/openrune-work/agents/sd79/or
 local_only: false
-owner: null
-evidence: /home/alex/osrs-plugins-reverse/re/evidence/fix-stile-approach
-summary: '68ddd1b6c drops StileScriptTest from 513144d3d (maintainer precedent on #366: these tests can be removed); no other change. #406 head; PR body updated. User OK 2026-10-24.'
+owner: sq58
+evidence: /home/alex/osrs-plugins-reverse/re/evidence/stile-approach
+summary: 'caacbf4ce restores StileScript.kt class KDoc to main''s text (fix: commit on 68ddd1b6c, fast-forward); PR body normalised (template checklist verbatim, notes plain, in-game claim restated to 513144d3d)
+  in fork docs 7ec42523c; accuracy Tests section removed; spotlessCheck generic-locs PASS'
 live_commit: 68ddd1b6c0de78e18788b22dc52ff6df2909d348
 booked:
-  gate: 68ddd1b6c0de78e18788b22dc52ff6df2909d348
+  gate: caacbf4cefa6f8491c8afa2d3fc7fc624d581a57
 batch: int-20261024-2
 cost:
-  runs: 6
+  runs: 7
   turns: 16
   minutes: 2.9
   usd: 11.77
   tokens: 0
 created: '2026-10-20T01:42:40Z'
-updated: '2026-10-25T00:25:54Z'
+updated: '2026-10-25T00:34:52Z'
 upstream_pr: 406
 ---
 ## Change
@@ -76,3 +78,11 @@ fix/stile-approach 8a8c0ca7a failed the internal gate: the player walks onto the
 - 2026-10-25T00:24:59Z QA aggregate FAIL at 68ddd1b6c (7 finding(s)): KDoc rewritten (AGENTS), commit subject prefix, PR checklist lines not verbatim, wording of tested commit
 - 2026-10-25T00:25:52Z gate -> contribute: observed
 - 2026-10-25T00:25:54Z run sq56 ended: ? turns, ? tokens, exit stopped:lingering: change at contribute
+- 2026-10-25T00:33:04Z QA AGGREGATE (sq56, 2026-10-24) at 68ddd1b6c: accuracy/ci/format/scope PASS, ingame PASS (carried over: production code identical to 513144d3d, verified by sq33). FIX FIRST (user): (1) style: StileScript.kt's existing class KDoc (already on main) was rewritten and grown from 2 to 4 lines: restore main's KDoc exactly (AGENTS.md: no new comments) in a NEW commit on fix/stile-approach (no force-push; the commit subject of 68ddd1b6c cannot change without a rewrite, the PR is squash-merged: give the new commit a 'fix:' subject); (2) text: normalise the PR body to the upstream template: the checklist lines verbatim and in template order, all items present, ticks only when true, explanations as plain notes (no checkboxes), the stale 'In game on this commit' claim restated to the commit the in-game run was at (513144d3d; production code identical since), the attribution line last; (3) the accuracy spec's Tests section still describes the dropped StileScriptTest: remove it; (4) read AGENTS.md and CONTRIBUTING and self-check the whole net diff, run spotlessCheck on the touched module. Fork pushes (fix/stile-approach, fork docs) need no approval; the live PR #406 body and the push onto the PR head go through the user's approval card afterwards. Do NOT touch upstream. The normaliser used for the other bodies: /home/alex/.claude/jobs/24c56aeb/tmp/normalise.py with the template at /home/alex/.claude/jobs/24c56aeb/tmp/template.md (copy them into your clone dir; they are in /home/alex/.claude/jobs/24c56aeb/tmp/).
+- 2026-10-25T00:33:04Z hold failed: fix first (user 2026-10-24): style (KDoc growth) and text (checklist, stale in-game claim)
+- 2026-10-25T00:33:04Z run sd79 started (server-dev, stage dev)
+- 2026-10-25T00:34:37Z contribute -> gate: hand-over recorded
+- 2026-10-25T00:34:37Z hold failed cleared: handed over (BR-S3)
+- 2026-10-25T00:34:37Z handover fix/stile-approach@caacbf4ce: caacbf4ce restores StileScript.kt class KDoc to main's text (fix: commit on 68ddd1b6c, fast-forward); PR body normalised (template checklist verbatim, notes plain, in-game claim restated to 513144d3d) in fork docs 7ec42523c; accuracy Tests section removed; spotlessCheck generic-locs PASS
+- 2026-10-25T00:34:52Z run sd79 ended: ? turns, ? tokens, exit ok
+- 2026-10-25T00:34:52Z run sq58 started (server-qa, stage gate)

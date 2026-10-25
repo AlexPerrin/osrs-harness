@@ -14,15 +14,15 @@ owner: hd19
 booked:
   dev: '|da39a3ee5e6b'
 created: '2026-10-24T22:59:05Z'
-updated: '2026-10-25T00:16:40Z'
+updated: '2026-10-25T00:33:20Z'
 ---
 ## Change
 v6: one pipeline, three track profiles; the console driver renders one 'needs you' list
 
 ## Definition of done
-- [ ] One change lifecycle shared by client, server and harness (ready, dev, gate, done); a track profile defines only what the gate checks and what done means (server: gate, the user's approval, the atomic contribution, test-server deploy independent; client: gate then release; harness: build, merge, major builds gated at deployment by the user); stages and holds simplified accordingly
-- [ ] Cross-track orchestration: deps and filed blockers between changes of any track; one priority order and global policies as data (e.g. settle open PRs first); one shared machine capacity budget for builds and in-game clients instead of per-track slot counts
-- [ ] Durable manual holds: a hold the reconciler never clears (decision) separate from dependency holds; a failing check or gate never re-dispatches a dev run on its own without new facts (no loops)
+- [x] One change lifecycle shared by client, server and harness (ready, dev, gate, done); a track profile defines only what the gate checks and what done means (server: gate, the user's approval, the atomic contribution, test-server deploy independent; client: gate then release; harness: build, merge, major builds gated at deployment by the user); stages and holds simplified accordingly
+- [x] Cross-track orchestration: deps and filed blockers between changes of any track; one priority order and global policies as data (e.g. settle open PRs first); one shared machine capacity budget for builds and in-game clients instead of per-track slot counts
+- [x] Durable manual holds: a hold the reconciler never clears (decision) separate from dependency holds; a failing check or gate never re-dispatches a dev run on its own without new facts (no loops)
 - [ ] hd drive renders a single 'needs you' card list with fixed fields (what, branch and commit, net diff, QA verdict, risk, recommendation, exact command) and a stable --json; the drive skill carries an intent table mapping chat phrases to hd commands (status, approve, hold, unhold, dispatch, reprioritise)
 - [ ] Run bookkeeping is automatic: a SubagentStop hook calls hd run-end and a spawn helper links runs; stop requests are handled without manual run-stopped; away mode via a loop wake-up and a push notification when the user is needed
 - [ ] Builds on gate-before-upstream and drop-instance-locks (merged first); tests per rule, docs concise current truth, incidents in docs/ISSUES.md; no push; deployment (merge into main and daemon restart) gated by the user
@@ -46,3 +46,4 @@ v6: one pipeline, three track profiles; the console driver renders one 'needs yo
 - 2026-10-25T00:16:40Z hold decision cleared: v6 part A: user said yes 2026-10-24
 - 2026-10-25T00:16:40Z ready -> dev: dispatched to hd19
 - 2026-10-25T00:16:40Z run hd19 started (harness-dev, stage dev)
+- 2026-10-25T00:33:20Z dod ticked: 1, 2, 3

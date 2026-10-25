@@ -4,22 +4,22 @@ track: client
 title: 'Stretch goal: 117 HD on the Android app (feasibility)'
 prio: P2
 role: client-dev
-stage: ready
+stage: dev
 hold: null
 deps: []
 branch: null
 commit: null
 local_only: false
-owner: null
-instances:
-- device
+owner: cd52
+booked:
+  dev: '|da39a3ee5e6b'
 cost:
   runs: 1
   turns: 0
   minutes: 0.0
   usd: 0
 created: '2026-10-20T04:39:08Z'
-updated: '2026-10-24T20:09:15Z'
+updated: '2026-10-25T00:37:54Z'
 ---
 ## Change
 Stretch goal: 117 HD on the Android app (feasibility)
@@ -35,3 +35,5 @@ Stretch goal: 117 HD on the Android app (feasibility)
 - 2026-10-22T01:54:43Z run cd50 started (client-dev, stage dev, instances device)
 - 2026-10-24T20:08:33Z run cd50 ended: ? turns, 0.0 min, $0, exit cancelled
 - 2026-10-24T20:09:15Z dev -> ready: run cd50 ended without a hand-over
+- 2026-10-25T00:37:54Z ready -> dev: dispatched to cd52
+- 2026-10-25T00:37:54Z run cd52 started (client-dev, stage dev)
