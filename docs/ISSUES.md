@@ -7,6 +7,11 @@ docs/PROBLEM.md, docs/PRD.md and docs/ARCHITECTURE.md and questions all four.
 
 ## Open
 
+- **A pass change goes live on upstream within a minute.** The timer runs `main`, so a commit that changes an upstream
+  step acts on real PRs at the next tick: twice on 2026-10-25 a rule committed before its dry run put a PR in a wrong
+  visible state (#355 drafted, #367 marked ready for a minute). Until v8 the console pauses the pass
+  (`harness/state/paused`) and dry-runs against the live PRs before committing such a change. v8: a change to an
+  upstream step is dry-run against the live PRs by the harness's own gate before it can be merged.
 - **Stale pinned branches stay in integration until a person drops them.** The v6-era entries of `integration.txt`
   (`fix/*`, `content/*`, `local/*`) belong to no v7 change, so nothing removes them when they rot against upstream main;
   each rot is an integrator run. v8: every pinned branch belongs to a change or to the fork's permanent local list, and a
