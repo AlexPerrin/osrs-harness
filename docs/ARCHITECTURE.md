@@ -33,7 +33,7 @@ flowchart LR
 
 | Module | Responsibility |
 |---|---|
-| `hd/cli.py`, `hd.py` | the 11 commands, each with a caller: console `hd`, `approve`, `answer`; agents `handover`, `verdict`, `ask`, `lock`; tick and hooks `tick`; people `new`, `dod`, `cost` |
+| `hd/cli.py`, `hd.py` | the 12 commands, each with a caller: console `hd`, `approve`, `answer`; agents `handover`, `verdict`, `ask`, `lock`, `measure`; tick and hooks `tick`; people `new`, `dod`, `cost` |
 | `hd/store.py` | definitions, records, locks, events; the state lock (`flock`) |
 | `hd/observe.py` | facts: refs, `gh` PR state and checks, containers, images, pids, a hook's console pid |
 | `hd/derive.py` | pure functions: stage per change, alive runs, dispatch, cards, questions, alerts, goal progress |
@@ -55,10 +55,10 @@ Targets: code ≤ 1 800 lines, tests ≤ 1 000, `hd.yaml` ≤ 30.
 # goals/client-api.md
 slug: client-api
 track: client
-target: 100                 # percent of methods passing
-list: harness/goals/client-api.json     # [{id: "Client.getTickCount", passes: false}, ...]
+target: 100                 # percent of RuneLite API interface methods working
+measure: tools/api-probe.sh # client repo; prints the percentage and writes its per-method report to the evidence dir
 ---
-## Goal    (what the list covers; how a probe proves a method)
+## Goal    (what is counted; how a probe proves a method)
 
 # changes/<slug>.md
 slug: stile-approach
@@ -74,8 +74,8 @@ finding: 2345678            # server: the maintainer comment this change answers
 ---
 ## Change / ## Definition of done
 ```
-A goal's list is created once by the orchestrator (every method of the RuneLite API interfaces, `passes: false`). Only a
-probe record flips an entry (R3); the percentage is the count of passing entries.
+The harness stores no list of methods: the API interfaces are the list and the probe tool owns the per-method report. A
+goal's progress is its last measurement, one number.
 
 **Records** (`harness/state/`, git-ignored; one owner each):
 ```
@@ -84,7 +84,7 @@ records/<slug>/gate.json      {head, base, checks{name: ok|detail}}        tick 
 records/<slug>/verdict.json   {head, base, verdict, findings[]}            validator agent
 records/<slug>/approval.json  {head, kind: upstream|release}               user (hd approve)
 records/<slug>/hold.json      {text, by}                                   agent (ask) · hooks · user (answer removes)
-probes/<goal>/<id>.json       {passes, head, base, evidence}               probe run
+goals/<goal>.json             {value, base, evidence}                      orchestrator run (hd measure)
 runs/<name>.json              {agent_id, role, change, head, console_pid, ended, exit, last, usage}   hooks
 locks/{ghidra,device}.json    {holder}                                     holder
 trains/<id>.json              {pid, heads, failed_step, detail}            train.py
@@ -119,7 +119,7 @@ shows both.
 
 **Dispatch** is a pure function: for each change with no hold and no alive run, the role needed is the dev when ready
 and not handed; the validator when gated and a validator exists and no valid verdict; the integrator for a failed train;
-the orchestrator for a goal below target when its list changed, the queue is empty or capacity is free. Order: priority,
+the orchestrator for a goal whose measurement is invalid (its base moved) or below target with no open change serving it. Order: priority,
 then those that unblock the most dependents, then age. Take while the agent count has a free slot. A change whose last
 run ended without the record it needed carries a hold. Nothing is written; the console spawns from the list.
 
@@ -129,9 +129,9 @@ The core knows no track. Each track is one row of `hd.yaml` plus its gate; only 
 
 | | Client | Server | Harness | Goal |
 |---|---|---|---|---|
-| Dev | `client-dev` | `server-dev` | `harness-dev` | `orchestrator` (files definitions; first pass builds the list) |
+| Dev | `client-dev` | `server-dev` | `harness-dev` | `orchestrator` (measures, files definitions) |
 | `head` | `origin/client/<slug>` | fork `dev/<slug>` | local `harness/<slug>` | — |
-| Script gate | repack log (7 `telemetry:` lines), device evidence, network QA when networking changes, probes | fork CI and Formatting on a scratch merge with upstream `main`, spec present, one change, off upstream `main`, PR text files, boot | the touched tests | probe flips `passes` |
+| Script gate | repack log (7 `telemetry:` lines), device evidence, network QA when networking changes | fork CI and Formatting on a scratch merge with upstream `main`, spec present, one change, off upstream `main`, PR text files, boot | the touched tests | `measure` command |
 | Agent review | none (a release: `client-qa`) | `server-qa` | none | none |
 | Ship | merge into `master`, push | queue for the train; publish after approval | merge into `main`, push | — |
 | Live | `master` contains head | `live.json.integration` contains head | `main` contains head | — |
@@ -150,8 +150,9 @@ Every change meets two kinds of check, cheapest first, each valid only for its `
 2. **Agent review** (a validator agent, tokens): only what needs judgment — accuracy against the wiki and recordings, PR
    text, the in-game check — and only after the gate passed. It writes `verdict.json`.
 3. **Smoke test**: before new work on a track, a basic end-to-end probe runs when its base moved since the last pass.
-4. **Probes** run in the real app. A pass is `probes/<goal>/<id>.json` with evidence; a passing method is probed again
-   only when its base moved, over a subset.
+4. **Measurement**: the orchestrator runs the goal's `measure` command in the real app and records `hd measure <goal>
+   <value> --evidence <report>`. It is valid for its `base`; when the base moves it is measured again, which also guards
+   regressions. The orchestrator reads the report to choose the gaps.
 
 ## 7. Hooks and console
 
@@ -199,9 +200,9 @@ Every repair is one event. Nothing retries on a schedule.
 
 | Requirement | Mechanism |
 |---|---|
-| R1 Goals | goal definitions and lists, `probes/`, `derive` progress, the orchestrator role |
+| R1 Goals | goal definitions, `hd measure`, `derive` progress, the orchestrator role |
 | R2 Flow | `derive` stages and dispatch, `act`, `gates/`, `server.py`, `train.py` |
-| R3 Integrity | records bound to `head` and `base`, `hd handover/verdict` refusals, `run_stop`, script gate before agent review, probes as the only way to flip `passes` |
+| R3 Integrity | records bound to `head` and `base`, `hd handover/verdict` refusals, `run_stop`, script gate before agent review, a measurement carrying its evidence and base |
 | R4 Authority | `guard.py`, `hd approve`, the approved-head rule in publish and release steps |
 | R5 Recovery | the timer, `flock`, `act` repair, `derive` alerts, idempotent steps |
 | R6 Visibility | `hd`, cards, `events.jsonl`, `hd cost` |
