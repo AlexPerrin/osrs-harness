@@ -4,17 +4,22 @@ track: harness
 title: 'v6: one pipeline, three track profiles; the console driver renders one ''needs you'' list'
 prio: P1
 role: harness-dev
-stage: dev
+stage: ready
 hold: null
 deps: []
 branch: null
 commit: null
 local_only: false
-owner: hd19
+owner: null
 booked:
   dev: '|da39a3ee5e6b'
+cost:
+  runs: 1
+  turns: 0
+  tokens: 0
+  minutes: 0
 created: '2026-10-24T22:59:05Z'
-updated: '2026-10-25T00:33:20Z'
+updated: '2026-10-25T03:10:09Z'
 ---
 ## Change
 v6: one pipeline, three track profiles; the console driver renders one 'needs you' list
@@ -47,3 +52,5 @@ v6: one pipeline, three track profiles; the console driver renders one 'needs yo
 - 2026-10-25T00:16:40Z ready -> dev: dispatched to hd19
 - 2026-10-25T00:16:40Z run hd19 started (harness-dev, stage dev)
 - 2026-10-25T00:33:20Z dod ticked: 1, 2, 3
+- 2026-10-25T03:09:31Z run hd19 ended: ? turns, ? tokens, exit ok
+- 2026-10-25T03:10:09Z dev -> ready: run hd19 ended without a hand-over
