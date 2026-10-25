@@ -1,29 +1,31 @@
 # HANDOFF
 
 The brief for a fresh console session. Read CLAUDE.md, docs/PROBLEM.md, docs/PRD.md, docs/ARCHITECTURE.md, then
-docs/ISSUES.md before repeating anything. Live state is what `hd` prints; none of it is kept here.
+docs/ISSUES.md before repeating anything, and docs/V8.md to know what v7 is teaching. Live state is what `hd` prints;
+none of it is kept here.
 
 ## Start prompt
 Start the session in ~/osrs-harness on branch `main`. Read CLAUDE.md and docs/HANDOFF.md, then the memory files named
-under Standing rules. Run `python3 hd.py` and follow skill `drive`. Nothing is pushed upstream or released without the
-user's yes in chat.
+under Standing rules. Run `python3 hd.py` and follow skill `drive`: spawn each listed run with the Agent tool, the
+brief file's text as the prompt and the role as the agent type; show cards and questions; record the user's yes with
+`hd approve` and answers with `hd answer`. Nothing is pushed upstream or released without the user's yes in chat.
+Every defect or friction met goes to docs/ISSUES.md (incident, root cause, fix) and, when it says something about the
+design, one line in docs/V8.md.
 
 ## What is live
-The v7 harness of docs/ARCHITECTURE.md, cut over on 2026-10-25: the pass runs from the systemd user timer
-`hd-tick.timer` (every minute) and after every agent run; `harness/state/` holds only v7 records. The v6 state is kept
-aside in `harness/state.v6/` (git-ignored) until the first server change has gone through a full pass; then delete it.
-The backlog was cleared on 2026-10-25 to one change per open upstream PR (#354, #355, #367, #408); the rest is rebuilt
-from scratch by the user and the orchestrator, and the pass files a P0 change for each new maintainer finding. The kept
-changes were migrated from v6: handed-over commits are the `dev/<slug>` and `client/<slug>` refs, the
-review-stage PRs carry gate, verdict and approval records at their PR head. Upstream main moved since, so the gate of
-every handed-over server change reruns on a fresh scratch merge.
+v7 development is complete (2026-10-25). The pass runs from the systemd user timer `hd-tick.timer` every minute and
+after every agent hand-back. The backlog is one change per open upstream PR (#354, #355, #367, #408) plus the P0
+changes the pass files for maintainer findings. The goal `client-api` has no measurement and no client change yet; the
+orchestrator's first run defines the client backlog, starting with the probe `tools/api-probe.sh`.
 
 ## Open decisions for the user
 - Eleven `fin/*` fork branches hold finished, test-server-live work never contributed (diaries, doric, fairy-rings,
   farming, grand-exchange, jewellery, op-overrides, plank-sack, quest-test-fixture, rune-pouch, vampyre-slayer): the
   source of the rebuilt backlog, one change per feature, after the open PRs settle.
-- The client API probe (`tools/api-probe.sh`, the measure of goal `client-api`) does not exist yet; the orchestrator's
-  first change builds it.
+- The client API probe (`tools/api-probe.sh`, the measure of goal `client-api`) does not exist yet.
+- Two v6 leftovers to delete by hand when convenient: `harness/state.v6/` (the v6 records, kept until a server change
+  completed a full v7 pass) and the v6 agent clones `~/src/openrune-work/agents/{sd*,sq*,orch}` (full server clones;
+  v7 removes only clones named after its own runs).
 
 ## Standing rules
 The user's rules are the memory files in `/home/alex/.claude/projects/-home-alex-osrs-harness/memory/` (index
@@ -40,10 +42,17 @@ The user's rules are the memory files in `/home/alex/.claude/projects/-home-alex
 - v7: `project_v7_agents_via_agent_tool.md`, `project_v7_cutover.md`.
 
 ## Gotchas
+- Hooks are read at session start: after a change to `.claude/settings.json`, restart the console. The hook program
+  itself (`hooks/hook.py`) is read on every event, so its edits apply at once.
+- A run ends when its agent calls SubagentHandback; a stop without one is a pause (background build). An agent that
+  dies without a hand-back stays `running` in the list: end it by deleting `harness/state/runs/<name>.json`.
+- The auto-mode classifier denies the console `kill` and deleting pushes even where the guard allows them; the user
+  runs those with the `!` prefix.
 - `systemctl --user` needs `XDG_RUNTIME_DIR=/run/user/1000` in a non-login shell (WSL); linger is enabled.
+- Upstream merges often: every merge voids every gate (bound to base), so all open changes re-gate on fresh scratch
+  merges; the fork CI load is one run per open change per upstream merge.
 - WSL to Windows interop (adb.exe, desktop bridge) times out intermittently: retry. The devtools MCP servers often do
   not connect; `tools/devtools_mcp.py --call` and the desktop bridge script work.
 - BlueStacks must be started on Windows after a reboot or WSL restart (`HD-Player.exe --instance Pie64`).
-- Editing `.claude/settings.json` drops the session out of auto mode; hooks are read at session start.
 - The guard denies the console `bash -n train/train.sh` too (the train scripts are the pass's): check shell syntax by
   reading, or in a test.

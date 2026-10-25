@@ -2,6 +2,22 @@
 
 One short entry per issue, newest first: symptom, root cause, evidence, fix, how to recognise it again.
 
+## 2026-10-25 First agents under v7 (all fixed the same day)
+
+- **Agents ran unbound.** The SubagentStart event fired before the agent's transcript existed (or not at all under the
+  session's stale hook config), so no run was recorded and a dev could push nothing. Fix: the guard binds an unbound
+  role at its first command. Recognise: `hd` lists a spawn for a change whose agent is already running.
+- **A stop ended a paused agent.** SubagentStop fires when an agent waits on background work; the run was ended, a new
+  one dispatched, and repairs deleted the agent's clone mid-work. Fix: a stop ends the run only when the transcript holds
+  a SubagentHandback call. Recognise: a `run end` event followed by commands from the same agent id.
+- **Pins cleared a failed train.** The pass's own pin commits moved the tools branch, which read as "resolved", so the
+  train restarted into the same conflict and no integrator was listed. Fix: pin-only movement keeps the failure.
+- **Three integrators for one train.** Every queued change listed its own integrator. Fix: one integrator at a time.
+- **A hand-over followed by a gate failure stalled.** The no-loop rule compared head and definition only, so the gate
+  fix at the same head looked like a repeat and became a question. Fix: the step is part of the input.
+- **Image pruning raced the train** (found by audit, not live): a tick between image build and deploy would remove the
+  new image. Fix: no pruning while the train is alive.
+
 ## 2026-10-25 First v7 pass on the live system (all fixed the same day)
 
 - **A squash-merged PR never counted as done.** `done` checked ancestry only; #368 and #406 stayed at `gate`. Fix: the

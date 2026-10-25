@@ -5,7 +5,7 @@ RuneLite plugins in the official OSRS Android app, APK releases) and the test se
 AlexPerrin/OpenRune-Server, contributed upstream to OpenRune/OpenRune-Server). It is neither product's code.
 
 **New session: read docs/PROBLEM.md (first principles), docs/PRD.md (the constraints, R1–R7), docs/ARCHITECTURE.md (how it
-is built), docs/HANDOFF.md (current state) and, before repeating anything, docs/ISSUES.md (incidents).**
+is built), docs/HANDOFF.md (current state) and, before repeating anything, docs/ISSUES.md (incidents) and docs/V8.md (what v7 teaches).**
 Every session and agent runs from this repo (hooks, agents, skills and MCP servers are wired in `.claude/` and `.mcp.json`).
 
 ```
@@ -18,7 +18,7 @@ mcp/              the osrs-mcp launcher named by .mcp.json
 harness/          goals/ and changes/ (committed definitions); state/ and evidence/ at the root are git-ignored
 hd.yaml           repos, paths, tracks, roles, the agent count
 .claude/          agents/ (role files) and skills/ (drive = the console loop; the track rules; the QA procedures)
-docs/             PROBLEM.md, PRD.md, ARCHITECTURE.md, HANDOFF.md, ISSUES.md
+docs/             PROBLEM.md, PRD.md, ARCHITECTURE.md, HANDOFF.md, ISSUES.md, V8.md (the ledger for the next rebuild)
 tests/            python3 -m unittest discover -s tests
 ```
 
