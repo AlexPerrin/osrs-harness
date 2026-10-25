@@ -5,7 +5,10 @@ title: 'publish_gate: client release record accepted from the harness evidence d
 prio: P0
 role: harness-dev
 stage: ready
-hold: null
+hold:
+  kind: decision
+  reason: 'needs you: a dev run was already booked for exactly this head (none) and these findings; booking another would repeat it'
+  since: '2026-10-25T02:50:23Z'
 deps: []
 branch: null
 commit: null
@@ -19,7 +22,7 @@ cost:
   tokens: 0
   minutes: 0
 created: '2026-10-25T02:46:32Z'
-updated: '2026-10-25T02:49:25Z'
+updated: '2026-10-25T02:50:23Z'
 ---
 ## Change
 publish_gate: client release record accepted from the harness evidence dir and --target honoured
@@ -36,3 +39,4 @@ publish_gate: client release record accepted from the harness evidence dir and -
 - 2026-10-25T02:48:31Z dod ticked: 1, 2
 - 2026-10-25T02:48:43Z run hd29 ended: ? turns, ? tokens, exit ok
 - 2026-10-25T02:49:25Z dev -> ready: run hd29 ended without a hand-over
+- 2026-10-25T02:50:23Z hold decision: needs you: a dev run was already booked for exactly this head (none) and these findings; booking another would repeat it
