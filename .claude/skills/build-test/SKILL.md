@@ -51,7 +51,7 @@ The branch gate (STATE.md on the fork's `docs` branch, "Build, test, deploy"; QA
   `GATE_VOL=<name>-gate-gradle GATE_OWNER=<name>` (a shared home deadlocks on Gradle's journal lock).
 - `qa.sh split-build <clone>` is the old run (one uncached container per step) if the cache node is broken.
 - `python3 tools/scripts/fix_gameval_conflicts.py --check` (needs freshCache's `max-ids.toml`).
-- Boot: `qa.sh start <clone>-run` to "Server ready in" (`qa.sh gate-run <clone>-run` builds it).
+- Boot: `QA_NAME=<your run> QA_GAME_PORT=<free> QA_HTTP_PORT=<free> qa.sh start <clone>-run` (your own containers; a plain start removes the shared qa-or-server) to "Server ready in" (`qa.sh gate-run <clone>-run` builds it).
 - Wait for builds with a background command that notifies on completion, not by polling.
 
 ## Server branch: dev builds (evidence only)
