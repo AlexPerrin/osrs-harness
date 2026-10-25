@@ -5,7 +5,7 @@ RuneLite plugins in the official OSRS Android app, APK releases) and the test se
 AlexPerrin/OpenRune-Server, contributed upstream to OpenRune/OpenRune-Server). It is neither product's code.
 
 **New session: read docs/PROBLEM.md (first principles), docs/PRD.md (the constraints, R1–R7), docs/ARCHITECTURE.md (how it
-is built), docs/HANDOFF.md (current state) and, before repeating anything, docs/ISSUES.md (incidents) and docs/V8.md (what v7 teaches).**
+is built), docs/HANDOFF.md (current state) and, before repeating anything, docs/ISSUES.md (the open issues, kept for v8).**
 Every session and agent runs from this repo (hooks, agents, skills and MCP servers are wired in `.claude/` and `.mcp.json`).
 
 ```
@@ -18,7 +18,7 @@ mcp/              the osrs-mcp launcher named by .mcp.json
 harness/          goals/ and changes/ (committed definitions); state/ and evidence/ at the root are git-ignored
 hd.yaml           repos, paths, tracks, roles, the agent count
 .claude/          agents/ (role files) and skills/ (drive = the console loop; the track rules; the QA procedures)
-docs/             PROBLEM.md, PRD.md, ARCHITECTURE.md, HANDOFF.md, ISSUES.md, V8.md (the ledger for the next rebuild)
+docs/             PROBLEM.md, PRD.md, ARCHITECTURE.md, HANDOFF.md, ISSUES.md (the open ledger for the next rebuild)
 tests/            python3 -m unittest discover -s tests
 ```
 
@@ -37,8 +37,9 @@ summary lists what was pruned, the docs never do.
   Claude co-author line.
 - Harness changes go through a harness-dev run or this console session, with a test per requirement touched.
 - Decide on observable facts, never on time estimates; one simple mechanism over stacked rules.
-- Docs state current truth only: no revision justification, history or dated rationale. Incidents and root causes
-  live in docs/ISSUES.md alone (dated, short, newest first). Docs live in docs/; CLAUDE.md is the only root doc.
+- Docs state current truth only: no revision justification, history or dated rationale. A quick fix lands at once
+  and is not logged; a root cause or a rewrite too large for the run goes to docs/ISSUES.md alone (short, newest
+  first), cleared at each hand-off. Docs live in docs/; CLAUDE.md is the only root doc.
 - The console never enters a worktree (EnterWorktree) while agents run.
 - Times for the user are US Eastern.
 - Hooks live in the committed `.claude/settings.json`, never the personal `settings.local.json`.

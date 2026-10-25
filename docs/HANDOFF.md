@@ -1,16 +1,14 @@
 # HANDOFF
 
 The brief for a fresh console session. Read CLAUDE.md, docs/PROBLEM.md, docs/PRD.md, docs/ARCHITECTURE.md, then
-docs/ISSUES.md before repeating anything, and docs/V8.md to know what v7 is teaching. Live state is what `hd` prints;
-none of it is kept here.
+docs/ISSUES.md, the open ledger for v8. Live state is what `hd` prints; none of it is kept here.
 
 ## Start prompt
 Start the session in ~/osrs-harness on branch `main`. Read CLAUDE.md and docs/HANDOFF.md, then the memory files named
 under Standing rules. Run `python3 hd.py` and follow skill `drive`: spawn each listed run with the Agent tool, the
 brief file's text as the prompt and the role as the agent type; show cards and questions; record the user's yes with
 `hd approve` and answers with `hd answer`. Nothing is pushed upstream or released without the user's yes in chat.
-Every defect or friction met goes to docs/ISSUES.md (incident, root cause, fix) and, when it says something about the
-design, one line in docs/V8.md.
+A quick fix lands at once; a root cause or a rewrite too large for the run is one entry in docs/ISSUES.md for v8.
 
 ## What is live
 v7 development is complete (2026-10-25). The pass runs from the systemd user timer `hd-tick.timer` every minute and
