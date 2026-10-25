@@ -30,7 +30,7 @@ ours_ps() {  # PowerShell expression listing our processes
 case "${1:-}" in
 start)
   if [ -n "$($PS "$(ours_ps) | Select-Object -ExpandProperty ProcessId" | tr -d '\r')" ]; then
-    echo "already running:"; exec "$0" status
+    echo "desktop.sh: $DESKTOP_INSTANCE is already running (another agent's window): take another with desktop.sh free" >&2; exit 1
   fi
   # Ports our client binds (RSProx HTTP 43600+, proxy 43701+, devtools 7780; instance.sh) must be free.
   busy="$(netstat.exe -ano | tr -d '\r' | awk '$4=="LISTENING"{print $2}' | grep -E ":($PORTS_RE)\$" || true)"
