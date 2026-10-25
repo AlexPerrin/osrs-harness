@@ -18,7 +18,7 @@ summary: 'caacbf4ce restores StileScript.kt class KDoc to main''s text (fix: com
 live_commit: 68ddd1b6c0de78e18788b22dc52ff6df2909d348
 booked:
   gate: caacbf4cefa6f8491c8afa2d3fc7fc624d581a57
-batch: int-20261024-2
+batch: int-20261025-2
 cost:
   runs: 7
   turns: 16
@@ -26,7 +26,7 @@ cost:
   usd: 11.77
   tokens: 0
 created: '2026-10-20T01:42:40Z'
-updated: '2026-10-25T00:52:35Z'
+updated: '2026-10-25T01:09:44Z'
 upstream_pr: 406
 review_seen: '2026-10-25T00:52:35Z'
 ---
@@ -90,3 +90,4 @@ fix/stile-approach 8a8c0ca7a failed the internal gate: the player walks onto the
 - 2026-10-25T00:49:59Z QA aggregate FAIL at caacbf4ce (4 finding(s)): 3 findings: wiki checklist item unticked (user decision), stale 'only test dropped' claim (KDoc also restored), commit 68ddd1b6c subject lacks fix: prefix; all checks else PASS
 - 2026-10-25T00:50:33Z gate -> contribute: observed
 - 2026-10-25T00:52:32Z contribute -> review: observed
+- 2026-10-25T01:09:44Z in train int-20261025-2: integration 5dccf9d0b pushed; gate, image and deploy pending

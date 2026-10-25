@@ -16,9 +16,9 @@ summary: GD d77ac2b76 CI green; second branch content/witchs-potion-unstacked 23
   See log.
 live_commit: d77ac2b76eefe47211f4d15138563c19ddf19bfd
 booked: null
-batch: int-20261025-1
+batch: int-20261025-2
 created: '2026-10-20T01:42:40Z'
-updated: '2026-10-25T00:54:44Z'
+updated: '2026-10-25T01:09:44Z'
 upstream_pr: 367
 review_seen: '2026-10-25T00:02:54Z'
 ---
@@ -43,3 +43,4 @@ review_seen: '2026-10-25T00:02:54Z'
 - 2026-10-25T00:08:33Z hold decision cleared: obsolete: #354/#367 heads updated and in review (user OK 2026-10-24)
 - 2026-10-25T00:15:15Z in train int-20261025-1: integration 7c62b8341 pushed; gate, image and deploy pending
 - 2026-10-25T00:54:44Z in train int-20261025-1: integration e5d0a43ba pushed; gate, image and deploy pending
+- 2026-10-25T01:09:44Z in train int-20261025-2: integration 5dccf9d0b pushed; gate, image and deploy pending

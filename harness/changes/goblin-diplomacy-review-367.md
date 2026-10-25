@@ -15,7 +15,8 @@ owner: null
 evidence: /home/alex/osrs-plugins-reverse/re/evidence/goblin-diplomacy-review-367
 network: true
 summary: Contributed upstream; in review.
-batch: int-20261025-1
+live_commit: 405e38601278b51a9dc38d75ff6315d2f856c90f
+batch: int-20261025-2
 cost:
   runs: 6
   turns: 0
@@ -23,7 +24,7 @@ cost:
   usd: 0
   tokens: 0
 created: '2026-10-24T19:31:52Z'
-updated: '2026-10-25T00:54:44Z'
+updated: '2026-10-25T01:09:44Z'
 review_seen: '2026-10-25T00:10:04Z'
 ---
 ## Change
@@ -77,3 +78,5 @@ Upstream #367 review P2 (eaglepurerocketgrape 2026-10-22 11:42). Head content/go
 - 2026-10-25T00:09:59Z gate -> review: observed
 - 2026-10-25T00:15:15Z in train int-20261025-1: integration 7c62b8341 pushed; gate, image and deploy pending
 - 2026-10-25T00:54:44Z in train int-20261025-1: integration e5d0a43ba pushed; gate, image and deploy pending
+- 2026-10-25T01:09:35Z live on the test server: deployed by int-20261025-1 (integration e5d0a43ba)
+- 2026-10-25T01:09:44Z in train int-20261025-2: integration 5dccf9d0b pushed; gate, image and deploy pending

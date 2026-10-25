@@ -18,9 +18,9 @@ summary: 'Text only, fork docs 4c75a5850: PR text checklist and spec header now 
   at bc243d141.'
 live_commit: bc243d141fc27d5128d29d8266cf51e89a4f6c08
 booked: null
-batch: int-20261025-1
+batch: int-20261025-2
 created: '2026-10-20T05:16:26Z'
-updated: '2026-10-25T00:54:44Z'
+updated: '2026-10-25T01:09:44Z'
 upstream_pr: 354
 review_seen: '2026-10-25T00:02:54Z'
 ---
@@ -40,3 +40,4 @@ Cannon (#354): PR text and spec header wording for the upstream gate
 - 2026-10-25T00:08:33Z hold decision cleared: obsolete: #354/#367 heads updated and in review (user OK 2026-10-24)
 - 2026-10-25T00:15:15Z in train int-20261025-1: integration 7c62b8341 pushed; gate, image and deploy pending
 - 2026-10-25T00:54:44Z in train int-20261025-1: integration e5d0a43ba pushed; gate, image and deploy pending
+- 2026-10-25T01:09:44Z in train int-20261025-2: integration 5dccf9d0b pushed; gate, image and deploy pending

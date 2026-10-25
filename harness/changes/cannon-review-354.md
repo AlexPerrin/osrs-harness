@@ -17,6 +17,7 @@ network: true
 summary: 'Contributed to #354 (head 0df5c63a0): tests dropped, comment, body, ready; in review.'
 booked:
   dev: 0df5c63a009b75fffb33f8ead897b432f55fcead|da39a3ee5e6b
+batch: int-20261025-2
 cost:
   runs: 9
   turns: 0
@@ -24,7 +25,7 @@ cost:
   usd: 0
   tokens: 0
 created: '2026-10-24T19:31:52Z'
-updated: '2026-10-25T00:45:33Z'
+updated: '2026-10-25T01:09:44Z'
 review_seen: '2026-10-25T00:45:33Z'
 ---
 ## Change
@@ -93,3 +94,5 @@ Upstream #354 is CHANGES_REQUESTED (Mark7625 2026-10-22 07:57, eaglepurerocketgr
 - 2026-10-25T00:45:14Z gate -> gate: hand-over recorded
 - 2026-10-25T00:45:14Z handover content/cannon@0df5c63a0: Contributed to #354 (head 0df5c63a0): tests dropped, comment, body, ready; in review.
 - 2026-10-25T00:45:24Z gate -> review: observed
+- 2026-10-25T01:09:44Z in train int-20261025-2: integration 5dccf9d0b pushed; gate, image and deploy pending
+- 2026-10-25T01:09:44Z in train int-20261025-2: integration 5dccf9d0b pushed; gate, image and deploy pending
