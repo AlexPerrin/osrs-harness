@@ -14,7 +14,7 @@ owner: cd53
 booked:
   dev: '|da39a3ee5e6b'
 created: '2026-10-25T02:50:15Z'
-updated: '2026-10-25T02:50:15Z'
+updated: '2026-10-25T02:54:18Z'
 ---
 ## Change
 One installable, distributable APK: merge the repacked base and arm64 split into a single signed universal APK
@@ -29,3 +29,4 @@ One installable, distributable APK: merge the repacked base and arm64 split into
 - 2026-10-25T02:50:15Z USER 2026-10-24: 'bundle into one installable, distributable .APK instead of split'. Background: release gate rel-20261024-1 PASSED at d78a893 on base.apk + split.apk (record /home/alex/osrs-plugins-reverse/re/evidence/rel-20261024-1/client-record.md); the v0.1.2 GitHub release was NOT created (also because the client repo master is 4 commits ahead of origin/main). tools/repack.sh header: 'Rebuilds the official OSRS split APKs with libosrsrl.so injected ... signed with re/debug.keystore'; steps: 3 extract game lib from split_config.arm64_v8a.apk, 4 add hook library to the ABI split, 5 align + sign with one key. The original app is a split install (base + split_config.arm64_v8a + others in the main checkout root). BlueStacks is open and belongs to the user: start your OWN BlueStacks instance or an Android Studio emulator (the emulator has a GLES version limitation per the user), never touch the open instance. After the build, the release gate must re-run on this exact artifact.
 - 2026-10-25T02:50:15Z ready -> dev: dispatched to cd53
 - 2026-10-25T02:50:15Z run cd53 started (client-dev, stage dev)
+- 2026-10-25T02:54:18Z USER 2026-10-24 ADDITION (yes): embed the third-party notices IN the single APK, not only beside it. Convention: LICENSE = our own code (ISC), THIRD_PARTY_NOTICES = the dependencies we ship with their copyright notices and licence texts (MIT/BSD/ISC require them in binary distributions; Apache-2.0 4(d) requires upstream NOTICE contents). Android practice (Google): licence texts live inside the APK (oss-licenses plugin raw resources, OssLicensesMenuActivity screen); AOSP merges per-module NOTICE into NOTICE.html.gz. DO: the build step adds THIRD_PARTY_NOTICES.md (as an asset, e.g. assets/THIRD_PARTY_NOTICES.md, next to the existing assets/LICENCE.txt) to the merged APK, so it is readable from the installed package; keep attaching it to the release; the notices file already says our part is libosrsrl.so/host.jar and that Jagex's app content is NOT covered. Verify the entry is in the final APK (unzip -l) and that the apk still signs/aligns and installs. A Licences screen in the app is optional: only if trivial inside the host's existing menu, else list it as not done. Never state a licence for Jagex's content.
