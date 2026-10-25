@@ -38,6 +38,12 @@ class AgentsTest(unittest.TestCase):
         self.assertNotIn("lease", b.lower())   # no instance grants or lock steps in a brief
         self.assertNotIn("Instances granted", b)
 
+    def test_brief_of_a_device_role_has_no_instance_lease_steps(self):
+        ch = H.change("feat", "client", stage="dev", owner="cd1")
+        b = agents.brief(ch, "client-dev", "dev")
+        for stale in ("lease", "Instances granted", "heartbeat"):
+            self.assertNotIn(stale, b.lower() if stale == "lease" else b, stale)
+
     def test_brief_dev_carries_qa_findings_the_user_asked_to_fix(self):
         ch = H.change("feat", "server", stage="gate", commit=SHA, owner="sd31")
         H.write_gate("feat", SHA, "FAIL", findings=["head regression", "added comment in A.kt"])

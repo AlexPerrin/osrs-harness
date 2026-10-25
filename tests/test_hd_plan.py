@@ -88,7 +88,7 @@ class CapacityTest(unittest.TestCase):
         with open(LIVE_POLICY) as f:
             pol = yaml.safe_load(f)
         self.assertEqual(sorted(pol["capacity"]), ["agent", "build", "client", "device", "image"])
-        self.assertEqual((pol["capacity"]["client"], pol["capacity"]["device"]), (2, 0))
+        self.assertEqual((pol["capacity"]["client"], pol["capacity"]["device"]), (2, 2))
         self.assertIn("device", pol["agents"]["roles"]["client-dev"]["uses"])
         self.assertNotIn("client", pol["agents"]["roles"]["client-dev"]["uses"])
         for role, r in pol["agents"]["roles"].items():

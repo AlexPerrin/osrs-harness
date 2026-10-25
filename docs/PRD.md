@@ -37,7 +37,7 @@ contributions), **Harness** (safe, simple self-improvement), **Privacy** (nothin
 | BR-S8 | Client done = commit on `master` with the repack log (7 `telemetry:` lines), device evidence (logcat or data-tool dump) and a `netqa` record when networking changes; a docs-only change needs no build evidence. | Client, Privacy |
 | BR-B6 | A release batch is created by a rule (N client changes on `master`) or a user request; it gates `master` at one commit with `client-qa` (Network QA included), then needs the user's yes to tag and publish with the APK attached. | Client |
 | BR-X2 | Every APK passes the telemetry patch (7 assertions); netcheck/NetScan on plugins; Network QA whenever traffic changes; any new outbound host halts the change. | Privacy |
-| BR-R4 | A client instance (emulator, desktop RuneLite) is not locked: every agent starts its own with its own profile, port and account state and stops it when done. | Client |
+| BR-R4 | A client instance (BlueStacks, desktop RuneLite) is not locked: every agent starts its own with its own profile, port and account state, stops it when done and never touches an instance already open (the user's own BlueStacks). | Client |
 
 ## Server track
 
@@ -73,7 +73,7 @@ contributions), **Harness** (safe, simple self-improvement), **Privacy** (nothin
 | BR-R1 | Only a resource that exists once is a lock: `integration`, `live-server`, `ghidra`. A lock has a holder, a purpose, an attached process or container and a UTC time. | Unattended |
 | BR-R2 | A lock is taken only while in use; one whose holder's run ended or whose process or container is gone is reclaimed with that evidence in the event. | Heals |
 | BR-R3 | Tools that drive a locked resource (deploy, the integration push) refuse without it. | Server-unblock |
-| BR-R5 | One machine budget as data (policy `capacity`): the classes `agent`, `build`, `client` (2), `device` (0 until BlueStacks is up) and `image`. A role and a train step declare the classes they use; dispatch books a run only while every class it uses has a free slot, counted from runs not ended and batches at a step that uses one. | Unattended |
+| BR-R5 | One machine budget as data (policy `capacity`): the classes `agent`, `build`, `client` (2), `device` (2) and `image`. A role and a train step declare the classes they use; dispatch books a run only while every class it uses has a free slot, counted from runs not ended and batches at a step that uses one. | Unattended |
 
 ## Agents and permissions
 

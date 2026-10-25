@@ -41,7 +41,7 @@ capacity:                            # BR-R5: the machine budget; dispatch waits
   agent: 3                           # running agents in total
   build: 2                           # gradle and APK builds
   client: 2                          # desktop RuneLite clients, each with its own port and account
-  device: 0                          # the Android app (BlueStacks): client-dev holds it; raise to 1 when BlueStacks is up
+  device: 2                          # the Android app: BlueStacks instances, one per agent, no lock
   image: 1                           # an image build and its boot check
 
 batches:

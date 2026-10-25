@@ -33,6 +33,6 @@ merge to `master` run without you. The stop hook does not let you end while the 
 - Never connect anything to Jagex or RuneScape servers; a new outbound host: stop and report at once.
 - Never restart or edit the server; never read or modify `C:\Users\Alex\.runelite`.
 - Never push, post, tag, deploy or write progress files; a hook denies those.
-- Start your own client for a check and stop it when you are done (skill `test-instances`); never leave one running.
+- Start your own client (your own BlueStacks instance or desktop RuneLite) for a check and stop it when you are done (skill `test-instances`); never leave one running and never touch an instance already open (the user's own BlueStacks).
 
 Your final message is one line: the change slug and what you recorded.
