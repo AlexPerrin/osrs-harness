@@ -1,0 +1,279 @@
+"""One test class per requirement of docs/PRD.md (R1–R7), on the sandbox and the fake facts of helpers.py."""
+import json
+import os
+import sys
+from unittest import mock
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from helpers import SHA, Fake, Sandbox  # noqa: E402
+
+from hd import cli, server, steps, tick  # noqa: E402
+
+A, B, C, D = SHA["a"], SHA["b"], SHA["c"], SHA["d"]
+
+
+def names(ctx):
+    return [(ch["slug"], s.name, s.actor(ctx, ch)) for ch, s in steps.next_steps(ctx)]
+
+
+class R1Goals(Sandbox):
+    def test_orchestrator_listed_when_below_target_and_nothing_serves(self):
+        self.goal()
+        ctx = self.ctx(Fake(refs={"origin/main": A}))
+        self.assertEqual([(c["slug"], r) for c, s, r, n in steps.dispatch(ctx)], [("client-api", "orchestrator")])
+
+    def test_measurement_at_target_and_bound_to_the_live_tip(self):
+        self.goal()
+        self.store.save_record("client-api", "measure", {"value": 100, "base": A, "evidence": "r"})
+        self.assertEqual(names(self.ctx(Fake(refs={"origin/main": A}))), [])
+        self.assertEqual(names(self.ctx(Fake(refs={"origin/main": B}))), [("client-api", "measure", "orchestrator")])
+
+    def test_a_serving_change_stands_in_for_the_measurement(self):
+        self.goal()
+        self.change("probe", goal="client-api")
+        ctx = self.ctx(Fake(refs={"origin/main": A}))
+        self.assertEqual([r for c, s, r, n in steps.dispatch(ctx)], ["client-dev"])
+
+    def test_hd_measure_records_value_and_base(self):
+        self.goal()
+        rep = self.evidence("client-api", "report.md")
+        with mock.patch.object(cli, "Facts", lambda cfg: Fake(refs={"origin/main": A})):
+            cli.main(["measure", "client-api", "42", "--evidence", rep])
+        self.assertEqual(self.store.record("client-api", "measure")["base"], A)
+
+
+class R2Flow(Sandbox):
+    def test_client_change_defined_to_live_without_a_person(self):
+        self.change("c1")
+        F = Fake(refs={"origin/client/c1": A, "origin/main": B})
+        self.assertEqual([r for c, s, r, n in steps.dispatch(self.ctx(F))], ["client-dev"])
+        self.evidence("c1", "repack.log", "logcat.txt")
+        self.store.save_record("c1", "handover", {"head": A, "base": B, "evidence": "e"})
+        self.assertEqual(names(self.ctx(F)), [("c1", "gate", "script")])
+        tick.run(F)
+        self.assertTrue(self.store.record("c1", "gate")["ok"])
+        self.assertEqual(names(self.ctx(F)), [("c1", "merge", "script")])
+        tick.run(F)
+        self.assertIn(("git", self.store.config()["paths"]["client"], "merge", "--no-ff", "--no-edit", "-m",
+                       mock.ANY, A), [c[:7] + (c[7],) if len(c) > 7 else c for c in F.calls])
+        F.f["anc"] = {(B, A)}
+        self.assertEqual(names(self.ctx(F)), [])
+
+    def test_deps_gate_dispatch(self):
+        self.change("srv", track="server")
+        self.change("cli", deps=["srv"])
+        F = Fake(refs={"fork/dev/srv": A, "origin/main": B, "origin/client/cli": ""})
+        self.assertEqual([c["slug"] for c, s, r, n in steps.dispatch(self.ctx(F))], ["srv"])
+        self.store.write({"integration": C}, "live.json")
+        F.f["anc"] = {(C, A)}
+        self.assertIn("cli", [c["slug"] for c, s, r, n in steps.dispatch(self.ctx(F))])
+
+    def test_server_change_has_two_lists_and_publishes_one_step_per_pass(self):
+        self.change("s", track="server")
+        self.evidence("s", "accuracy.md", "pr-title.txt", "pr-body.md", "pr-comment.md")
+        self.store.save_record("s", "handover", {"head": A, "base": B, "evidence": "e"})
+        self.store.save_record("s", "gate", {"head": A, "base": B, "ok": True, "detail": "green"})
+        F = Fake(refs={"fork/dev/s": A, "origin/main": B, "fork/local/integration-tools": D})
+        self.assertEqual(steps.stage(self.ctx(F), self.ctx(F).by_slug["s"]), ["queue", "review"])
+        self.store.save_record("s", "verdict", {"head": A, "base": B, "pass": True, "findings": []})
+        self.assertEqual([s for c, s, a in names(self.ctx(F))], ["queue", "approve"])
+        self.store.save_record("s", "approval", {"head": A})
+        self.assertIn(("s", "push", "script"), names(self.ctx(F)))
+        F.f["anc"] = {(A, A)}
+        F.f["refs"]["fork/content/s"] = A
+        self.assertIn(("s", "pr", "script"), names(self.ctx(F)))
+        F.f["prs"] = {"content/s": {"number": 7, "state": "open", "draft": True, "head": A, "merged": False, "branch": "content/s"}}
+        self.assertIn(("s", "ci", "wait"), names(self.ctx(F)))
+        F.f["checks"] = {(7, A): "success"}
+        self.assertIn(("s", "comment", "script"), names(self.ctx(F)))
+        F.f["comments"] = {7: [{"id": "x", "author": "alexperrin", "body": steps.MARK.format(A[:12]), "at": "t", "kind": "comment"}]}
+        self.assertIn(("s", "ready", "script"), names(self.ctx(F)))
+        F.f["prs"]["content/s"]["draft"] = False
+        self.assertIn(("s", "merged", "wait"), names(self.ctx(F)))
+        F.f["anc"].add((B, A))
+        self.assertEqual(steps.stage(self.ctx(F), self.ctx(F).by_slug["s"])[1], "done")
+
+
+class R3Integrity(Sandbox):
+    def test_a_moved_head_voids_the_handover_and_the_gate(self):
+        self.change("c1")
+        self.store.save_record("c1", "handover", {"head": A, "base": B, "evidence": "e"})
+        self.store.save_record("c1", "gate", {"head": A, "base": B, "ok": True, "detail": ""})
+        self.assertEqual(names(self.ctx(Fake(refs={"origin/client/c1": A, "origin/main": B}))), [("c1", "merge", "script")])
+        self.assertEqual(names(self.ctx(Fake(refs={"origin/client/c1": C, "origin/main": B}))), [("c1", "handover", "client-dev")])
+        self.assertEqual(names(self.ctx(Fake(refs={"origin/client/c1": A, "origin/main": C}))), [("c1", "gate", "script")])
+
+    def test_an_unknown_fact_stops_the_list(self):
+        self.change("c1")
+        self.assertEqual(names(self.ctx(Fake(refs={"origin/main": B}, unknown={"origin"}))), [])
+
+    def test_handover_refused_without_evidence_or_at_another_commit(self):
+        self.change("c1")
+        with mock.patch.object(cli, "Facts", lambda cfg: Fake(refs={"origin/client/c1": A, "origin/main": B})):
+            with self.assertRaises(SystemExit):
+                cli.main(["handover", "c1", A])
+            self.evidence("c1", "repack.log")
+            with self.assertRaises(SystemExit):
+                cli.main(["handover", "c1", C])
+            cli.main(["handover", "c1", A])
+        self.assertEqual(self.store.record("c1", "handover")["head"], A)
+
+    def test_approve_binds_the_commit(self):
+        self.change("s", track="server")
+        self.store.save_record("s", "verdict", {"head": A, "base": B, "pass": True, "findings": []})
+        with mock.patch.object(cli, "Facts", lambda cfg: Fake(refs={"fork/dev/s": A, "origin/main": B})):
+            with self.assertRaises(SystemExit):
+                cli.main(["approve", "s", C])
+            cli.main(["approve", "s", A])
+        self.assertEqual(self.store.record("s", "approval")["head"], A)
+        self.assertEqual(names(self.ctx(Fake(refs={"fork/dev/s": C, "origin/main": B}))), [("s", "handover", "server-dev")])
+
+
+class R4Authority(Sandbox):
+    def guard(self, cmd, role="server-dev", slug="s"):
+        sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "hooks"))
+        import hook
+        url = {"fork": "git@github.com:AlexPerrin/OpenRune-Server.git", "origin": "https://github.com/OpenRune/OpenRune-Server.git"}
+        run = lambda args, **k: type("R", (), {"returncode": 0, "stdout": url.get(args[-1], "") + "\n", "stderr": ""})()
+        return hook.Guard(self.store.config(), role, slug, run=run).decide(cmd, self.tmp)
+
+    def test_upstream_is_deny_by_default(self):
+        self.assertIsNotNone(self.guard("gh pr comment 5 -R OpenRune/OpenRune-Server -b hi"))
+        self.assertIsNotNone(self.guard("gh pr comment 5 -R OpenRune/OpenRune-Server -b hi", role="console"))
+        self.assertIsNotNone(self.guard("gh api -X POST repos/OpenRune/OpenRune-Server/pulls/5/comments", role="console"))
+        self.assertIsNone(self.guard("gh pr view 5 -R OpenRune/OpenRune-Server --json title"))
+        self.assertIsNone(self.guard("gh api repos/OpenRune/OpenRune-Server/pulls/5"))
+        self.assertIsNone(self.guard("git fetch https://github.com/OpenRune/OpenRune-Server.git main"))
+        self.assertIsNotNone(self.guard("git push https://github.com/OpenRune/OpenRune-Server.git HEAD:main", role="console"))
+
+    def test_fork_pushes_follow_the_role_table(self):
+        self.assertIsNone(self.guard("git -C /x push fork HEAD:refs/heads/dev/s"))
+        self.assertIsNotNone(self.guard("git -C /x push fork HEAD:refs/heads/content/s"))
+        self.assertIsNotNone(self.guard("git -C /x push --force fork HEAD:refs/heads/dev/s"))
+        self.assertIsNone(self.guard("git -C /x push fork HEAD:refs/heads/content/s", role="console"))
+        self.assertIsNotNone(self.guard("git push"))
+        self.assertIsNotNone(self.guard("x=$(git -C /x push fork HEAD:dev/s)"))
+
+    def test_releases_tags_scripts_and_approve_are_the_passs(self):
+        self.assertIsNotNone(self.guard("gh release create v1 -R AlexPerrin/osrs-plugins-reverse", role="console"))
+        self.assertIsNotNone(self.guard("git tag v1", role="console"))
+        self.assertIsNotNone(self.guard("bash ~/osrs-harness/train/train.sh", role="console"))
+        self.assertIsNotNone(self.guard("python3 ~/osrs-harness/hd.py approve s " + A))
+        self.assertIsNone(self.guard("python3 ~/osrs-harness/hd.py approve s " + A, role="console"))
+        self.assertIsNotNone(self.guard("docker compose --env-file switch.env up -d openrune", role="console"))
+
+    def test_publish_runs_only_at_the_approved_head(self):
+        self.change("s", track="server")
+        self.store.save_record("s", "verdict", {"head": A, "base": B, "pass": True, "findings": []})
+        self.store.save_record("s", "approval", {"head": C})
+        F = Fake(refs={"fork/dev/s": A, "origin/main": B})
+        self.store.save_record("s", "handover", {"head": A, "base": B, "evidence": "e"})
+        self.store.save_record("s", "gate", {"head": A, "base": B, "ok": True, "detail": ""})
+        self.assertIn(("s", "approve", "user"), names(self.ctx(F)))
+
+
+class R5Recovery(Sandbox):
+    def test_dead_console_ends_its_runs(self):
+        self.store.save_run({"name": "r1", "agent_id": "x", "role": "client-dev", "change": "c1", "console_pid": 5, "console_start": "9", "ended": None})
+        with mock.patch.object(tick, "sh"):
+            tick.repairs(self.ctx(Fake(procs={(5, "9")})))
+            self.assertIsNone(self.store.run("r1")["ended"])
+            tick.repairs(self.ctx(Fake()))
+        self.assertTrue(self.store.run("r1")["ended"])
+
+    def test_dead_train_is_rerun_not_handed_to_the_integrator(self):
+        self.change("s", track="server")
+        self.store.save_record("s", "handover", {"head": A, "base": B, "evidence": "e"})
+        self.store.save_record("s", "gate", {"head": A, "base": B, "ok": True, "detail": ""})
+        self.store.write({"pid": "7", "start": "1", "step": "gate", "tools": D}, "train.json")
+        F = Fake(refs={"fork/dev/s": A, "origin/main": B, "fork/local/integration-tools": D})
+        with mock.patch.object(tick, "sh"):
+            tick.repairs(self.ctx(F))
+        self.assertTrue(steps.train_state()["ended"])
+        self.assertEqual(steps.QUEUE.actor(self.ctx(F), self.ctx(F).by_slug["s"]), "script")
+        self.store.write({"pid": "7", "start": "1", "step": "gate", "tools": D, "failed_step": "rebuild", "ended": "t"}, "train.json")
+        self.assertEqual(steps.QUEUE.actor(self.ctx(F), self.ctx(F).by_slug["s"]), "integrator")
+        F.f["refs"]["fork/local/integration-tools"] = C
+        self.assertEqual(steps.QUEUE.actor(self.ctx(F), self.ctx(F).by_slug["s"]), "script")
+
+    def test_orphans_removed_and_docker_down_is_one_alert(self):
+        self.store.save_run({"name": "r1", "agent_id": "x", "role": "server-dev", "change": "s", "ended": "t"})
+        os.makedirs(os.path.join(self.tmp, "work", "agents", "r1"))
+        F = Fake(containers=[{"name": "qa-dev-r1", "status": "running"}, {"name": "hd-boot-abc", "status": "exited"},
+                             {"name": "osrs-openrune", "status": "running"}], docker_ok=False)
+        with mock.patch.object(tick, "sh") as sh:
+            out = tick.repairs(self.ctx(F))
+        self.assertEqual(sorted(c.args[0][3] for c in sh.call_args_list), ["hd-boot-abc", "qa-dev-r1"])
+        self.assertFalse(os.path.exists(os.path.join(self.tmp, "work", "agents", "r1")))
+        self.assertEqual(len(out), 3)
+        self.assertEqual(len(tick.alerts(self.ctx(F))), 1)
+
+
+class R6Economy(Sandbox):
+    def test_no_agent_loops_on_the_same_input(self):
+        self.change("c1")
+        F = Fake(refs={"origin/client/c1": A, "origin/main": B})
+        ctx = self.ctx(F)
+        h = ctx.by_slug["c1"]["hash"]
+        self.store.save_run({"name": "c1-1", "agent_id": "x", "role": "client-dev", "change": "c1", "head": A, "def_hash": h,
+                             "ended": "t", "last": "gave up"})
+        self.assertEqual(steps.dispatch(self.ctx(F)), [])
+        self.assertIn("gave up", steps.questions(self.ctx(F))[0][1])
+        cli.main(["answer", "c1", "try the other way"])
+        self.assertEqual([n for c, s, r, n in steps.dispatch(self.ctx(F))], ["c1-2"])
+
+    def test_agent_count_and_busy_changes(self):
+        for i in range(5):
+            self.change(f"c{i}", priority="P1" if i == 3 else "P2")
+        self.store.save_run({"name": "c0-1", "agent_id": "x", "role": "client-dev", "change": "c0", "console_pid": 1, "console_start": "1", "ended": None})
+        F = Fake(refs={"origin/main": B}, procs={(1, "1")})
+        d = steps.dispatch(self.ctx(F))
+        self.assertEqual([c["slug"] for c, s, r, n in d], ["c3", "c1"])
+
+    def test_gate_not_run_twice_and_script_before_agent_before_user(self):
+        self.change("s", track="server")
+        self.store.save_record("s", "handover", {"head": A, "base": B, "evidence": "e"})
+        self.store.save_record("s", "gate", {"head": A, "base": B, "ok": False, "detail": "FAIL x"})
+        F = Fake(refs={"fork/dev/s": A, "origin/main": B})
+        self.assertEqual(names(self.ctx(F)), [("s", "gate", "server-dev")])
+        self.assertIn("gate failed", steps.brief(self.ctx(F), self.ctx(F).by_slug["s"], steps.GATE, "s-1").lower())
+
+
+class R7Visibility(Sandbox):
+    def test_hd_lists_only_the_sections(self):
+        self.goal()
+        self.change("c1")
+        with mock.patch.object(cli, "Facts", lambda cfg: Fake(refs={"origin/main": A})), mock.patch("sys.stdout") as out:
+            cli.main(["--json"])
+        d = json.loads("".join(c.args[0] for c in out.write.call_args_list))
+        self.assertEqual(sorted(d), ["alerts", "cards", "changes", "goals", "questions", "running", "spawn"])
+        self.assertEqual(sorted(s["name"] for s in d["spawn"]), ["c1-1", "client-api-1"])
+        c1 = next(s for s in d["spawn"] if s["name"] == "c1-1")
+        with open(c1["brief"]) as f:
+            self.assertRegex(f.read().splitlines()[0], r"^Harness change `c1` run `c1-1` head `` def `\w{12}`$")
+
+
+class ServerTrack(Sandbox):
+    def test_list_and_pins(self):
+        text = "# Upstream fixes\nfix/a\n# Content\ncontent/b\n# Local only\nlocal/c\n"
+        self.assertEqual(server.listed(text, "dev/x", "# Content"), "# Upstream fixes\nfix/a\n# Content\ncontent/b\ndev/x\n# Local only\nlocal/c\n")
+        self.assertEqual(server.listed(text, "fix/a", "# Upstream fixes"), text)
+        self.assertEqual(server.pinned("fix/a 111\n", "fix/a", "222"), "fix/a 222\n")
+        self.assertEqual(server.pinned("fix/a 111\n", "dev/x", "333"), "fix/a 111\ndev/x 333\n")
+
+    def test_a_maintainer_finding_is_filed_once_as_a_p0_change(self):
+        self.change("s", track="server")
+        for k, d in (("handover", {"evidence": "e"}), ("gate", {"ok": True, "detail": ""}), ("verdict", {"pass": True, "findings": []})):
+            self.store.save_record("s", k, {"head": A, "base": B, **d})
+        self.store.save_record("s", "approval", {"head": A, "ts": "2026-10-25T10:00:00Z"})
+        F = Fake(refs={"fork/dev/s": A, "origin/main": B, "fork/content/s": A},
+                 prs={"content/s": {"number": 7, "state": "open", "draft": False, "head": A, "merged": False, "branch": "content/s"}},
+                 checks={(7, A): "success"},
+                 comments={7: [{"id": "IC_1", "author": "maint", "body": "please fix", "at": "2026-10-25T11:00:00Z", "kind": "comment"},
+                               {"id": "IC_0", "author": "maint", "body": "old", "at": "2026-10-25T09:00:00Z", "kind": "comment"},
+                               {"id": "IC_2", "author": "alexperrin", "body": steps.MARK.format(A[:12]), "at": "2026-10-25T10:30:00Z", "kind": "comment"}]})
+        filed = server.findings(self.ctx(F))
+        self.assertEqual(filed, ["s-fic1"])
+        new = self.ctx(F).by_slug["s-fic1"]
+        self.assertEqual((new["priority"], new["pr"], new["branch"], new["finding"]), ("P0", 7, "content/s", "IC_1"))
+        self.assertEqual(server.findings(self.ctx(F)), [])

@@ -4,7 +4,7 @@ description: "Write or check a server feature's accuracy spec against OSRS sourc
 ---
 # Accuracy check
 
-The spec is `accuracy.md` in the change's evidence dir `re/evidence/<slug>/` (or `accuracy/<slug>.md` on the fork's `docs` branch). Look sources up with the
+The spec is `accuracy.md` in the change's evidence dir `~/osrs-harness/evidence/<slug>/`. Look sources up with the
 `osrs-mcp` MCP (`wiki_search`, `wiki_page`, `wiki_npc_spawns`, `cache_search`; load with ToolSearch).
 
 ## Sources, in order
