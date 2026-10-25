@@ -2,6 +2,16 @@
 
 One short entry per issue, newest first: symptom, root cause, evidence, fix, how to recognise it again.
 
+## 2026-10-24 Finished agents and qa-dev containers outlived their runs
+
+- **Symptom.** An agent waiting on its own background work stayed live over an hour after its run ended; a
+  `qa-dev-<name>` container ran for hours.
+- **Root cause.** The harness tracked run records, not agent or container liveness: heal handled only `qa-or-*` and
+  `hd-boot-*`, and `hd drive` listed only daemon-stopped runs under Stop.
+- **Fix.** Heal stops a running `qa-dev-<name>` container whose run ended, has no record or whose change left its
+  stage; every run that ends with a linked agent id is a Stop item until `hd run-stopped`.
+- **Recognise.** A `qa-dev-*` container in `docker ps` with no running run record.
+
 ## 2026-10-25 Cutover defects found while handing contributions over
 
 - **Symptom.** Records written by QA were not found (the dev had recorded `re/evidence/<branch-name>`); a train listed one

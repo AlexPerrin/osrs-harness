@@ -30,6 +30,23 @@ class HealTest(unittest.TestCase):
         store.rec_save("batches", "int-1", {"id": "int-1", "kind": "train", "step": "exception", "steps": []})
         self.assertEqual(heal.run(obs, {}), ["container hd-boot-abc removed (Exited (1) 15 seconds ago)"])
 
+    def test_qa_dev_container_stopped_unless_its_run_is_alive(self):
+        ch = H.change("feat", "server", stage="dev", owner="sd1")
+        store.rec_save(agents.RUNS, "sd1", {"name": "sd1", "role": "server-dev", "change": "feat", "stage": "dev",
+                                            "started": util.iso(), "log": "/x", "ended": None})
+        up = {"status": "Up 5 minutes"}
+        obs = FakeObserver(containers={"qa-dev-sd1": up, "qa-dev-sd2": up, "qa-dev-sd3": {"status": "Exited (0)"}})
+        acts = heal.run(obs, store.index())
+        self.assertEqual(acts, ["container qa-dev-sd2 stopped (no run record)"])   # sd1 alive, sd3 not running
+        self.assertEqual(self.docker_log(), ["stop qa-dev-sd2"])
+        agents.end("sd1", "ok")
+        acts = heal.run(FakeObserver(containers={"qa-dev-sd1": up}), store.index())
+        self.assertEqual(acts[-1], "container qa-dev-sd1 stopped (run ended)")
+        store.rec_save(agents.RUNS, "sd4", {"name": "sd4", "role": "server-dev", "change": "feat", "stage": "dev",
+                                            "started": util.iso(), "log": "/x", "ended": None})
+        acts = heal.run(FakeObserver(containers={"qa-dev-sd4": up}), store.index())
+        self.assertEqual(acts[-1].split(" (")[0], "container qa-dev-sd4 stopped")   # the change names no such owner
+
     def test_idle_lease_reclaimed_with_evidence(self):
         util.freeze("2026-10-21T01:00:00Z")
         leases.take("ghidra", "sq1", "gate", container="qa-or-feat")

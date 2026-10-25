@@ -5,8 +5,8 @@ only thing that acts upstream; this is its one input.
   work(obs=None) -> {spawn, stop, actions, decisions, exceptions}
     spawn        runs the daemon booked that the console has not linked yet (no `agent_id`): name, role, change,
                  stage, brief (path), worktree (spawn with isolation worktree), link/end commands
-    stop         runs the daemon stopped (lingering) whose agent the console has not TaskStopped (`stop_done` unset):
-                 name, agent_id, why; skipped when the run was never linked (nothing to stop)
+    stop         ended runs (run-end or the daemon's stop) whose agent the console has not TaskStopped (`stop_done`
+                 unset): name, agent_id, why; skipped when the run was never linked (nothing to stop)
     actions      actions.pending_actions(): upstream actions and releases that need the user's OK, with commands
     decisions    changes on a `decision` hold: the question the user answers, and the command that clears it
     exceptions   what needs the console itself: a train at `exception` whose integrator ended, a change on an
@@ -37,8 +37,8 @@ def _stop(runs):
     out = []
     for r in runs:
         why = str(r.get("exit") or "")
-        if r.get("ended") and why.startswith("stopped:") and r.get("agent_id") and not r.get("stop_done"):
-            out.append({"name": r["name"], "agent_id": r["agent_id"], "why": why[len("stopped:"):],
+        if r.get("ended") and r.get("agent_id") and not r.get("stop_done"):
+            out.append({"name": r["name"], "agent_id": r["agent_id"], "why": why.removeprefix("stopped:"),
                         "done": f"{HD} run-stopped {r['name']}"})
     return out
 

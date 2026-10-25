@@ -45,6 +45,19 @@ class DriveTest(unittest.TestCase):
         agents.mark_stopped(rec["name"])
         self.assertEqual(drive.work(OBS)["stop"], [])
 
+    def test_a_run_that_ends_with_a_linked_agent_is_a_stop_item_until_run_stopped(self):
+        rec = agents.spawn(H.change("f5", "client"), "client-dev", "dev")
+        agents.end(rec["name"], "ok")   # never linked: nothing to stop
+        self.assertEqual(drive.work(OBS)["stop"], [])
+        rec = agents.spawn(H.change("f6", "client"), "client-dev", "dev")
+        agents.link(rec["name"], "a-6")
+        self.assertEqual(drive.work(OBS)["stop"], [], "alive: not a stop item")
+        agents.end(rec["name"], "ok")
+        (s,) = drive.work(OBS)["stop"]
+        self.assertEqual((s["name"], s["agent_id"], s["why"]), (rec["name"], "a-6", "ok"))
+        agents.mark_stopped(rec["name"])
+        self.assertEqual(drive.work(OBS)["stop"], [])
+
     def test_a_stop_request_of_an_agent_that_ended_on_its_own_clears_without_run_stopped(self):
         rec = agents.spawn(H.change("f3", "client"), "client-dev", "dev")
         agents.link(rec["name"], "a-3")
