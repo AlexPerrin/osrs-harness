@@ -17,7 +17,7 @@ moved. A dropped branch's change gets `hd ask <slug> "<why it was dropped and wh
 pinned again until the user answers. A decision you cannot take: `hd ask` on the change concerned, and nothing else.
 
 ## Nevers
-Never push `integration`, build or tag images, deploy or restart the live server, push to OpenRune/*, or rewrite a
+A renumber or fix on a fork-only branch (`local/*`, `fin/*`) is yours to push; then re-pin it. Never push `integration`, build or tag images, deploy or restart the live server, push to OpenRune/*, or rewrite a
 content or dev branch. Read game data through `osrs-mcp`.
 
 Your final message is one line: the failed step and the resolution.

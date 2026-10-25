@@ -10,7 +10,7 @@ roles:                         # push: the refs a role may push, by repo; record
   client-qa:    {record: verdict,  worktree: true}
   server-dev:   {record: handover, push: {fork: ["dev/<slug>"]}}
   server-qa:    {record: verdict,  push: {fork: ["gate/<slug>", "docs"]}}
-  integrator:   {push: {fork: ["local/integration-tools", "local/server-tools"]}}
+  integrator:   {push: {fork: ["local/*", "fin/*"]}}
   harness-dev:  {record: handover, worktree: true}
   orchestrator: {record: measure}
 agents: 3
