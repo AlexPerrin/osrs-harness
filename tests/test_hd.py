@@ -426,6 +426,12 @@ class ServerTrack(Sandbox):
         with open(os.path.join(self.ev, "s", "pr-comment.md"), "w") as f:
             f.write("x\n## Checklist\n- [x] Builds\n- [ ] Matches the OSRS wiki\n\nNot done: pets\n")
         self.assertEqual(steps._incomplete(self.ctx(F).by_slug["s"]), ["unticked: Matches the OSRS wiki", "a Not done list"])
+        self.store.save_record("s", "verdict", {"head": A, "base": B, "pass": True, "findings": []})
+        self.store.save_record("s", "approval", {"head": A})
+        F.f["checks"] = {(7, A): "success"}
+        F.f["comments"] = {7: [{"id": "o", "author": "alexperrin", "body": "x\n## Checklist\n- [x] Builds\n- [ ] Matches the OSRS wiki\n\nNot done: pets\n" + steps.MARK.format(A[:12]), "at": "t", "kind": "comment"}]}
+        self.assertIn(("s", "ready", "server-dev"), names(self.ctx(F)))      # ready PR, incomplete text: the dev's step, no draft
+        self.assertFalse(steps._blocked(self.ctx(F), self.ctx(F).by_slug["s"]))
 
     def test_title_and_comment_follow_the_prepared_texts(self):
         self.change("s", track="server")

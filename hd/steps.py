@@ -420,24 +420,34 @@ def _incomplete(ch):
     return out
 
 
-def _may_be_ready(ctx, ch):
-    """Ready for review only when every upstream step before ready holds, no finding is unanswered and the text is complete."""
+def _blocked(ctx, ch):
+    """What puts a PR back to draft: a step before ready is open (a failed review, a new head) or a finding is unanswered."""
     before = UPSTREAM[:UPSTREAM.index(READY)]
-    return all(s.done(ctx, ch) is True for s in before) and not _unanswered(ctx, ch) and not _incomplete(ch)
+    return not all(s.done(ctx, ch) is True for s in before) or bool(_unanswered(ctx, ch))
+
+
+def _may_be_ready(ctx, ch):
+    return not _blocked(ctx, ch) and not _incomplete(ch)
 
 
 def _ready_done(ctx, ch):
-    """A PR is a draft exactly while it may not be ready."""
+    """Draft while blocked; ready only when also complete. An incomplete text keeps a draft PR in draft but does not
+    pull a ready one back (the user exempted #354 and #355): either way it is the dev's step."""
     pr = _pr(ctx, ch)
-    return None if pr is None else bool(pr) and pr["draft"] == (not _may_be_ready(ctx, ch))
+    if pr is None:
+        return None
+    if not pr:
+        return False
+    blocked = _blocked(ctx, ch)
+    return (pr["draft"] and blocked) or (not pr["draft"] and not blocked and not _incomplete(ch))
 
 
 def _ready_actor(ctx, ch):
-    return _dev(ctx, ch) if _incomplete(ch) and not _unanswered(ctx, ch) else "script"
+    return _dev(ctx, ch) if not _blocked(ctx, ch) and _incomplete(ch) else "script"
 
 
 def _ready(ctx, ch):
-    undo = not _may_be_ready(ctx, ch)
+    undo = _blocked(ctx, ch)
     r = sh(["gh", "pr", "ready", str(_pr(ctx, ch)["number"]), "-R", ctx.cfg["repos"]["upstream"]] + (["--undo"] if undo else []))
     if r is None or r.returncode != 0:
         return f"ready failed: {(r.stderr if r else '')[-300:]}"

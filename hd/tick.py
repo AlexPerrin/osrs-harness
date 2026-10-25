@@ -143,7 +143,7 @@ def run(F=None, dry=False):
             out.append(f"{ch['slug']} {step.name}: {detail}")
         for ch in ctx.changes:   # a PR marked for review that may not be: back to draft, wherever its list stopped
             pr = steps._pr(ctx, ch) if ch["track"] == "server" and ch.get("kind") == "change" else None
-            if pr and pr.get("state") == "open" and not pr["draft"] and not steps._may_be_ready(ctx, ch) \
+            if pr and pr.get("state") == "open" and not pr["draft"] and steps._blocked(ctx, ch) \
                     and steps.READY not in [s for c, s in steps.next_steps(ctx) if c is ch]:
                 detail = "would draft" if dry else steps.READY.do(ctx, ch)
                 out.append(f"{ch['slug']} ready: {detail}")
