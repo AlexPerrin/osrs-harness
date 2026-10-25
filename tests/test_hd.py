@@ -399,6 +399,10 @@ class ServerTrack(Sandbox):
         F.f["anc"].add((A, C))
         F.f["comments"][7].append({"id": "p", "author": "alexperrin", "body": f"Pushed `{C[:9]}`", "at": "t", "kind": "comment"})
         self.assertIn(("s", "ready", "script"), names(self.ctx(F)))                       # answered: out of draft again
+        self.evidence("s-f1", "pr-comment.md")
+        with open(os.path.join(self.ev, "s-f1", "pr-comment.md"), "w") as f:
+            f.write("x\n## Checklist\n- [ ] Matches the OSRS wiki\n")
+        self.assertTrue(steps._unanswered(self.ctx(F), self.ctx(F).by_slug["s"]))      # the finding's text is incomplete: still open
 
     def test_a_pr_moved_past_the_head_and_a_dead_console(self):
         self.change("s", track="server")

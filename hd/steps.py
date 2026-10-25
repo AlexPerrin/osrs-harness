@@ -398,12 +398,13 @@ def _title(ctx, ch):
 
 
 def _unanswered(ctx, ch):
-    """The findings filed on this PR whose answer is not yet pushed and commented: planned work the maintainers can see."""
+    """The findings filed on this PR whose answer is not yet pushed, commented and complete: planned work the
+    maintainers can see."""
     pr = _pr(ctx, ch)
     if not pr:
         return []
     return [c for c in ctx.changes if c.get("finding") and c.get("pr") == pr["number"]
-            and not (_handover_done(ctx, c) and _pushed(ctx, c) and _comment_done(ctx, c))]
+            and not (_handover_done(ctx, c) and _pushed(ctx, c) and _comment_done(ctx, c) and not _incomplete(c))]
 
 
 def _incomplete(ch):
