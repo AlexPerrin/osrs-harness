@@ -10,11 +10,16 @@ deps: []
 branch: local/ci-game-cache-key
 commit: null
 local_only: true
-owner: sd87
+owner: null
 booked:
   dev: '|da39a3ee5e6b'
+cost:
+  runs: 1
+  turns: 0
+  tokens: 0
+  minutes: 0
 created: '2026-10-22T00:42:23Z'
-updated: '2026-10-25T04:07:34Z'
+updated: '2026-10-25T04:13:09Z'
 ---
 ## Change
 CI: game-data actions cache key must change with the cache revision
@@ -30,3 +35,4 @@ CI: game-data actions cache key must change with the cache revision
 - 2026-10-22T02:16:31Z fork-only: the fork's CI workflow (local/, BR-C7)
 - 2026-10-25T04:07:34Z ready -> dev: dispatched to sd87
 - 2026-10-25T04:07:34Z run sd87 started (server-dev, stage dev)
+- 2026-10-25T04:13:09Z run sd87 ended: 0 turns, 0 tokens, exit ok

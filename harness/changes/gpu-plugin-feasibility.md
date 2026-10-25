@@ -10,16 +10,17 @@ deps: []
 branch: client/gpu-plugin-feasibility
 commit: null
 local_only: false
-owner: cd57
+owner: null
 booked:
   dev: '|da39a3ee5e6b'
 cost:
-  runs: 1
+  runs: 2
   turns: 0
-  minutes: 0.0
+  minutes: 0
   usd: 0
+  tokens: 0
 created: '2026-10-20T04:39:08Z'
-updated: '2026-10-25T04:06:37Z'
+updated: '2026-10-25T04:13:09Z'
 ---
 ## Change
 Stretch goal: RuneLite's GPU plugin on the Android app (feasibility)
@@ -41,3 +42,4 @@ Stretch goal: RuneLite's GPU plugin on the Android app (feasibility)
 - 2026-10-25T02:18:02Z hold decision cleared: BlueStacks is open (user 2026-10-24): client work resumes
 - 2026-10-25T04:06:37Z ready -> dev: dispatched to cd57
 - 2026-10-25T04:06:37Z run cd57 started (client-dev, stage dev)
+- 2026-10-25T04:13:09Z run cd57 ended: 0 turns, 0 tokens, exit ok
