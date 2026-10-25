@@ -154,14 +154,14 @@ def _do(step, ch, obs, git, gh, tmp):
 def run(ch, obs, approved, git="git", gh="gh", wait=True, poll=30, sleep=time.sleep, tmp=None):
     import tempfile
     sync_evidence(ch)
-    why = refusal(ch, approved)
-    if why:
-        return 1, ["refused: " + w for w in why]
     lines = []
     with tempfile.TemporaryDirectory(prefix="hd-contribute-") as td:
         while True:   # every pass ends in a return or one observed step more; CI waits on the fact
             obs.reset()
             ch = store.load(ch["slug"]) if store.exists(ch["slug"]) else ch
+            why = refusal(ch, approved)   # the approval is for one commit: a hand-over during the CI wait stops the run
+            if why:
+                return 1, lines + ["refused: " + w for w in why]
             seq = steps(ch, obs)
             todo = next(((n, d, w) for n, d, w in seq if d is not True), None)
             if todo is None:

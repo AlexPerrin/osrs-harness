@@ -400,6 +400,16 @@ class ContributeTest(unittest.TestCase):
         self.assertTrue(any("no QA record" in l for l in lines))
         self.assertEqual(self.w.calls, [])
 
+    def test_a_new_commit_during_the_ci_wait_is_not_published(self):
+        def sleep(_):
+            ch = store.load("feat")
+            ch["commit"] = SHB
+            store.save(ch)
+        rc, lines = contribute.run(store.load("feat"), self.w.obs(), SHA, poll=0, sleep=sleep)
+        self.assertEqual(rc, 1)
+        self.assertIn("refused:", lines[-1])
+        self.assertEqual(len(self.w.calls), 2)   # push and open of the approved commit only
+
     def test_a_failing_record_does_not_refuse_the_users_decision(self):
         H.write_gate("feat", SHA, "FAIL", findings=["style"], checks={"style": "FAIL"})
         rc, _ = self.go()
