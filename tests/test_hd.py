@@ -181,6 +181,7 @@ class R4Authority(Sandbox):
         self.assertIsNone(self.guard("git -C /x push fork HEAD:refs/heads/content/s", role="console"))
         self.assertIsNone(self.guard("git -C /x push fork --delete dev/s", role="console"))
         self.assertIsNone(self.guard("git -C /x remote set-url origin https://github.com/OpenRune/OpenRune-Server.git"))
+        self.assertIsNotNone(self.guard("gh pr create -R AlexPerrin/OpenRune-Server --title x --body y", role="console"))   # no fork PRs
         self.assertIsNotNone(self.guard("git push"))
         self.assertIsNotNone(self.guard("x=$(git -C /x push fork HEAD:dev/s)"))
 
