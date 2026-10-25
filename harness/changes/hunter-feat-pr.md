@@ -6,6 +6,7 @@ title: 'Hunter #408: the entire Hunter skill'
 priority: P1
 created: '2026-10-25T02:32:09Z'
 branch: feat/hunter
+deps: []
 ---
 ## Change
 Upstream #408 (draft) is the entire Hunter skill (the user, 2026-10-25: "Scope is entire Hunter Skill"): every Hunter
@@ -26,3 +27,6 @@ clean. Title: "feat: Hunter skill".
   done item is implemented to match the official game (the user: "dont include any quirks in our changes. If it
   differs from official OSRS, fix it"); no docs/quirks.md entries; no technique is taken out of scope
 - after the user's yes: #408 leaves draft once upstream CI is green
+
+## Answers
+- 2026-10-25T23:47:13Z a
