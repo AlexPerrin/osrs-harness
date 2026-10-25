@@ -422,6 +422,44 @@ class TrainTest(unittest.TestCase):
         self.assertEqual(b["step"], "gating")
         self.assertEqual(self.run_to("imaged")["step"], "imaged")
 
+    def test_gate_failure_resume_restarts_the_gate_when_the_tools_branch_did_not_move(self):
+        batches.enqueue(self.handed("ta", "fix/a"))
+        os.environ["STUB_GATE_RC"] = "1"
+        batches.advance(self.obs, now=True)
+        b = self.run_to("exception")
+        del os.environ["STUB_GATE_RC"]
+        integration, gate_dir = b["integration"], b["gate_dir"]
+        b = batches.resume(b["id"])
+        self.assertEqual((b["integration"], b["gate_dir"]), (integration, gate_dir))
+        self.assertEqual(len(self.integration_pushes()), 1, "no new rebuild")
+
+    def test_gate_failure_resume_rebuilds_when_the_tools_branch_moved(self):
+        batches.enqueue(self.handed("ta", "fix/a"))
+        batches.enqueue(self.handed("tb", "content/b"))
+        os.environ["STUB_GATE_RC"] = "1"
+        batches.advance(self.obs, now=True)
+        b = self.run_to("exception")
+        del os.environ["STUB_GATE_RC"]
+        old_integration, old_tools = b["integration"], b["tools"]
+        self.assertTrue(self.contains(self.sha["content/b"]))
+        # the integrator drops content/b from integration.txt on the tools branch
+        git(self.seed, "fetch", "-q", self.fork, "local/integration-tools")
+        git(self.seed, "checkout", "-q", "-B", "local/integration-tools", "FETCH_HEAD")
+        lst = git(self.seed, "show", "HEAD:integration.txt")
+        commit_file(self.seed, "integration.txt", batches.remove_from_list(lst + "\n", "content/b"), "drop content/b")
+        git(self.seed, "checkout", "-q", "main")
+        git(self.seed, "push", "-q", self.fork, "local/integration-tools")
+        b = batches.resume(b["id"])
+        self.assertEqual(b["step"], "gating", b.get("exception"))
+        self.assertNotEqual(b["tools"], old_tools)
+        self.assertEqual(b["tools"], self.fork_rev("local/integration-tools"))
+        self.assertNotEqual(b["integration"], old_integration)
+        self.assertEqual(b["includes"], ["ta"])
+        self.assertIn("dropped from train", store.load("tb").body)
+        self.assertFalse(self.contains(self.sha["content/b"]))
+        self.assertTrue(self.contains(self.sha["fix/a"]))
+        self.assertEqual(self.run_to("imaged")["step"], "imaged")
+
     # --- deploy rollback -----------------------------------------------------------------------------------------
 
     def test_deploy_rollback(self):

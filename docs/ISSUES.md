@@ -2,6 +2,14 @@
 
 One short entry per issue, newest first: symptom, root cause, evidence, fix, how to recognise it again.
 
+## 2026-10-25 A resolved gate failure was re-gated on the old tree
+
+- **Symptom.** The integrator fixed a gate failure by changing `integration.txt` and the pins; after `hd resolve` the
+  batch gated the old integration clone and the fix never reached the tree.
+- **Root cause.** `batches.resume` restarted the gate for every gate failure.
+- **Fix.** When the batch's tools commit differs from the tools branch head, resume re-runs the train from pinning.
+- **Recognise.** A resumed batch whose `tools` commit is not the fork's tools branch head.
+
 ## 2026-10-24 The gate ran after the upstream push and reported one failure at a time
 
 - **Symptom.** A PR was already public when QA found a head regression; the next round found style comments (goblin);

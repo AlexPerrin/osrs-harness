@@ -28,7 +28,9 @@ Release steps: queued -> gating -> gated -> published (the release is observed o
   on_exception(batch, text)     records the stop output, frees the integration lease; the tick spawns an
                                 `integrator` with it (BR-B4)
   resume(batch_id)              after the integrator recorded a resolution (or dropped a branch from
-                                integration.txt): re-run from the failed step
+                                integration.txt): re-run from the failed step; a gate failure whose tools commit
+                                differs from the tools branch head re-runs from pinning (new integration), else
+                                restarts the gate
   repin_due(obs)                BR-B5: upstream main moved past live.json's upstream_main (or a pinned change
                                 merged upstream) and no re-pin to that tip was run yet: the sha, else None
   repin(obs)                    fast-forward the fork's main (tools/fork.sh sync), drop branches whose pin is in
@@ -693,8 +695,9 @@ def resume(batch_id):
     if not ok:
         raise RuntimeError(msg)
     b["exception"] = None
-    if failed in ("queued", "pinning", "rebuilding"):
-        if failed == "rebuilding":
+    rebuild = failed in ("queued", "pinning", "rebuilding") or (failed == "gating" and _tools_moved(b))
+    if rebuild:
+        if failed in ("rebuilding", "gating"):
             _drop_unlisted(b)
         if not try_train_lock():
             leases.release("integration", leases.DAEMON)
@@ -708,6 +711,14 @@ def resume(batch_id):
     if failed == "imaging":
         return _start_image(b)
     return _step(b, "imaged", detail=f"resumed from {failed}: waiting for a deploy")
+
+
+def _tools_moved(b):
+    """The tools branch head on the fork differs from the tools commit the batch was built on (the integrator's
+    resolution changed integration.txt, the pins or the rr-cache)."""
+    c, r_ = integrate.clone(), integrate.remote()
+    integrate.git(c, "fetch", "-q", r_)
+    return integrate.rev(c, f"refs/remotes/{r_}/{TOOLS_BRANCH}") != b.get("tools")
 
 
 def _drop_unlisted(b):
