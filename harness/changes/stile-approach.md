@@ -4,14 +4,14 @@ track: server
 title: 'Stile: approach from the outside tile'
 prio: P1
 role: server-dev
-stage: gate
+stage: contribute
 hold: null
 deps: []
 branch: fix/stile-approach
 commit: caacbf4cefa6f8491c8afa2d3fc7fc624d581a57
 repo: /home/alex/src/openrune-work/agents/sd79/or
 local_only: false
-owner: sq58
+owner: null
 evidence: /home/alex/osrs-plugins-reverse/re/evidence/stile-approach
 summary: 'caacbf4ce restores StileScript.kt class KDoc to main''s text (fix: commit on 68ddd1b6c, fast-forward); PR body normalised (template checklist verbatim, notes plain, in-game claim restated to 513144d3d)
   in fork docs 7ec42523c; accuracy Tests section removed; spotlessCheck generic-locs PASS'
@@ -20,13 +20,13 @@ booked:
   gate: caacbf4cefa6f8491c8afa2d3fc7fc624d581a57
 batch: int-20261024-2
 cost:
-  runs: 7
+  runs: 8
   turns: 16
   minutes: 2.9
   usd: 11.77
   tokens: 0
 created: '2026-10-20T01:42:40Z'
-updated: '2026-10-25T00:34:52Z'
+updated: '2026-10-25T00:50:20Z'
 upstream_pr: 406
 ---
 ## Change
@@ -86,3 +86,6 @@ fix/stile-approach 8a8c0ca7a failed the internal gate: the player walks onto the
 - 2026-10-25T00:34:37Z handover fix/stile-approach@caacbf4ce: caacbf4ce restores StileScript.kt class KDoc to main's text (fix: commit on 68ddd1b6c, fast-forward); PR body normalised (template checklist verbatim, notes plain, in-game claim restated to 513144d3d) in fork docs 7ec42523c; accuracy Tests section removed; spotlessCheck generic-locs PASS
 - 2026-10-25T00:34:52Z run sd79 ended: ? turns, ? tokens, exit ok
 - 2026-10-25T00:34:52Z run sq58 started (server-qa, stage gate)
+- 2026-10-25T00:49:59Z QA aggregate FAIL at caacbf4ce (4 finding(s)): 3 findings: wiki checklist item unticked (user decision), stale 'only test dropped' claim (KDoc also restored), commit 68ddd1b6c subject lacks fix: prefix; all checks else PASS
+- 2026-10-25T00:50:19Z gate -> contribute: observed
+- 2026-10-25T00:50:20Z run sq58 ended: ? turns, ? tokens, exit stopped:lingering: change at contribute
