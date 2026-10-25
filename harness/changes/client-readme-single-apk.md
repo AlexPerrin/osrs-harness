@@ -10,13 +10,18 @@ deps: []
 branch: client/client-readme-single-apk
 commit: 4bf65dd760d9890ba3fd8d45636fcfd871e52015
 local_only: false
-owner: cd55
+owner: null
 evidence: /home/alex/osrs-plugins-reverse/re/evidence/client-readme-single-apk
 summary: README Install and Legal sections for the single-APK release; releases/latest link, demo video as coming, 41 links valid, progress block unchanged
 booked:
   dev: '|da39a3ee5e6b'
+cost:
+  runs: 1
+  turns: 0
+  tokens: 0
+  minutes: 0
 created: '2026-10-25T03:15:39Z'
-updated: '2026-10-25T03:17:04Z'
+updated: '2026-10-25T03:17:42Z'
 ---
 ## Change
 README install and legal sections for the single-APK release that packages Jagex's app
@@ -32,3 +37,5 @@ README install and legal sections for the single-APK release that packages Jagex
 - 2026-10-25T03:15:39Z run cd55 started (client-dev, stage dev)
 - 2026-10-25T03:17:04Z dev -> gate: hand-over recorded
 - 2026-10-25T03:17:04Z handover client/client-readme-single-apk@4bf65dd76: README Install and Legal sections for the single-APK release; releases/latest link, demo video as coming, 41 links valid, progress block unchanged
+- 2026-10-25T03:17:21Z run cd55 ended: ? turns, ? tokens, exit ok
+- 2026-10-25T03:17:42Z ship: merged into master 6b2003e, pushed
