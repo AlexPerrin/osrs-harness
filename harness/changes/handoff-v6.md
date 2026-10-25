@@ -4,16 +4,13 @@ track: harness
 title: docs/HANDOFF.md rewritten as the brief for a fresh console session (current state, how to run, open work, standing rules)
 prio: P1
 role: harness-dev
-stage: ready
-hold:
-  kind: decision
-  reason: runs last, after v6 part B and the cutover work settle (the brief describes the final state); unhold then
-  since: '2026-10-25T03:10:22Z'
+stage: dev
+hold: null
 deps: []
 branch: null
 commit: null
 local_only: false
-owner: null
+owner: hd32
 booked:
   dev: '|da39a3ee5e6b'
 cost:
@@ -22,7 +19,7 @@ cost:
   tokens: 0
   minutes: 0
 created: '2026-10-25T01:16:56Z'
-updated: '2026-10-25T03:10:43Z'
+updated: '2026-10-25T04:05:33Z'
 ---
 ## Change
 docs/HANDOFF.md rewritten as the brief for a fresh console session (current state, how to run, open work, standing rules)
@@ -44,3 +41,6 @@ docs/HANDOFF.md rewritten as the brief for a fresh console session (current stat
 - 2026-10-25T03:10:22Z hold decision: runs last, after v6 part B and the cutover work settle (the brief describes the final state); unhold then
 - 2026-10-25T03:10:22Z run hd21 ended: ? turns, ? tokens, exit ok
 - 2026-10-25T03:10:43Z dev -> ready: run hd21 ended without a hand-over
+- 2026-10-25T04:05:13Z hold decision cleared: user 2026-10-25: wrap up, shut down, hand off to v7; part B is folded into the v7 brief
+- 2026-10-25T04:05:33Z ready -> dev: dispatched to hd32
+- 2026-10-25T04:05:33Z run hd32 started (harness-dev, stage dev)
