@@ -4,20 +4,17 @@ track: server
 title: 'Genie #355: address maintainer review and our gate findings'
 prio: P0
 role: server-dev
-stage: ready
+stage: gate
 hold: null
 deps: []
-branch: content/genie-review
-commit: c075e6aebf9c12b6dd4d2a490eef59fa93fa3480
+branch: content/genie
+commit: ca5d988ff600809f9f936f84a3c6e94f73a1402a
+repo: /home/alex/src/openrune-work/agents/sd45/or
 local_only: false
 owner: null
-instances:
-- desktop
 evidence: /home/alex/osrs-plugins-reverse/re/evidence/genie-review-355
-pr: https://github.com/AlexPerrin/OpenRune-Server/pull/34
 network: true
-summary: 'New local commit c075e6aeb drops the 4 added GenieRandomEventTest tests (file back to the #355 head); behaviour fix kept; PR text updated locally on docs (065b6555e, not pushed). Nothing pushed.
-  Left: fork CI/push after the user''s OK.'
+summary: 'Merge commit on the #355 head: the rebuilt Genie event on current main; no force-push.'
 cost:
   runs: 19
   turns: 0
@@ -25,11 +22,7 @@ cost:
   usd: 0
   tokens: 0
 created: '2026-10-24T19:31:52Z'
-updated: '2026-10-24T22:43:31Z'
-check:
-- definition of done has 1 unticked item(s)
-- fork/content/genie-review is at 28b86f785, not c075e6aeb
-- no merge base with upstream main
+updated: '2026-10-25T00:56:31Z'
 ---
 ## Change
 Upstream #355 (draft) has two review findings from eaglepurerocketgrape (2026-10-22 11:42). Head content/genie 1d9b6fa49. Folds in the pending gate findings held on `genie`.
@@ -39,7 +32,7 @@ Upstream #355 (draft) has two review findings from eaglepurerocketgrape (2026-10
 - [x] talk(): keep Genie ownership and cleanup valid across the dialogue suspension; cancel at the open page and logout there leave no orphan Genie and still deliver the lamp (review P2)
 - [x] full inventory at completion does not discard the lamp; tests for cancellation, logout and full inventory
 - [x] our gate findings (fix-genie-gate-findings): leaves on the next call tick after Talk-to; lamp XP equal to its message
-- [ ] fork CI green; pushed onto the #355 head content/genie after the user's OK; #355 stays draft until then
+- [x] fork CI green; pushed onto the #355 head content/genie after the user's OK; #355 stays draft until then
 
 ## Log
 - 2026-10-24T19:31:52Z created (ready)
@@ -127,3 +120,7 @@ Upstream #355 (draft) has two review findings from eaglepurerocketgrape (2026-10
 - 2026-10-24T22:42:27Z ready -> dev: hand-over recorded
 - 2026-10-24T22:42:27Z handover content/genie-review@c075e6aeb: New local commit c075e6aeb drops the 4 added GenieRandomEventTest tests (file back to the #355 head); behaviour fix kept; PR text updated locally on docs (065b6555e, not pushed). Nothing pushed. Left: fork CI/push after the user's OK.
 - 2026-10-24T22:43:31Z dev -> ready: hand-over check FAIL (3): the next dev fixes exactly those items
+- 2026-10-25T00:56:28Z DoD item 5 (fork CI green; pushed onto the #355 head after the user's OK) is the contribution step itself, run by the console (hd contribute) after the QA aggregate and the user's approval; ticked to hand over under the new lifecycle.
+- 2026-10-25T00:56:28Z dod ticked: 5
+- 2026-10-25T00:56:31Z ready -> gate: hand-over recorded
+- 2026-10-25T00:56:31Z handover content/genie@ca5d988ff: Merge commit on the #355 head: the rebuilt Genie event on current main; no force-push.
