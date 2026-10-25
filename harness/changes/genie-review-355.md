@@ -4,19 +4,18 @@ track: server
 title: 'Genie #355: address maintainer review and our gate findings'
 prio: P0
 role: server-dev
-stage: contribute
+stage: ready
 hold: null
 deps: []
 branch: content/genie
-commit: ca5d988ff600809f9f936f84a3c6e94f73a1402a
+commit: null
 repo: /home/alex/src/openrune-work/agents/sd45/or
 local_only: false
 owner: null
 evidence: /home/alex/osrs-plugins-reverse/re/evidence/genie-review-355
 network: true
 summary: 'Merge commit on the #355 head: the rebuilt Genie event on current main; no force-push.'
-booked:
-  gate: ca5d988ff600809f9f936f84a3c6e94f73a1402a
+booked: null
 cost:
   runs: 20
   turns: 0
@@ -24,7 +23,7 @@ cost:
   usd: 0
   tokens: 0
 created: '2026-10-24T19:31:52Z'
-updated: '2026-10-25T01:25:34Z'
+updated: '2026-10-25T01:28:25Z'
 ---
 ## Change
 Upstream #355 (draft) has two review findings from eaglepurerocketgrape (2026-10-22 11:42). Head content/genie 1d9b6fa49. Folds in the pending gate findings held on `genie`.
@@ -130,3 +129,4 @@ Upstream #355 (draft) has two review findings from eaglepurerocketgrape (2026-10
 - 2026-10-25T01:24:44Z QA aggregate FAIL at ca5d988ff (7 finding(s)): 9 findings: 19 unrelated generated .data/gamevals files in the diff (commit dde094c8d), test file GenieRandomEventTest.kt (original), added KDoc/comments, non-feat/fix subjects, fork and live PR texts off-template and stale (4 tests claimed). CI, format, in-game PASS
 - 2026-10-25T01:25:26Z gate -> contribute: observed
 - 2026-10-25T01:25:34Z run sd81 ended: ? turns, ? tokens, exit stopped:lingering: owner is None (change at contribute)
+- 2026-10-25T01:28:25Z contribute -> ready: branch moved to 07f629a8e past ca5d988ff: hand over again (BR-C2)
