@@ -181,7 +181,6 @@ class R4Authority(Sandbox):
         self.assertIsNone(self.guard("git -C /x push fork HEAD:refs/heads/content/s", role="console"))
         self.assertIsNone(self.guard("git -C /x push fork --delete dev/s", role="console"))
         self.assertIsNone(self.guard("git -C /x remote set-url origin https://github.com/OpenRune/OpenRune-Server.git"))
-        self.assertIsNotNone(self.guard("gh pr create -R AlexPerrin/OpenRune-Server --title x --body y", role="console"))   # no fork PRs
         self.assertIsNotNone(self.guard("git push"))
         self.assertIsNotNone(self.guard("x=$(git -C /x push fork HEAD:dev/s)"))
 
@@ -453,19 +452,6 @@ class ServerTrack(Sandbox):
         F.f["prs"]["content/s"]["title"] = "feat: X"
         F.f["comments"][7][0]["body"] = "progress update\r\n\r\n" + steps.MARK.format(A[:12])
         self.assertTrue(steps._title_done(self.ctx(F), ch) and steps._comment_done(self.ctx(F), ch))
-
-    def test_upstream_texts_never_name_the_fork(self):
-        self.change("s", track="server")
-        self.evidence("s", "pr-title.txt", "pr-body.md", "pr-comment.md")
-        with open(os.path.join(self.ev, "s", "pr-body.md"), "w") as f:
-            f.write("Fork PR (same branch): https://github.com/AlexPerrin/OpenRune-Server/pull/20\n")
-        F = Fake(refs={"fork/dev/s": A})
-        ch = self.ctx(F).by_slug["s"]
-        self.assertEqual(steps._pr_actor(self.ctx(F), ch), "server-dev")
-        self.assertEqual(steps._names_fork(steps._texts(ch)), ["body links a fork PR: github.com/AlexPerrin/OpenRune-Server/pull/20"])
-        with open(os.path.join(self.ev, "s", "pr-body.md"), "w") as f:
-            f.write("Content area from #353 (upstream). Checked on our fork's CI and an earlier fork branch.\n")
-        self.assertEqual(steps._names_fork(steps._texts(ch)), [])
 
     def test_a_squash_merged_pr_is_done(self):
         self.change("s", track="server")

@@ -38,7 +38,7 @@ server (`integration`) as soon as its gate passes and, independently, upstream a
   "Matches the OSRS wiki" and add every deviation it records to `docs/quirks.md` in the same PR; a PR is never
   marked for review with that item unticked or a Not done list. Upstream texts (title, description, comments) never
   link a fork PR (`github.com/AlexPerrin/OpenRune-Server/pull/N`, `AlexPerrin/OpenRune-Server#N`, "fork PR #N"): it
-  renders as a big red Closed. Naming the fork itself is fine. The pass will not post a text with such a link. Never open a PR, issue or
+  renders as a big red Closed. Naming the fork itself is fine. Never open a PR, issue or
   comment on the fork: a fork PR that names an upstream PR puts a Closed "mentioned this pull request" entry on that
   PR's timeline for good. Branches and CI runs on the fork are fine.
 

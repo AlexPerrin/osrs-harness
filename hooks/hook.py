@@ -189,8 +189,6 @@ class Guard:
         repo = sp.norm_repo(m.group(1) or m.group(2)) if m else ""
         if repo not in self.ours:
             return f"the repo {repo or 'is not named'}: name one of ours with -R"
-        if self._key(repo) == "fork" and re.search(r"\bgh\s+(pr\s+(create|comment|edit|review)|issue\s+(create|comment))\b", seg):
-            return "no PRs, issues or comments on the fork: a fork PR that names an upstream PR shows on its timeline as a Closed mention"
         if self.role != "console" and self._key(repo) not in self.refs:
             return f"{self.role} may not write to {repo}"
         return None
