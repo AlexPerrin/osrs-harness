@@ -1,148 +1,65 @@
 # Problem
 
-The business context, the goals and the process. docs/PRD.md states what a solution must satisfy; docs/ARCHITECTURE.md is
-the solution.
+The first principles the harness is derived from: the facts of the world we cannot change (axioms), what follows from
+them (principles), and what the user wants (goals). docs/PRD.md turns the principles into constraints on any solution;
+docs/ARCHITECTURE.md is the one solution we build.
 
-## Business context
+## Axioms
 
-The user wants **goals** reached with no person watching, overnight and across days. A goal is an outcome of one track
-with a measurable fact; the client's goal is "100% of the RuneLite API working in the Android app". The three tracks are
-**three deliveries** that depend on each other, so a goal of one track is served by changes of all three:
+| Id | Fact |
+|---|---|
+| A1 | The user wants outcomes in two products, reached with nobody watching, overnight and across days. |
+| A2 | Claude Code agents do the work. Only a live console session can spawn them (Agent tool); it can vanish at any moment (usage limit, WSL restart, compaction, closed terminal) and its agents die with it. |
+| A3 | Agents are fallible and their words are not evidence. Evidence is a commit on a ref, a file on disk, GitHub state, docker state, the process table. |
+| A4 | Two actions are public or irreversible: a write to OpenRune/OpenRune-Server and a client release. The user alone authorizes them, in chat. Everything else is the user's own and reversible. |
+| A5 | Upstream is maintained by others: one change per PR, no stacking, no tests unless asked, a defect reported at any time. The fork's CI on a scratch merge with current upstream `main` is the same fact as upstream's PR CI. |
+| A6 | A change is live when its target contains it: client `master`, the tree the test server runs, harness `main`. A server change is done when upstream `main` contains it; every other change is done when live. |
+| A7 | Some things exist once: the integration clone, the live server, the Ghidra project, the Android device. The machine bounds how many agents, builds and clients run at once. |
+| A8 | Elapsed time says nothing about what happened. |
+| A9 | Python 3.12 standard library and PyYAML; WSL2 with systemd; Docker Desktop and BlueStacks run on Windows and are started by hand; `gh` is authenticated as the user. |
+| A10 | No client contacts Jagex; the user's own RuneLite and the tester account are never touched. |
 
-| Track | Delivers | Live when | Done when |
-|---|---|---|---|
-| Client | RuneLite plugins in the official OSRS Android app (AlexPerrin/osrs-plugins-reverse); a release is a tagged APK | `master` contains the commit | live |
-| Server | server behaviour the client needs: the OpenRune fork (AlexPerrin/OpenRune-Server), contributed to OpenRune/OpenRune-Server | the test server's integration tree contains the commit | merged upstream (kind `local`: live) |
-| Harness | the machinery that moves both and itself (this repo) | `main` contains the commit | live |
+## Principles
 
-The tracks are interdependent. A client change that needs server behaviour waits for it; a server or client change that
-the machinery slows down waits for a harness fix. The harness is neither product's code.
-
-Priorities, in order: it runs unattended; it heals itself; it shows, from facts, what needs the user and what is running.
-Only a write to the public upstream repository and a client release wait for the user, answered in chat.
-
-The world:
-
-- Claude Code agents do the work. The user's console session spawns them (Agent tool) and can watch. The console can
-  vanish at any moment (usage limit, WSL restart, compaction, closed terminal) and its agents die with it; its absence
-  pauses new spawns and nothing else.
-- Agents are fallible. What git, GitHub, docker, the process table and a checked record show is the truth. Nothing is
-  decided from elapsed time.
-- Upstream is public and maintained by others who review in their own time and may report a defect at any point. They
-  want one change per PR, no stacking, no tests unless needed. The fork, local commits and this repo are the user's own.
-- The fork's CI on a scratch merge with current upstream `main` is the same fact as upstream's PR CI.
-- Some things exist once: the integration clone, the live server, the Ghidra project, the Android device. Machine budget:
-  agents, builds, desktop clients.
-- Python 3.12 standard library and PyYAML only. WSL2 with systemd; Docker Desktop and BlueStacks run on Windows and are
-  started by hand.
-- No client contacts Jagex; the user's own RuneLite and the tester account are never touched.
+| Id | Principle | From |
+|---|---|---|
+| P1 | **Facts decide.** Every decision reads git, GitHub, docker, the process table, or a record bound to the commit it covers. An unknown fact (a failed fetch, an unreachable host) stops the step; it is never read as false. | A3 A8 |
+| P2 | **Store only what cannot be derived.** Definitions (what the user wants), judgments (a hand-over, a verdict, an approval, a measurement, a question) and run starts and ends. Each judgment is bound to the commit and base it covers; when either moves it is void. Everything else is derived on each read. | A3 A2 |
+| P3 | **Every step is idempotent.** A step is "done when this fact holds" plus "do this"; running it again is harmless. Any process may die anywhere and the next pass continues. | A2 A8 |
+| P4 | **Nothing depends on a process.** A timer runs a short pass; a dead console pauses spawning and nothing else; the only long process rebuilds from pinned commits, so rerun equals resume. | A2 A1 |
+| P5 | **One authority.** Only the harness writes to OpenRune or publishes a release, only at a commit the user approved, and agents are denied by default. | A4 |
+| P6 | **Cheapest check first.** A script before an agent, an agent before the user; a check passed for a commit and base is not run again. | A1 A3 |
+| P7 | **Scarce things are single-flight or counted.** A kernel lock for the one integration tree; one number for agents. Tools that own a resource (Ghidra, `buildq.sh`) keep their own lock. | A7 |
+| P8 | **The user sees derived facts only:** what runs, what waits for them, each goal's progress, what happened. | A1 A3 |
 
 ## Goals
 
-**A goal** belongs to one track, has a metric that a command prints as a number and a target, and stays open after the
-target is met as a guard: the metric must not drop. Changes of the other tracks serve it as dependencies. The
-orchestrator pursues every open goal (below).
+A **goal** belongs to one track and has a command that prints one number and a target. Changes of every track serve it;
+a met goal stays measured as a guard.
 
-**Client.** Plugins work in the official Android app. The client's goal is **100% of the RuneLite API** working in the
-app; its metric is the share of the RuneLite API interface methods (the `Client` interface and the other API interfaces) that
-a probe calls in the app and confirms working. Each change is built, checked on a real client and
-merged into `master`; a release is cut after a network and privacy check, with the user's yes.
-
-**Server.** (1) Unblock client work: the test server runs a change as soon as it is handed over and gated, whatever
-upstream thinks. (2) Contribute: every change reaches OpenRune as a clean, single-purpose, verified contribution; review
-findings are settled before new PRs open.
-
-**Harness.** Each iteration is simpler and faster; a change is live on the next tick with no restart.
+| Track | Delivers | Goal |
+|---|---|---|
+| Client | RuneLite plugins in the official OSRS Android app (AlexPerrin/osrs-plugins-reverse); a release is a tagged APK | 100% of the RuneLite API interface methods working in the app, proven by a probe |
+| Server | the behaviour the client needs, on the test server at once and contributed to OpenRune | the client is never blocked on the server; every contribution is single-purpose, verified and settled before the next opens |
+| Harness | the machinery that moves both and itself (this repo) | each iteration is simpler and faster; a change is live on the next pass |
 
 ## Process
 
-### The orchestrator
-
-A high-level role whose one job is to close the gap between each open goal's measured state and its target. Each pass it
-reads the metric, finds the gap (for example the API methods not yet working), and files the next **changes** with their
-dependencies across tracks, ordered by what unblocks the most. It files within the machine budget and writes no code. It
-runs as an agent like any other, so it keeps working while the user is away.
-
-```mermaid
-flowchart TD
-  g([Goal with target]) --> m[(Metric now)]
-  m --> gap{Below target?}
-  gap -- no --> guard([Met: keep as guard])
-  gap -- yes --> orch[Orchestrator picks the next gaps]
-  orch --> defs[/Changes filed with deps across tracks/]
-  defs --> srv[[Server delivery]]
-  defs --> cli[[Client delivery]]
-  defs --> har[[Harness delivery]]
-  srv -- unblocks --> cli
-  har -- speeds --> srv
-  har -- speeds --> cli
-  srv --> m
-  cli --> m
-  har --> m
-```
-
-### A change
-
-All tracks share one shape. A change is **defined** (slug, track, title, priority, deps, definition of done). It is
-**ready** when its deps are live. A dev agent builds it on the change's ref and hands over one commit with evidence; an
-incomplete hand-over is refused. The change is **live** and **done** per the table above. What an agent produces is a
-commit on a ref or a record on disk; what it says in chat counts for nothing.
+An **orchestrator** agent closes the gap between each goal's measurement and its target by filing **changes** with
+dependencies across tracks. Every change has one shape: defined, built by a dev agent into one commit with evidence,
+checked by scripts then by an agent where judgment is needed, and shipped. Only a write to OpenRune and a release wait
+for the user's yes in chat. A server change reaches two targets independently: the test server as soon as it is gated,
+upstream after the user's yes. A maintainer's finding files a new change on the same PR.
 
 ```mermaid
-flowchart TD
-  start([Change defined]) --> deps{Every dep live?}
-  deps -- no --> w1([Wait])
-  deps -- yes --> busy{Hold or alive run?}
-  busy -- yes --> w2([Wait])
-  busy -- no --> dev[Dev builds on its ref]
-  dev --> ho[/Hand-over record at sha/]
-  ho --> okh{Complete?}
-  okh -- no --> dev
-  okh -- yes --> trk{Track}
-  trk -- "client, harness" --> merge[Merge into master or main, push]
-  merge --> done1([Live = Done])
-  trk -- server --> q[Queue for the train]
-  trk -- server --> qa[QA checks the exact sha]
-  q --> train[[Train: pin, rebuild, gate, image, deploy]]
-  train --> tok{Succeeded?}
-  tok -- no --> integ[Integrator resolves]
-  integ --> train
-  tok -- yes --> lv([Live on test server])
-  qa --> ver[/Verdict record/]
-  ver --> pass{PASS at head?}
-  pass -- no --> dev
-  pass -- yes --> card{{User reads the card and says yes}}
-  card --> appr[/Approval record at sha/]
-  appr --> pub[Next unmet step: push, PR, CI green, comment, ready]
-  pub --> gh[(GitHub)]
-  gh --> mg{Merged upstream?}
-  mg -- "no, maintainer finding" --> fix[Finding becomes a P0 change on the same ref]
-  fix --> dev
-  mg -- yes --> done2([Done])
+flowchart LR
+  g([Goal and target]) --> m[(Measurement)]
+  m --> o[Orchestrator files changes]
+  o --> d[[Dev hands over a commit]]
+  d --> c[Script gate, then agent review]
+  c --> s{OpenRune write or release?}
+  s -- yes --> u{{User's yes in chat}}
+  s -- no --> l([Live])
+  u --> l
+  l --> m
 ```
-
-Symbols: rounded = start or end · rectangle = action · diamond = decision · parallelogram = record on disk (one owner) ·
-hexagon = the user in chat · double-bar box = a delivery or detached process · cylinder = an external fact.
-
-**Client.** A developer builds in the Android app and hands over a commit with the repack log and device evidence; the
-harness merges it into `master`. A release is a change made when the user asks: a QA agent gates `master` at one commit
-(install, hooks, network, privacy); the user says yes; the harness tags and publishes the APK. A client change that needs
-server behaviour files the server change and waits for it.
-
-**Server.** A developer builds on a branch off current upstream `main`, checked against official game behaviour, and
-hands over a commit on the fork. Two things follow independently: the test server (combine, build, gate, image, deploy)
-and the upstream path (an independent check of the exact commit, put on one card). One approval covers one unbroken
-sequence run by the harness; if CI is not green it stops and the card says so. A reported defect is fixed on the same PR
-before it leaves draft, never promised for later. Review fixes come before new PRs; work that unblocks the client comes
-first; changes that stay on the test server never go upstream.
-
-**Harness.** A developer works in a worktree with a test per requirement touched; the harness merges and pushes; a major
-revision is merged only after the user's yes. Each iteration starts from the three source docs and ends by updating them;
-whatever no requirement needs is removed.
-
-## The user's day
-
-The user opens the console and sees, from facts: each open goal's metric against its target, the agents to spawn, the
-cards waiting for a yes (exact commands, full text to post, check record), the questions agents could not answer, the
-alerts only they can fix (Docker engine down, BlueStacks absent), and what is running. Everything else was repaired by a
-tick without them.
