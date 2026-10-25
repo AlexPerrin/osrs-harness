@@ -4,16 +4,17 @@ track: server
 title: 'CI: game-data actions cache key must change with the cache revision'
 prio: P2
 role: server-dev
-stage: ready
+stage: dev
 hold: null
 deps: []
 branch: local/ci-game-cache-key
 commit: null
 local_only: true
-owner: null
-instances: []
+owner: sd87
+booked:
+  dev: '|da39a3ee5e6b'
 created: '2026-10-22T00:42:23Z'
-updated: '2026-10-22T02:16:31Z'
+updated: '2026-10-25T04:07:34Z'
 ---
 ## Change
 CI: game-data actions cache key must change with the cache revision
@@ -27,3 +28,5 @@ CI: game-data actions cache key must change with the cache revision
 - 2026-10-22T00:42:23Z created (ready)
 - 2026-10-22T02:08:34Z triage: every fork CI run depends on it; next server dev slot after the user's content
 - 2026-10-22T02:16:31Z fork-only: the fork's CI workflow (local/, BR-C7)
+- 2026-10-25T04:07:34Z ready -> dev: dispatched to sd87
+- 2026-10-25T04:07:34Z run sd87 started (server-dev, stage dev)
