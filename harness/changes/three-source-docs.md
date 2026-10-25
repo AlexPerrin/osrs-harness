@@ -4,17 +4,22 @@ track: harness
 title: 'Docs: PROBLEM, PRD and ARCHITECTURE as the three minimal sources of truth'
 prio: P0
 role: harness-dev
-stage: dev
+stage: ready
 hold: null
 deps: []
 branch: null
 commit: null
 local_only: false
-owner: hd25
+owner: null
 booked:
   dev: '|da39a3ee5e6b'
+cost:
+  runs: 1
+  turns: 0
+  tokens: 0
+  minutes: 0
 created: '2026-10-25T02:01:29Z'
-updated: '2026-10-25T02:05:30Z'
+updated: '2026-10-25T02:06:09Z'
 ---
 ## Change
 Docs: PROBLEM, PRD and ARCHITECTURE as the three minimal sources of truth
@@ -33,3 +38,5 @@ Docs: PROBLEM, PRD and ARCHITECTURE as the three minimal sources of truth
 - 2026-10-25T02:01:29Z run hd25 started (harness-dev, stage dev)
 - 2026-10-25T02:03:01Z USER 2026-10-24 ADDENDUM: each iteration reduces our ad hoc work surface and process and iterates quickly; a major revision must reduce to the least complex, most efficient solution; the docs are minimal, only the source of truth, no revision history or justification.
 - 2026-10-25T02:05:30Z dod ticked: 1, 2, 3, 4, 5
+- 2026-10-25T02:05:52Z run hd25 ended: ? turns, ? tokens, exit ok
+- 2026-10-25T02:06:09Z dev -> ready: run hd25 ended without a hand-over
