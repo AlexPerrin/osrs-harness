@@ -4,14 +4,14 @@ track: server
 title: 'Witch''s Potion #368: net diff is Witch''s Potion only, mergeable'
 prio: P0
 role: server-dev
-stage: gate
+stage: contribute
 hold: null
 deps: []
 branch: content/witchs-potion
 commit: 74048def774aabf7f96544f765819f9d1fb3d827
 repo: /home/alex/src/openrune-work/agents/sd43/or
 local_only: false
-owner: sq65
+owner: null
 evidence: /home/alex/osrs-plugins-reverse/re/evidence/witchs-potion-review-368
 network: true
 summary: 'Five QA fixes: comment removed (fixed tip 569393171 on fork fix/witchs-potion-clean), merge commit with fix: subject, template-verbatim bodies without history, fresh status comment, quest tests
@@ -19,13 +19,13 @@ summary: 'Five QA fixes: comment removed (fixed tip 569393171 on fork fix/witchs
 booked:
   gate: 74048def774aabf7f96544f765819f9d1fb3d827
 cost:
-  runs: 4
+  runs: 5
   turns: 0
   minutes: 0
   usd: 0
   tokens: 0
 created: '2026-10-24T19:31:52Z'
-updated: '2026-10-25T02:08:06Z'
+updated: '2026-10-25T02:20:28Z'
 ---
 ## Change
 Upstream #368 review P2 x2 (eaglepurerocketgrape 2026-10-22 11:42). Head content/witchs-potion 18afab0a7, CONFLICTING. The unstacked branch content/witchs-potion-unstacked 23e1b7c5d is a candidate base but is older than #366's merge.
@@ -64,3 +64,6 @@ Upstream #368 review P2 x2 (eaglepurerocketgrape 2026-10-22 11:42). Head content
 - 2026-10-25T02:04:11Z hold decision: needs you: a gate run was already booked for exactly this head (74048def7) and these findings; booking another would repeat it
 - 2026-10-25T02:08:06Z hold decision cleared: re-run the aggregate (user 2026-10-24: re-run both)
 - 2026-10-25T02:08:06Z run sq65 started (server-qa, stage gate)
+- 2026-10-25T02:20:06Z QA aggregate PASS at 74048def7 (0 finding(s)): no findings: comment removed, bodies template-verbatim, CI 40152325198 + Formatting green, quest tests 219 pass
+- 2026-10-25T02:20:26Z gate -> contribute: observed
+- 2026-10-25T02:20:28Z run sq65 ended: ? turns, ? tokens, exit stopped:lingering: change at contribute
