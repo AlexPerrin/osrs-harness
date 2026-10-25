@@ -4,13 +4,18 @@ track: harness
 title: docs/HANDOFF.md rewritten as the brief for a fresh console session (current state, how to run, open work, standing rules)
 prio: P1
 role: harness-dev
-stage: dev
+stage: gate
 hold: null
 deps: []
-branch: null
-commit: null
+branch: harness/handoff-v6
+commit: ae42c760ebcc47a9cb45c39ba3bbdb8aeac165d0
 local_only: false
 owner: hd32
+evidence: /home/alex/osrs-plugins-reverse/re/evidence/handoff-v6
+summary: 'HANDOFF.md rewritten as the fresh console brief (state, run, held decisions, v7 section first with the listed inputs, standing rules by memory file name, start prompt); ARCHITECTURE hook table
+  fixed (slot_stop/task_stop are wired in settings.json SubagentStop); three dated ISSUES entries (OpenRS2 cache 500, integrator reset of tools branch, unregistered client-contributing-file). Audit: every
+  BR id in code/tests/docs exists in the PRD; no other statement found untrue. Pruned from the old open list: items 3 and 4 (hooks now wired), already-fixed cutover defects. Not mine: lint reports 15 fin/*
+  branch problems (the 12 decision holds), unchanged.'
 booked:
   dev: '|da39a3ee5e6b'
 cost:
@@ -19,15 +24,15 @@ cost:
   tokens: 0
   minutes: 0
 created: '2026-10-25T01:16:56Z'
-updated: '2026-10-25T04:05:33Z'
+updated: '2026-10-25T04:08:31Z'
 ---
 ## Change
 docs/HANDOFF.md rewritten as the brief for a fresh console session (current state, how to run, open work, standing rules)
 
 ## Definition of done
-- [ ] docs/HANDOFF.md is the only thing a fresh console session needs after CLAUDE.md: what is live (harness v6 part A), what is held and why, how to run (daemon, hd drive, the drive skill loop), the approval rules (fork free, upstream needs the user's OK per change, one atomic hd contribute), the PR/change model, the track repos, and the open work in the user's order; current truth only, no justification or history, no hand-kept counts that go stale (point at commands)
-- [ ] A short 'start prompt' section (3-6 lines) the console launcher passes to the new session; the user's standing rules are listed by pointing at the memory directory files by name
-- [ ] Facts verified against hd status, hd drive and the repo before writing; full suite passes; no push, no daemon restart
+- [x] docs/HANDOFF.md is the only thing a fresh console session needs after CLAUDE.md: what is live (harness v6 part A), what is held and why, how to run (daemon, hd drive, the drive skill loop), the approval rules (fork free, upstream needs the user's OK per change, one atomic hd contribute), the PR/change model, the track repos, and the open work in the user's order; current truth only, no justification or history, no hand-kept counts that go stale (point at commands)
+- [x] A short 'start prompt' section (3-6 lines) the console launcher passes to the new session; the user's standing rules are listed by pointing at the memory directory files by name
+- [x] Facts verified against hd status, hd drive and the repo before writing; full suite passes; no push, no daemon restart
 
 ## Log
 - 2026-10-25T01:16:56Z created (ready)
@@ -44,3 +49,6 @@ docs/HANDOFF.md rewritten as the brief for a fresh console session (current stat
 - 2026-10-25T04:05:13Z hold decision cleared: user 2026-10-25: wrap up, shut down, hand off to v7; part B is folded into the v7 brief
 - 2026-10-25T04:05:33Z ready -> dev: dispatched to hd32
 - 2026-10-25T04:05:33Z run hd32 started (harness-dev, stage dev)
+- 2026-10-25T04:08:30Z dod ticked: 1, 2, 3
+- 2026-10-25T04:08:31Z dev -> gate: hand-over recorded
+- 2026-10-25T04:08:31Z handover harness/handoff-v6@ae42c760e: HANDOFF.md rewritten as the fresh console brief (state, run, held decisions, v7 section first with the listed inputs, standing rules by memory file name, start prompt); ARCHITECTURE hook table fixed (slot_stop/task_stop are wired in settings.json SubagentStop); three dated ISSUES entries (OpenRS2 cache 500, integrator reset of tools branch, unregistered client-contributing-file). Audit: every BR id in code/tests/docs exists in the PRD; no other statement found untrue. Pruned from the old open list: items 3 and 4 (hooks now wired), already-fixed cutover defects. Not mine: lint reports 15 fin/* branch problems (the 12 decision holds), unchanged.
