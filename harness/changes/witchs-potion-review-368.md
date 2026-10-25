@@ -5,12 +5,7 @@ title: 'Witch''s Potion #368: net diff is Witch''s Potion only, mergeable'
 prio: P0
 role: server-dev
 stage: gate
-hold:
-  kind: decision
-  reason: 'work done: fork branch content/witchs-potion-368 at c407c2272f54 (fork PR https://github.com/AlexPerrin/OpenRune-Server/pull/32), docs commit pushed; blocked only on fork CI (workflow_dispatch
-    422 ''Actions has been disabled for this repository''); no qa.sh available for local gate. Re-run handover with --branch content/witchs-potion-368 --commit c407c2272f54 --pr .../pull/32 once Actions
-    is enabled. Push onto #368 head still needs user OK.'
-  since: '2026-10-24T21:16:59Z'
+hold: null
 deps: []
 branch: content/witchs-potion
 commit: d782b5798a29ecbe924ea37998ddd73b428fecba
@@ -20,8 +15,7 @@ owner: null
 evidence: /home/alex/osrs-plugins-reverse/re/evidence/witchs-potion-review-368
 network: true
 summary: 'Merge commit on the #368 head: the rebuilt Witch''s Potion on current main; no force-push.'
-booked:
-  gate: d782b5798a29ecbe924ea37998ddd73b428fecba
+booked: null
 cost:
   runs: 2
   turns: 0
@@ -29,7 +23,7 @@ cost:
   usd: 0
   tokens: 0
 created: '2026-10-24T19:31:52Z'
-updated: '2026-10-25T00:57:35Z'
+updated: '2026-10-25T01:23:11Z'
 ---
 ## Change
 Upstream #368 review P2 x2 (eaglepurerocketgrape 2026-10-22 11:42). Head content/witchs-potion 18afab0a7, CONFLICTING. The unstacked branch content/witchs-potion-unstacked 23e1b7c5d is a candidate base but is older than #366's merge.
@@ -55,3 +49,4 @@ Upstream #368 review P2 x2 (eaglepurerocketgrape 2026-10-22 11:42). Head content
 - 2026-10-25T00:56:30Z handover content/witchs-potion@d782b5798: Merge commit on the #368 head: the rebuilt Witch's Potion on current main; no force-push.
 - 2026-10-25T00:57:03Z run sq60 started (server-qa, stage gate)
 - 2026-10-25T00:57:35Z run sq60 ended: ? turns, ? tokens, exit stopped:lingering: hold decision
+- 2026-10-25T01:23:11Z hold decision cleared: obsolete hold from the first dev run (fork CI blocked); the QA aggregate runs now
