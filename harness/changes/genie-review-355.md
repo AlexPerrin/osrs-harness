@@ -4,27 +4,27 @@ track: server
 title: 'Genie #355: address maintainer review and our gate findings'
 prio: P0
 role: server-dev
-stage: gate
+stage: contribute
 hold: null
 deps: []
 branch: content/genie
 commit: 3b00b228bad2038e43e242cb29213e8c622b265a
 repo: /home/alex/src/openrune-work/agents/sd45/or
 local_only: false
-owner: sq64
+owner: null
 evidence: /home/alex/osrs-plugins-reverse/re/evidence/genie-review-355
 network: true
 summary: Dropped GenieRandomEventTest and the integration suite setup, helpers private (genieOf removed as unused), PR text ticks made true; new tip d8ab60221 on fix/genie-clean, merge 3b00b228b
 booked:
   gate: 3b00b228bad2038e43e242cb29213e8c622b265a
 cost:
-  runs: 23
+  runs: 24
   turns: 0
   minutes: 0
   usd: 0
   tokens: 0
 created: '2026-10-24T19:31:52Z'
-updated: '2026-10-25T02:08:05Z'
+updated: '2026-10-25T02:22:22Z'
 ---
 ## Change
 Upstream #355 (draft) has two review findings from eaglepurerocketgrape (2026-10-22 11:42). Head content/genie 1d9b6fa49. Folds in the pending gate findings held on `genie`.
@@ -147,3 +147,6 @@ Upstream #355 (draft) has two review findings from eaglepurerocketgrape (2026-10
 - 2026-10-25T01:47:09Z run sq62 started (server-qa, stage gate)
 - 2026-10-25T02:08:05Z run sq62 ended: ? turns, ? tokens, exit ok
 - 2026-10-25T02:08:05Z run sq64 started (server-qa, stage gate)
+- 2026-10-25T02:21:39Z QA aggregate PASS at 3b00b228b (0 finding(s)): all checks PASS at 3b00b228b: CI 40151994890, Formatting 40151996645, scope 3 files, no tests, text template verbatim
+- 2026-10-25T02:22:02Z run sq64 ended: ? turns, ? tokens, exit ok
+- 2026-10-25T02:22:22Z gate -> contribute: observed
