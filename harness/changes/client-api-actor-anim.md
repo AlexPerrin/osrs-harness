@@ -30,3 +30,6 @@ write game state), so set-then-get round trips and the client shows the effect.
 - No row that is `pass` in the baseline report is anything else in the new report; the hand-over quotes the new
   percentage and the diff of results against the baseline.
 - The device is restored and the probe jar removed (device-test).
+
+## Answers
+- 2026-10-25T18:56:39Z console 2026-10-25: resume. On a fresh read-only AVD, adb uninstall com.jagex.oldscape.android first, install the repack, stop on any install error, launch only after libosrsrl.so is in the installed APK (skill test-instances, rule added in d07e9d9). Then run the probe on the merged build d4cb757 and hand over.
