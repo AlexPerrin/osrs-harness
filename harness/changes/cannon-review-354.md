@@ -4,16 +4,17 @@ track: server
 title: 'Cannon #354: address maintainer review'
 prio: P0
 role: server-dev
-stage: dev
+stage: gate
 hold: null
 deps: []
 branch: fix/cannon-drop-tests
 commit: 0df5c63a009b75fffb33f8ead897b432f55fcead
+repo: /home/alex/src/openrune-work/agents/sd76/or
 local_only: false
 owner: sd80
 evidence: /home/alex/osrs-plugins-reverse/re/evidence/cannon-review-354
 network: true
-summary: 'Drop #354''s tests: new commit on 60cffedfb on fork staging fix/cannon-drop-tests; PR text and accuracy/cannon.md updated on docs'
+summary: 'Contributed to #354 (head 0df5c63a0): tests dropped, comment, body, ready; in review.'
 booked:
   dev: 0df5c63a009b75fffb33f8ead897b432f55fcead|da39a3ee5e6b
 cost:
@@ -23,7 +24,7 @@ cost:
   usd: 0
   tokens: 0
 created: '2026-10-24T19:31:52Z'
-updated: '2026-10-25T00:37:54Z'
+updated: '2026-10-25T00:40:45Z'
 ---
 ## Change
 Upstream #354 is CHANGES_REQUESTED (Mark7625 2026-10-22 07:57, eaglepurerocketgrape 11:42). Head content/cannon 9c08b42ca. Supersedes the BR-C1 fold decision on `cannon`: the fix goes on the PR head itself.
@@ -86,3 +87,5 @@ Upstream #354 is CHANGES_REQUESTED (Mark7625 2026-10-22 07:57, eaglepurerocketgr
 - 2026-10-25T00:09:34Z dod ticked: 3, 4
 - 2026-10-25T00:37:54Z ready -> dev: dispatched to sd80
 - 2026-10-25T00:37:54Z run sd80 started (server-dev, stage dev)
+- 2026-10-25T00:40:45Z dev -> gate: hand-over recorded
+- 2026-10-25T00:40:45Z handover fix/cannon-drop-tests@0df5c63a0: Contributed to #354 (head 0df5c63a0): tests dropped, comment, body, ready; in review.
