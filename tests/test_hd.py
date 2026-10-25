@@ -63,6 +63,19 @@ class R2Flow(Sandbox):
         F.f["anc"].add((C, A))
         self.assertEqual(names(self.ctx(F)), [])                               # no re-gate of a merged change
 
+    def test_the_client_gate_ties_the_probe_report_to_the_head(self):
+        import importlib.util, subprocess as sp
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        spec = importlib.util.spec_from_file_location("gate_client", os.path.join(root, "gates", "client.py"))
+        gate = importlib.util.module_from_spec(spec); spec.loader.exec_module(gate)
+        self.evidence("c1", "repack.log", "logcat.txt")
+        ev = os.path.join(self.ev, "c1")
+        open(os.path.join(ev, "repack.log"), "w").write("telemetry: x\n" * 7)
+        open(os.path.join(ev, "api-probe.tsv"), "w").write("# build: v0.1.1-59-gabcdef123456\n")
+        for out, ok in (("docs/a.md\n", 0), ("host/X.java\ndocs/a.md\n", 1)):
+            with mock.patch.object(gate.subprocess, "run", return_value=R(0, out)), mock.patch("sys.stdout", new_callable=io.StringIO):
+                self.assertEqual(gate.main("c1", "f" * 40, B, ev), ok)
+
     def test_a_merge_conflict_is_the_devs_step(self):
         self.change("c1")
         self.store.save_record("c1", "handover", {"head": A, "base": B, "evidence": "e"})

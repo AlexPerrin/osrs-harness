@@ -5,6 +5,7 @@ extract, a data-tool dump or a devtools JSON), and a Network QA report when the 
 import fnmatch
 import os
 import re
+import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -30,6 +31,18 @@ def main(slug, head, base, ev):
     hits = [f for p in DEVICE for f in files if fnmatch.fnmatch(f, p)]
     ok &= bool(hits)
     print("device evidence: " + (", ".join(hits[:3]) if hits else f"none ({', '.join(DEVICE)})"))
+    built = None
+    if os.path.exists(os.path.join(ev, "api-probe.tsv")):
+        with open(os.path.join(ev, "api-probe.tsv"), errors="replace") as f:
+            m = re.search(r"^# build: \S*-g([0-9a-f]{7,})", f.read(4000), re.M)
+        built = m and m.group(1)
+    if built and not head.startswith(built):   # the report is evidence of the build it names: only docs may differ
+        r = subprocess.run(["git", "-C", store.config()["paths"]["client"], "diff", "--name-only", built, head],
+                           capture_output=True, text=True)
+        code = [p for p in r.stdout.split() if not p.startswith("docs/")] if r.returncode == 0 else ["(cannot diff)"]
+        ok &= not code
+        print(f"probe report built at {built[:9]}: " + ("only docs differ from the head" if not code else
+              f"the head differs in {', '.join(code[:5])}: rerun the probe at the head"))
     if ch.get("network"):
         nq = [f for f in files if fnmatch.fnmatch(f, "netqa*.md")]
         ok &= bool(nq)
