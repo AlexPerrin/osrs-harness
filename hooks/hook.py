@@ -4,10 +4,10 @@
   PreToolUse (Bash) binds the run first: an agent of a role with no run yet gets runs/<name>.json from its transcript's first
                     line (``Harness change `<slug>` run `<name>` head `<sha>` def `<hash>` step `<step>` ``), the agent id,
                     its role and the console pid with its start time. Without that line nothing is written. Then the guard.
-  SubagentStop      when the agent handed back (a SubagentHandback call in its transcript): writes `ended`, `record` (the
-                    role's record exists and is newer than the start), `last` and the token usage; binds the run from the
-                    transcript when the start saw no prompt; then runs `hd tick`. A stop without a hand-back is a pause
-                    for background work and changes nothing. A stop cannot be refused.
+  SubagentStop      when the agent handed back (a SubagentHandback call in its transcript): ends the run (`ended`,
+                    `record`: the role's record exists and is newer than the start, `last`, the token usage) and runs
+                    `hd tick`. Without the hand-back it is a pause for background work, or a transcript not yet flushed:
+                    the pass ends the run when it sees the hand-back. A stop cannot be refused.
   The guard (R4):   deny by default for OpenRune: a `git` or `gh` command naming the upstream repo passes
                     only as a read; fork pushes and gh writes only to the role's refs (hd.yaml `roles`); forced pushes,
                     tags, releases, the train scripts and docker writes on the live stack denied to all; `hd approve`
@@ -25,7 +25,8 @@ HD_HOME = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, HD_HOME)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import shellparse as sp  # noqa: E402
-from hd import store  # noqa: E402
+from hd import store, tick  # noqa: E402
+from hd.tick import _lines, handed_back  # noqa: E402
 
 BRIEF = re.compile(r"Harness change `([a-z0-9][a-z0-9.-]*)` run `([a-z0-9][a-z0-9.-]*)`(?: head `([0-9a-f]*)`)?(?: def `(\w+)`)?(?: step `(\w+)`)?")
 PUSH = re.compile(r"\bgit\b(\s+-\S+(\s+[^-\s]\S*)?)*\s+push\b")
@@ -68,18 +69,6 @@ def transcript_of(data):
     return os.path.join(os.path.dirname(t), sid, "subagents", f"agent-{aid}.jsonl") if t and sid and aid else None
 
 
-def _lines(path):
-    try:
-        with open(path or "", errors="replace") as f:
-            for line in f:
-                try:
-                    yield json.loads(line)
-                except ValueError:
-                    continue
-    except OSError:
-        return
-
-
 def _text(content):
     if isinstance(content, str):
         return content
@@ -91,30 +80,6 @@ def first_prompt(path):
         if e.get("type") == "user":
             return _text((e.get("message") or {}).get("content"))
     return ""
-
-
-def usage(path):
-    out = {"input": 0, "output": 0, "cache_read": 0, "cache_creation": 0, "turns": 0}
-    keys = {"input_tokens": "input", "output_tokens": "output", "cache_read_input_tokens": "cache_read",
-            "cache_creation_input_tokens": "cache_creation"}
-    for e in _lines(path):
-        u = (e.get("message") or {}).get("usage") if e.get("type") == "assistant" else None
-        if u:
-            out["turns"] += 1
-            for k, name in keys.items():
-                if isinstance(u.get(k), (int, float)):
-                    out[name] += int(u[k])
-    return out
-
-
-def handed_back(path):
-    """The agent called SubagentHandback: its work is over. A stop without it is a pause for background work."""
-    for e in _lines(path):
-        if e.get("type") == "assistant":
-            for b in (e.get("message") or {}).get("content") or []:
-                if isinstance(b, dict) and b.get("type") == "tool_use" and b.get("name") == "SubagentHandback":
-                    return True
-    return False
 
 
 def _bind(data):
@@ -129,15 +94,19 @@ def start(data):
     slug, name, head, dh, step = b
     pid, st = console()
     rec = {"name": name, "agent_id": data.get("agent_id"), "role": data.get("agent_type"), "change": slug, "head": head or None,
-           "def_hash": dh, "step": step, "console_pid": pid, "console_start": st, "started": store.now(), "ended": None}
+           "def_hash": dh, "step": step, "transcript": transcript_of(data), "console_pid": pid, "console_start": st,
+           "started": store.now(), "ended": None}
     store.save_run(rec)
-    store.event("run", action="start", run=name, role=rec["role"], change=slug)
+    store.event("run", action="start", run=name, role=rec["role"], change=slug, agent=data.get("agent_id"))
 
 
 def stop(data):
+    """The agent handed back: end its run and run a pass. Without the hand-back in the transcript this stop is a pause
+    (background work), or the transcript is not flushed yet: the pass ends the run when it sees the hand-back."""
     aid = data.get("agent_id")
     run = next((r for r in store.runs() if r.get("agent_id") == aid), None)
-    if not handed_back(data.get("agent_transcript_path") or transcript_of(data)):
+    path = data.get("agent_transcript_path") or transcript_of(data)
+    if not handed_back(path):
         store.event("run", action="pause", run=(run or {}).get("name"), agent=aid)
         return
     if run is None:
@@ -146,14 +115,9 @@ def stop(data):
             return
         slug, name, head, dh, step = b
         run = {"name": name, "agent_id": aid, "role": data.get("agent_type"), "change": slug, "head": head or None,
-               "def_hash": dh, "step": step, "console_pid": None, "console_start": None, "started": "", "ended": None}
-    kind = RECORD.get((store.config().get("roles") or {}).get(run["role"], {}).get("record") or "")
-    rec = store.record(run["change"], kind) if kind else None
-    produced = None if not kind else bool(rec) and (rec.get("ts") or "") >= (run.get("started") or "")
-    run.update(ended=store.now(), record=produced, last=(data.get("last_assistant_message") or "")[-500:],
-               usage=usage(data.get("agent_transcript_path") or transcript_of(data)))
-    store.save_run(run)
-    store.event("run", action="end", run=run["name"], role=run["role"], change=run["change"], record=produced, **run["usage"])
+               "def_hash": dh, "step": step, "transcript": path, "console_pid": None, "console_start": None, "started": "", "ended": None}
+    if not run.get("ended"):
+        tick.end_run(run, last=(data.get("last_assistant_message") or "")[-500:])
     subprocess.run([sys.executable, os.path.join(HD_HOME, "hd.py"), "tick"], capture_output=True, timeout=600)
 
 

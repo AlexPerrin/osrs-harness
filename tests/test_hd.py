@@ -263,6 +263,12 @@ class R5Recovery(Sandbox):
             hook.stop(data)
         self.assertTrue(self.store.run("s-1")["ended"])
         self.assertTrue(tick_run.called)
+        self.store.save_run({"name": "s-2", "agent_id": "y", "role": "server-dev", "change": "s", "started": "t", "ended": None,
+                             "transcript": t, "console_pid": os.getpid(), "console_start": "0"})
+        F = Fake(procs={(os.getpid(), "0")})
+        with mock.patch.object(tick, "sh"):
+            self.assertIn("run s-2: handed back; ended", tick.repairs(self.ctx(F)))    # the stop hook ran before the flush
+        self.assertTrue(self.store.run("s-2")["ended"])
 
     def test_one_changes_fault_stops_that_change_only(self):
         self.change("c1")

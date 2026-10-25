@@ -2,6 +2,7 @@
 whose dependencies are live, then file maintainer findings. `run(F, dry)` returns the lines it would print.
 """
 import glob
+import json
 import os
 import shutil
 
@@ -9,12 +10,70 @@ from . import server, steps, store
 from .facts import Facts, sh
 
 LIVE_IMAGES = "osrs-openrune"
+RECORD = {"handover": "handover", "verdict": "verdict", "measure": "measure"}
+
+
+# --- the run's end, read from the agent's transcript ---------------------------------------------------------------------
+
+def _lines(path):
+    try:
+        with open(path or "", errors="replace") as f:
+            for line in f:
+                try:
+                    yield json.loads(line)
+                except ValueError:
+                    continue
+    except OSError:
+        return
+
+
+
+def usage(path):
+    out = {"input": 0, "output": 0, "cache_read": 0, "cache_creation": 0, "turns": 0}
+    keys = {"input_tokens": "input", "output_tokens": "output", "cache_read_input_tokens": "cache_read",
+            "cache_creation_input_tokens": "cache_creation"}
+    for e in _lines(path):
+        u = (e.get("message") or {}).get("usage") if e.get("type") == "assistant" else None
+        if u:
+            out["turns"] += 1
+            for k, name in keys.items():
+                if isinstance(u.get(k), (int, float)):
+                    out[name] += int(u[k])
+    return out
+
+
+def handed_back(path):
+    """The agent called SubagentHandback: its work is over. A stop without it is a pause for background work."""
+    for e in _lines(path):
+        if e.get("type") == "assistant":
+            for b in (e.get("message") or {}).get("content") or []:
+                if isinstance(b, dict) and b.get("type") == "tool_use" and b.get("name") == "SubagentHandback":
+                    return True
+    return False
+
+
+def end_run(run, last=""):
+    """The run is over: `record` says whether the role's record exists and is newer than the start."""
+    kind = RECORD.get((store.config().get("roles") or {}).get(run.get("role"), {}).get("record") or "")
+    rec = store.record(run["change"], kind) if kind else None
+    produced = None if not kind else bool(rec) and (rec.get("ts") or "") >= (run.get("started") or "")
+    run.update(ended=store.now(), record=produced, last=last, usage=usage(run.get("transcript")))
+    store.save_run(run)
+    store.event("run", action="end", run=run["name"], role=run.get("role"), change=run["change"], record=produced, **run["usage"])
+    return run
+
 
 
 def repairs(ctx, dry=False):
     out, F = [], ctx.F
     for r in ctx.runs:
-        if not r.get("ended") and not F.alive(r.get("console_pid"), r.get("console_start")):
+        if r.get("ended"):
+            continue
+        if r.get("transcript") and handed_back(r["transcript"]):
+            out.append(f"run {r['name']}: handed back; ended")
+            if not dry:
+                end_run(r, last="hand-back seen by the pass")
+        elif not F.alive(r.get("console_pid"), r.get("console_start")):
             out.append(f"run {r['name']}: console died; ended")
             if not dry:
                 r.update(ended=store.now(), record=None, last="console died")
