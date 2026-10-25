@@ -69,7 +69,7 @@ The dev owns accuracy and the build:
    `spotlessCheck` on them, not the full suite), behaviour against the spec,
    `ab-test` on desktop RuneLite where it renders.
 4. Self-check the diff against upstream AGENTS.md and CONTRIBUTING (no added comments, no tests unless justified) and
-   write the PR text (`pr-title.txt`, `pr-body.md`, skill `pr-text-review`) in the evidence dir.
+   write the PR text (`pr-title.txt`, `pr-body.md`, and `pr-comment.md`, the status comment `hd contribute` posts; skill `pr-text-review`) in the evidence dir.
 5. `hd handover ... --repo <clone>`: the check runs at once and refuses an incomplete hand-over.
 
 A new commit voids QA's record and the approval; the branch stays in `integration` at the last pushed commit meanwhile.
