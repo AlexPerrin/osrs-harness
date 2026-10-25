@@ -353,6 +353,14 @@ class R6Economy(Sandbox):
 
 
 class R7Visibility(Sandbox):
+    def test_the_dashboard_shows_queue_agents_and_status(self):
+        from hd import dashboard
+        self.change("c1")
+        self.store.save_run({"name": "c1-1", "agent_id": "x", "role": "client-dev", "change": "c1", "started": "2026-10-25T10:00:00Z", "ended": None})
+        page = dashboard.render(self.ctx(Fake(refs={"origin/client/c1": A, "origin/main": B})))
+        for part in ("Task queue", "Agents running", "c1-1", "client-dev", "Status", "Upstream PRs"):
+            self.assertIn(part, page)
+
     def test_hd_lists_only_the_sections(self):
         self.goal()
         self.change("c1")

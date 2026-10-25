@@ -151,4 +151,9 @@ def run(F=None, dry=False):
                     store.event("step", change=ch["slug"], step="ready", detail=detail[:300])
         if not dry:
             out += [f"filed {s}" for s in server.findings(ctx)]
+            try:
+                from . import dashboard
+                dashboard.write(steps.Ctx(cfg, F))
+            except Exception as e:   # the page is a view; it never stops a pass
+                store.event("error", what="dashboard", detail=repr(e)[:300])
     return out

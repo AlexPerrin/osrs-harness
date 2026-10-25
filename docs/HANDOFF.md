@@ -16,6 +16,9 @@ after every agent hand-back. The backlog is one change per open upstream PR (#35
 changes the pass files for maintainer findings. The goal `client-api` has no measurement and no client change yet; the
 orchestrator's first run defines the client backlog, starting with the probe `tools/api-probe.sh`.
 
+The dashboard is http://localhost:7790 (unit `hd-dashboard.service`): the task queue, the agents running with their
+last activity, what waits for the user, the PRs, the train and the test server; the pass rewrites it every minute.
+
 ## Open decisions for the user
 - Eleven `fin/*` fork branches hold finished, test-server-live work never contributed (diaries, doric, fairy-rings,
   farming, grand-exchange, jewellery, op-overrides, plank-sack, quest-test-fixture, rune-pouch, vampyre-slayer): the

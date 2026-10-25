@@ -9,7 +9,7 @@ is built), docs/HANDOFF.md (current state) and, before repeating anything, docs/
 Every session and agent runs from this repo (hooks, agents, skills and MCP servers are wired in `.claude/` and `.mcp.json`).
 
 ```
-hd.py, hd/        the nine commands (cli), store, facts, steps (the one mechanism), server, tick
+hd.py, hd/        the nine commands (cli), store, facts, steps (the one mechanism), server, tick, dashboard (the page)
 gates/            the script gate of each track
 hooks/            hook.py (one program: run start, run stop, the guard) and its shell parser
 train/            train.sh, image.sh, deploy.sh, Dockerfile.integration: the one long process

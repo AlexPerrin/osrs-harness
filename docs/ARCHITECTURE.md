@@ -198,6 +198,8 @@ Steps of the harness itself, first in every pass; each repair is one event; noth
 ~/.config/systemd/user/hd-tick.timer:    [Timer] OnBootSec=1min  OnUnitActiveSec=1min   [Install] WantedBy=timers.target
 loginctl enable-linger alex && systemctl --user enable --now hd-tick.timer
 python3 ~/osrs-harness/hd.py                    # the console's list
+~/.config/systemd/user/hd-dashboard.service: python3 -m http.server 7790 --bind 127.0.0.1 --directory %h/osrs-harness/harness/state/dashboard
+                                          (the page hd/dashboard.py writes after each pass: the list, the agents' activity, the status)
 python3 ~/osrs-harness/hd.py tick --dry-run     # read facts, print the next step of every change, change nothing
 python3 -m unittest discover -s tests           # one class per requirement; helpers.Fake stands in for git, gh, docker, /proc
 ```

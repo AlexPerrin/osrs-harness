@@ -42,18 +42,18 @@ def _last_script(ctx, ch):
     return s.get("detail") if s.get("step") in steps.stage(ctx, ch) else None
 
 
-def cmd_list(a):
-    ctx = _ctx()
+def view(ctx, briefs=True):
+    """What the console list shows, as data (also the dashboard's): goals, spawns, cards, questions, alerts, running, changes."""
     spawns = []
     os.makedirs(store.path("briefs"), exist_ok=True)
     for ch, step, role, name in steps.dispatch(ctx):
-        text = steps.brief(ctx, ch, step, name)
         p = store.path("briefs", f"{name}.md")
-        with open(p, "w") as f:
-            f.write(text)
+        if briefs:
+            with open(p, "w") as f:
+                f.write(steps.brief(ctx, ch, step, name))
         spawns.append({"name": name, "role": role, "change": ch["slug"], "step": step.name, "brief": p,
                        "worktree": bool((ctx.cfg["roles"].get(role) or {}).get("worktree"))})
-    out = {
+    return {
         "goals": [{"slug": g["slug"], "value": (ctx.rec(g, "measure") or {}).get("value"), "target": g["target"],
                    "serving": [c["slug"] for c in steps._serving(ctx, g)]} for g in ctx.goals],
         "spawn": spawns,
@@ -65,6 +65,10 @@ def cmd_list(a):
         "changes": [{"slug": c["slug"], "track": c["track"], "priority": c.get("priority"), "stage": steps.stage(ctx, c),
                      "last": _last_script(ctx, c)} for c in ctx.changes if steps.done(ctx, c) is not True],
     }
+
+
+def cmd_list(a):
+    out = view(_ctx())
     if a.json:
         print(json.dumps(out, indent=1))
         return
