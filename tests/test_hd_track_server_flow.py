@@ -15,6 +15,7 @@ from hd_helpers import SHA, SHB
 from helpers import commit_file, git, init_repo
 
 from hd import cli, events, store
+from hd.util import short
 from hd.tracks.server import contribute, gateci
 from hd.tracks import FakeObserver
 
@@ -369,6 +370,13 @@ class ContributeTest(unittest.TestCase):
                 self.w.ci = "success"
         return contribute.run(store.load("feat"), self.w.obs(), approved, wait=wait, poll=0, sleep=sleep)
 
+    def test_comment_is_the_prepared_file_else_a_short_text_never_the_summary(self):
+        ch = store.load("feat")
+        o = self.w.obs()
+        self.assertEqual(contribute.texts(ch, o)["comment"], f"Updated to {short(SHA)}.")
+        o.docs_file = lambda path: "Fixed.\n" if path == "pr-texts/feat.comment" else None
+        self.assertEqual(contribute.texts(ch, o)["comment"], "Fixed.")
+
     def test_the_whole_sequence_in_order(self):
         rc, lines = self.go()
         self.assertEqual(rc, 0, lines)
@@ -377,7 +385,7 @@ class ContributeTest(unittest.TestCase):
                                    "open the PR", "comment", "move the PR out of draft"])
         self.assertTrue(w.pr["draft"] is False)
         self.assertIn("<!-- hd-contribute:" + SHA[:12] + " -->", w.comments[0]["body"])
-        self.assertIn("adds the feature", w.comments[0]["body"])
+        self.assertIn("Updated to", w.comments[0]["body"])
         self.assertEqual(store.load("feat")["upstream_pr"], 7)
         self.assertEqual(events.read(kinds=["contribute"])[-1]["result"], "done")
         self.assertTrue(any("waiting: CI running" in l or "waiting: no CI" in l for l in lines), lines)

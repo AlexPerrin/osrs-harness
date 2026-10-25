@@ -43,7 +43,7 @@ Never stop at the first failure: a finding found late costs the user a round.
    another open PR, none of our docs in the diff, gameval ids (`fix_gameval_conflicts.py --check` clean).
 5. `style`: upstream AGENTS.md and CONTRIBUTING: no added comments, no tests unless a rule has several cases or a
    reviewer asked, nothing public for a test, commit subjects `feat:`/`fix:`.
-6. `text`: the PR text (`pr-text-review`): template sections, every claim true of the commit, caveats cover every gap.
+6. `text`: the PR text and `pr-comment.md`, the comment `hd contribute` posts (`pr-text-review`): template sections, every claim true of the commit, caveats cover every gap.
 7. `ingame`: the branch's own server on spare ports, your own desktop RuneLite pointed at it, driven with
    `osrs-devtools-desktop`; every player-facing claim; `N/A reason` where nothing renders. Stop and remove your
    containers after; never touch `osrs-openrune`, `osrs-openrune-http`, `osrs-openrune-http-desktop`.

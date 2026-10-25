@@ -2,6 +2,15 @@
 
 One short entry per issue, newest first: symptom, root cause, evidence, fix, how to recognise it again.
 
+## 2026-10-24 The contribution comment was the hand-over summary
+
+- **Symptom.** The comments on two upstream PRs were the dev's hand-over summary.
+- **Root cause.** `texts()` read `pr-comment.md` or `pr-texts/<slug>.update.md`; the prepared files were named
+  `pr-texts/<slug>.comment`, so the fallback (the summary after "Ready for review at <sha>") was posted.
+- **Fix.** `texts()` also reads `.comment`; with no file it posts "Updated to <sha>."; role files and skill name
+  `pr-comment.md`. Test: `tests/test_hd_track_server_flow.py` (`ContributeTest`).
+- **Recognise.** A PR comment that reads like a hand-over summary.
+
 ## 2026-10-24 Finished agents and qa-dev containers outlived their runs
 
 - **Symptom.** An agent waiting on its own background work stayed live over an hour after its run ended; a

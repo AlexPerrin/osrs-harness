@@ -17,7 +17,8 @@ this after the yes; agents cannot (hooks/deny_publish.py).
 
   steps(ch, obs)  [(name, done, why)]         the sequence as observed now (also shown in the user's card)
   texts(ch, obs)  {title, body, comment}      PR text: `pr-title.txt`, `pr-body.md`, `pr-comment.md` in the evidence dir,
-                                              else pr-texts/<slug>.* on the fork's docs branch
+                                              else pr-texts/<slug>.* (.comment, .update.md) on the fork's docs branch;
+                                              no comment file: "Updated to <sha>." (never the hand-over summary)
   run(...)        (rc, lines)                 0 done, 1 stopped (CI red, a refusal, a failed command), 2 CI still running
                                               with wait off
 """
@@ -55,8 +56,8 @@ def texts(ch, obs):
     slug = pr_slug(ch)
     title = local("pr-title.txt") or (obs.docs_file(f"pr-texts/{slug}.title") or "").strip() or None
     body = local("pr-body.md") or obs.docs_file(f"pr-texts/{slug}.upstream.body")
-    comment = (local("pr-comment.md") or obs.docs_file(f"pr-texts/{slug}.update.md")
-               or f"Ready for review at {ch.get('commit')}: {ch.get('summary') or ch.get('title') or ''}".rstrip(": "))
+    comment = (local("pr-comment.md") or obs.docs_file(f"pr-texts/{slug}.comment")
+               or obs.docs_file(f"pr-texts/{slug}.update.md") or f"Updated to {short(ch.get('commit') or '')}.")
     return {"title": title, "body": body, "comment": comment.strip()}
 
 

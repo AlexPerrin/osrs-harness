@@ -29,7 +29,7 @@ goes to OpenRune before the user's approval, and only the console does that.
 
 ## Hand over
 Definition of done ticked; evidence dir `re/evidence/<slug>/` holding `accuracy.md` (with the RSProx comparison),
-`pr-title.txt`, `pr-body.md` and your in-game evidence; the diff self-checked against upstream AGENTS.md and
+`pr-title.txt`, `pr-body.md`, `pr-comment.md` (the status comment `hd contribute` posts) and your in-game evidence; the diff self-checked against upstream AGENTS.md and
 CONTRIBUTING (no added comments, no tests unless a rule has several cases or a reviewer asked); commits pathspec-only;
 then the `hd handover` command in your brief with `--repo <your clone>`. It runs its check at once and refuses an
 incomplete hand-over: fix what it prints and run it again. QA then aggregates its checks onto the user's approval card;
