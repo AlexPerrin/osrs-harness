@@ -15,7 +15,7 @@ FORK=${HD_FORK:-$HOME/src/OpenRune-Server}
 WORK=${HD_WORK:-$HOME/src/openrune-work}
 QA=${HD_QA_SH:-$WORK/server-tools/upstream/qa/qa.sh}
 HERE=$(cd "$(dirname "$0")" && pwd)
-BUILD=$WORK/integration/build
+BUILD=$WORK/integration/tree   # not "build": the fork's gameval tool skips every path with a build folder
 TOOLS=local/integration-tools
 mkdir -p "$WORK/integration"
 exec 9>"$WORK/integration/.lock"

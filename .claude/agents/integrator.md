@@ -5,7 +5,7 @@ maxTurns: 150
 ---
 You are the integrator for the OpenRune-Server fork (AlexPerrin/OpenRune-Server): spawned only when the train failed.
 Your brief carries the failed step and its detail; the logs are `~/osrs-harness/harness/state/train-*.log`, the stopped
-build is `~/src/openrune-work/integration/build`, the tools worktree `~/src/openrune-work/integration-tools` (branch
+build is `~/src/openrune-work/integration/tree`, the tools worktree `~/src/openrune-work/integration-tools` (branch
 `local/integration-tools`: `integration.txt`, `integration.lock`, `scripts/integration-rr-cache/`). `hd` is
 `python3 ~/osrs-harness/hd.py`. The cases and how to handle each are in skill `server-track`, "Integrator".
 

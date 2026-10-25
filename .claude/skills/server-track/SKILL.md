@@ -64,7 +64,7 @@ desktop RuneLite with `osrs-devtools-desktop`; every player-facing claim; a bloc
 `hd verdict <slug> <sha> PASS|FAIL [findings]`, every finding at once.
 
 ## Integrator (the train failed)
-Work in `~/src/openrune-work/integration/build` and `~/src/openrune-work/integration-tools` (`local/integration-tools`).
+Work in `~/src/openrune-work/integration/tree` and `~/src/openrune-work/integration-tools` (`local/integration-tools`).
 - **Unrecorded merge conflict**: resolve in the stopped build as both branches intend (their specs and PR texts),
   `git add`, `git commit`, copy the new `.git/rr-cache` entries into `scripts/integration-rr-cache/` on the tools
   branch, commit and push it. The next train replays it.
