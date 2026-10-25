@@ -70,7 +70,7 @@ def _stage_text(ch, stage, name):
     elif stage == "gate":
         if ch.get("batch") and ch.get("batch") == ch.get("id"):
             lines = [f"Stage `gate`: run the gate on batch `{ch.get('batch')}` (the role file says which gate and how). A release "
-                     "gate copies its build (base.apk, split.apk, THIRD_PARTY_NOTICES.md, the repack log) into the evidence dir "
+                     "gate copies its build (osrs-runelite.apk, THIRD_PARTY_NOTICES.md, the repack log) into the evidence dir "
                      "before it ends: the worktree is removed with the run and the release attaches those copies.",
                      f"End with `{HD} gate {slug} PASS|FAIL \"note\"`. You never write the code you check."]
         else:

@@ -24,7 +24,7 @@ Read first: `docs/client-state.md` in the client repo, `docs/app-telemetry.md` "
 
 ## Goal
 A PASS or FAIL for `master` at the exact commit, recorded in `qa/client-<version>.md`, with the release build
-(`base.apk`, `split.apk`, `THIRD_PARTY_NOTICES.md`, repack log) copied into `re/evidence/<batch-id>/` in the main
+(`re/out/osrs-runelite.apk`, `THIRD_PARTY_NOTICES.md`, repack log) copied into `re/evidence/<batch-id>/` in the main
 checkout before you end: your worktree is removed with the run and the release attaches those copies.
 
 ## Definition of done
