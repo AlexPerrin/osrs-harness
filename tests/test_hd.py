@@ -199,6 +199,18 @@ class R5Recovery(Sandbox):
         F.f["refs"]["fork/local/integration-tools"] = C
         self.assertEqual(steps.QUEUE.actor(self.ctx(F), self.ctx(F).by_slug["s"]), "script")
 
+    def test_an_unbound_agent_is_bound_at_its_first_command(self):
+        sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "hooks"))
+        import hook
+        t = os.path.join(self.tmp, "agent-x.jsonl")
+        with open(t, "w") as f:
+            f.write(json.dumps({"type": "user", "message": {"role": "user", "content": f"Harness change `s` run `s-1` head `{A}` def `d`\n"}}) + "\n")
+        data = {"hook_event_name": "PreToolUse", "tool_name": "Bash", "agent_type": "server-dev", "agent_id": "x",
+                "agent_transcript_path": t, "tool_input": {"command": "git status"}}
+        with mock.patch("sys.stdout", new_callable=io.StringIO):
+            hook.guard(data)
+        self.assertEqual([(r["name"], r["agent_id"], r["change"]) for r in self.store.runs()], [("s-1", "x", "s")])
+
     def test_one_failed_train_is_one_integrator(self):
         F = Fake(refs={"fork/dev/s": A, "fork/dev/t": A, "origin/main": B, "fork/local/integration-tools": D})
         for s in ("s", "t"):

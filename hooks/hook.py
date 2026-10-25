@@ -277,6 +277,9 @@ def guard(data):
     cmd = (data.get("tool_input") or {}).get("command") or ""
     role = data.get("agent_type") or "console"
     run = next((r for r in store.runs() if r.get("agent_id") == data.get("agent_id")), None) if data.get("agent_id") else None
+    if run is None and data.get("agent_type") and data.get("agent_id"):
+        start(data)   # the start event can come before the agent's transcript exists: bind at its first command instead
+        run = next((r for r in store.runs() if r.get("agent_id") == data.get("agent_id")), None)
     why = Guard(store.config(), role, (run or {}).get("change")).decide(cmd, data.get("cwd") or os.getcwd())
     if why:
         store.event("denial", role=role, run=(run or {}).get("name"), rule=why[:160], command=cmd[:200])
