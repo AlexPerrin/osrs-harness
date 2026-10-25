@@ -1,8 +1,8 @@
 ---
 name: device-test
-description: "Test on the Android device (BlueStacks) against the OpenRune test server, from backup to handing the device back restored. Use for any check that needs the Android app."
+description: "Test on the Android emulator (Agent_Phone) against the OpenRune test server, from backup to handing the device back restored. Use for any check that needs the Android app."
 ---
-# Device test (your own BlueStacks instance, its own adb port; app uid 10071)
+# Device test (your own Agent_Phone emulator, its own adb port; app uid 10071)
 
 1. **Instance.** Start your own emulator (the Agent_Phone AVD read-only on a free even port, command in skill `test-instances`), `export ANDROID_SERIAL=emulator-<port>`, then `adb uninstall com.jagex.oldscape.android` (a second guard; Agent_Phone holds no OSRS app) before installing the repack, stop on any install error, and launch only after `libosrsrl.so` is in the installed APK; stop it when done; never touch an instance already open; no lock. Client repo paths below are under `~/osrs-plugins-reverse` (docs, tools, re/).
 2. **Backup.** `~/osrs-harness/bench/device-restore-check.sh pre /tmp/osrs-slot/<name>` before touching anything.

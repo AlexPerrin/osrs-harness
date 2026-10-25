@@ -27,7 +27,7 @@ gate and the merge into `master` run without you. When you cannot finish: `hd as
 - Never connect anything to Jagex or RuneScape servers; a new outbound host: stop and report at once.
 - Never restart or edit the server; never read or modify `C:\Users\Alex\.runelite`.
 - Never push elsewhere, post, tag, deploy or write progress files; a hook denies those.
-- Start your own client (your own BlueStacks instance or desktop RuneLite) and stop it when you are done (skill
+- Start your own client (your own Agent_Phone emulator or desktop RuneLite) and stop it when you are done (skill
   `test-instances`); never touch an instance already open.
 
 Your final message is one line: the change slug and what you recorded.

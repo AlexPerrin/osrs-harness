@@ -16,7 +16,7 @@ appended). Reference: `docs/app-telemetry.md` (read in full before any build tha
    from `osrs-mcp`.
 2. Build on `client/<slug>`. Host build: `host/build.sh`, `ninja -C re/build`, `tools/repack.sh`; every APK goes through
    the telemetry patch (7 `telemetry:` lines).
-3. Verify the changed plugin or host path on the device (`device-test`, BlueStacks against the test server). Evidence
+3. Verify the changed plugin or host path on the device (`device-test`, your own Agent_Phone emulator against the test server). Evidence
    is a logcat extract or a data-tool dump. Only when relevant: `network-qa` when the change adds or alters outbound
    traffic (then `network: true` in the definition and `netqa*.md` in the evidence); `ab-test` when it claims parity
    with desktop drawing.

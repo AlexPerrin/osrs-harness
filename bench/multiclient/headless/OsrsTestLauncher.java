@@ -23,7 +23,7 @@ import net.rsprox.shared.property.RootProperty;
 
 public final class OsrsTestLauncher
 {
-	static final String TARGET = "OpenRune Test";
+	static final String TARGET = System.getProperty("osrstest.target", "OpenRune Test");   // desktop.sh names it after the owner
 	static final String JAV_CONFIG_PREFIX = "http://127.0.0.1:";
 
 	static void log(String s)

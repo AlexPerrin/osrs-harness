@@ -50,7 +50,6 @@ The user's rules are the memory files in `/home/alex/.claude/projects/-home-alex
   merges; the fork CI load is one run per open change per upstream merge.
 - WSL to Windows interop (adb.exe, desktop bridge) times out intermittently: retry. The devtools MCP servers often do
   not connect; `tools/devtools_mcp.py --call` and the desktop bridge script work.
-- BlueStacks must be started on Windows after a reboot or WSL restart (`HD-Player.exe --instance Pie64`).
 - `qa.sh` dev lane: spotless cannot run in a git worktree inside the container (no `.git` dir visible), so a merged
   tree for the dev lane is a shared clone (`agents/<name>/or-run`); a clone dir recreated under a warm `qa-dev-<owner>`
   container leaves a stale mount ("outside of container mount namespace"): remove that container first.

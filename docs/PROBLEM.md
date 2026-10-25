@@ -16,7 +16,7 @@ docs/ARCHITECTURE.md is the one solution we build.
 | A6 | A change is live when its target contains it: client `master`, the tree the test server runs, harness `main`. A server change is done when upstream `main` contains it; every other change is done when live. |
 | A7 | Some things exist once: the integration clone, the live server, the Ghidra project, the Android device. The machine bounds how many agents, builds and clients run at once. |
 | A8 | Elapsed time says nothing about what happened. |
-| A9 | Python 3.12 standard library and PyYAML; WSL2 with systemd; Docker Desktop and BlueStacks run on Windows and are started by hand; `gh` is authenticated as the user. |
+| A9 | Python 3.12 standard library and PyYAML; WSL2 with systemd; Docker Desktop and the Android emulator run on Windows and are started by hand; `gh` is authenticated as the user. |
 | A10 | No client contacts Jagex; the user's own RuneLite and the tester account are never touched. |
 
 ## Principles

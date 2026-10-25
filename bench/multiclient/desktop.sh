@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Start/stop the isolated desktop A/B client (RuneLite through headless RSProx, to OpenRune) from WSL.
-#   bench/multiclient/desktop.sh start     # headless RSProx -> RuneLite "OpenRune Test"
+#   DESKTOP_OWNER=<run> desktop.sh start   # headless RSProx -> RuneLite "OpenRune Test - <run>"
 #   DESKTOP_TARGET_YAML=<file> desktop.sh start   # same, against another local server (QA branch
 #                                         server: openrune/upstream/qa/qa.sh start writes the file);
 #                                         stop (or the next plain start) restores bench/multiclient/proxy-targets.yaml
@@ -47,13 +47,17 @@ start)
     cp "$(dirname "$(readlink -f "$0")")/proxy-targets.yaml" "$T"; rm -f "$MARK"
     echo "proxy target: restored the default"
   fi
+  # The target's name is the RuneLite window title: "OpenRune Test - <owner>", the agent's run name, so the user sees
+  # whose window it is. DESKTOP_OWNER defaults to the instance name.
+  TITLE="OpenRune Test - ${DESKTOP_OWNER:-$DESKTOP_INSTANCE}"
+  sed -i "s|^  - name: .*|  - name: $TITLE|" "$T"
   ts=$(date +%Y%m%d-%H%M%S)
   rm -f $WIN/rsprox.pid
   # The interop pipe stays open while the Windows child lives, so background the PowerShell.
   nohup $PS "\$env:JAVA_TOOL_OPTIONS='-Duser.home=$WIN_DIR\\home -Dosrstest.marker=osrs-test-$DESKTOP_INSTANCE';
     Remove-Item Env:JX_* -ErrorAction SilentlyContinue;
     \$p = Start-Process -FilePath '$JAVA' -WorkingDirectory '$WIN_DIR' -WindowStyle Hidden -PassThru \`
-      -ArgumentList '-Dosrstest.marker=osrs-test-$DESKTOP_INSTANCE','-Dosrstest.portskip=$PORT_SKIP','-cp','$WIN_DIR\\rsprox\\launcher;$WIN_DIR\\rsprox\\lib\\*','OsrsTestLauncher' \`
+      -ArgumentList '-Dosrstest.marker=osrs-test-$DESKTOP_INSTANCE','-Dosrstest.portskip=$PORT_SKIP','\"-Dosrstest.target=$TITLE\"','-cp','$WIN_DIR\\rsprox\\launcher;$WIN_DIR\\rsprox\\lib\\*','OsrsTestLauncher' \`
       -RedirectStandardOutput '$WIN_DIR\\logs\\rsprox-$ts.out' -RedirectStandardError '$WIN_DIR\\logs\\rsprox-$ts.err';
     \$p.Id | Out-File -Encoding ascii '$WIN_DIR\\rsprox.pid'; 'started RSProx pid ' + \$p.Id" >/dev/null 2>&1 </dev/null &
   disown

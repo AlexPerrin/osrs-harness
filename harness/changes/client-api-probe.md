@@ -38,7 +38,7 @@ Build the probe:
   GE offer.
 
 ## Definition of done
-- On a client build at the change's head, `tools/api-probe.sh` run twice on the dev's own BlueStacks instance logged in
+- On a client build at the change's head, `tools/api-probe.sh` run twice on the dev's own emulator logged in
   on the test server prints the same percentage both times and writes a report with one row per denominator method
   (row count equals the printed denominator; the header lists the jar version, build sha and any excluded interface).
 - Spot check in the hand-over: three pass rows, three throw or inert rows and one native-hook row, each matching what

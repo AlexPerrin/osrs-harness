@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# End-of-slot restore check for the Android device (BlueStacks 127.0.0.1:5555), so the restore
+# End-of-slot restore check for the Android emulator (ANDROID_SERIAL, e.g. emulator-5572), so the restore
 # checklist is a check rather than prose (docs/workflow.md "State docs").
 #   bench/device-restore-check.sh pre <dir>     at the start of a slot: saves settings.properties
 #                                               (exec-out cat, byte-exact) and the files/ tree listing
@@ -9,7 +9,7 @@
 # test jars by name).
 set -u
 ADB=${ADB:-/mnt/c/Users/Alex/AppData/Local/Android/Sdk/platform-tools/adb.exe}
-S="-s ${ANDROID_SERIAL:-127.0.0.1:5555}"
+S="-s ${ANDROID_SERIAL:?set ANDROID_SERIAL to your emulator}"
 F=/sdcard/Android/data/com.jagex.oldscape.android/files
 DEFAULT_PLUGINS="grounditems.jar opponentinfo.jar quest-helper.jar"
 # Debug props that must be empty after a slot (devtools/soundlog may be 0 or empty).

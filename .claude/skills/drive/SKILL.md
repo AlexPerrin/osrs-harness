@@ -21,7 +21,7 @@ pauses spawning.
    spawned with it. No, or silence: nothing is recorded; the card stays.
 4. **question**: ask the user with AskUserQuestion, then `hd answer <slug> "<their words>"`. The answer is appended to
    the definition and the dev is spawned again on the next `hd`.
-5. **alert**: tell the user; only they can fix it (Docker, BlueStacks, `gh auth`).
+5. **alert**: tell the user; only they can fix it (Docker, `gh auth`).
 6. Repeat with `/loop` or ScheduleWakeup; a few minutes between rounds is plenty.
 
 ## Rules
