@@ -67,6 +67,10 @@ class BaseTrack:
     def check_items(self, ch, obs, ev, files):
         return []
 
+    def checked_later(self, item):
+        """A definition-of-done item a later step checks itself: it does not block the hand-over."""
+        return False
+
     def brief(self, ch, stage):
         return []
 
@@ -90,7 +94,26 @@ class BaseTrack:
 
 
 def evidence_path(ch):
-    """The change's evidence dir as an absolute path."""
-    from .. import ROOT, evidence_dir
-    ev = ch.get("evidence") or os.path.join(evidence_dir(), ch["slug"])
-    return ev if os.path.isabs(ev) else os.path.join(ROOT, ev)
+    """The change's evidence dir as an absolute path: always the slug dir, where QA writes its records."""
+    from .. import evidence_dir
+    return os.path.join(evidence_dir(), ch["slug"])
+
+
+def sync_evidence(ch):
+    """Copy the files of a recorded evidence dir other than the slug dir into the slug dir (never overwriting)."""
+    import shutil
+    from .. import ROOT
+    rec = ch.get("evidence")
+    if not rec:
+        return
+    src = rec if os.path.isabs(rec) else os.path.join(ROOT, rec)
+    dst = evidence_path(ch)
+    if os.path.realpath(src) == os.path.realpath(dst) or not os.path.isdir(src):
+        return
+    os.makedirs(dst, exist_ok=True)
+    for name in os.listdir(src):
+        if not os.path.exists(os.path.join(dst, name)):
+            if os.path.isdir(os.path.join(src, name)):
+                shutil.copytree(os.path.join(src, name), os.path.join(dst, name))
+            else:
+                shutil.copy2(os.path.join(src, name), os.path.join(dst, name))

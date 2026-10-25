@@ -12,7 +12,7 @@ through the integration train (the core's batches.py, fed here), and the contrib
   merged       the PR is merged, or upstream main contains the commit
 `live_commit` (the test server runs the commit) is observed separately and never gates the contribution. The only gate
 is the user's approval; QA's findings set no hold and book no dev. GitHub is read through `github.py` only.
-Settings: policy `tracks.server` (reviewers, ci_equivalence). Heavy modules are imported where used: the
+Settings: policy `tracks.server` (ci_equivalence). Heavy modules are imported where used: the
 hooks import this package on every command."""
 import os
 
@@ -37,7 +37,7 @@ class ServerTrack(BaseTrack):
     records_repo = True
 
     def chain(self, ch):
-        return LOCAL if ch.get("local_only") else FULL
+        return LOCAL if ch.fork_only else FULL
 
     def repo_name(self, ch):
         return "fork"
@@ -84,7 +84,7 @@ class ServerTrack(BaseTrack):
         tip, where = self.tip(ch, obs)
         out = {"tip": (tip, f"{where}/{ch['branch']} at {tip[:9]}" if tip else f"{where}/{ch['branch']} not found"),
                "live": self.live_fact(ch, obs)}
-        if ch.get("local_only"):
+        if ch.fork_only:
             return out
         pr = obs.upstream_pr(ch.get("upstream_pr") or ch["branch"])
         if pr is None:
@@ -119,7 +119,7 @@ class ServerTrack(BaseTrack):
 
     def executor(self, ch):
         """`gate`: the QA aggregate, for a handed-over change that is not local-only, not held, with no record at its commit."""
-        if ch.stage == "gate" and not ch.get("local_only") and not ch.hold and qa.gate_state(ch)[0] is None:
+        if ch.stage == "gate" and not ch.fork_only and not ch.hold and qa.gate_state(ch)[0] is None:
             return "gate"
         return None
 
@@ -135,7 +135,7 @@ class ServerTrack(BaseTrack):
 
     def reconcile(self, ctx, slug, ch):
         """`live_commit` follows the test server; the upstream stage is untouched."""
-        if ch.get("local_only") or not ch.get("commit") or ctx.dry_run:
+        if ch.fork_only or not ch.get("commit") or ctx.dry_run:
             return
         met, why = self.live_fact(ch, ctx.obs)
         if met and ch.get("live_commit") != ch["commit"]:
@@ -182,6 +182,10 @@ class ServerTrack(BaseTrack):
 
     # --- hand-over, briefs, runs --------------------------------------------------------------------------------------
 
+    def checked_later(self, item):
+        """Items about the contribution step are checked by `hd contribute`."""
+        return "contribut" in item.lower()
+
     def check_items(self, ch, obs, ev, files):
         out = []
         ok = lambda t: out.append((True, t))
@@ -200,7 +204,7 @@ class ServerTrack(BaseTrack):
             fail(f"{branch} in {where} is at {tip[:9]}, not {commit[:9]}")
         else:
             ok(f"{branch} in {where} is at the commit")
-        local = branch.startswith("local/") or ch.get("local_only")
+        local = branch.startswith("local/") or ch.fork_only
         spec = [f for f in files if f.startswith("accuracy") and f.endswith(".md")]
         found = next((n for n in (ch.get("spec"), branch.split("/", 1)[-1], ch["slug"])
                       if n and obs.docs_file(f"accuracy/{n}.md") is not None), None)

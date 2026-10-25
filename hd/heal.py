@@ -2,7 +2,7 @@
 
   run(obs, idx)   -> list of actions taken (strings), each also an event, in this order:
     1. idle locks (the holder's run ended, its process or container is dead): reclaimed with the evidence
-    2. agents alive past their stage (agents.lingering): stopped (`agent end`, exit=stopped)
+    2. agents alive past their stage (agents.lingering): stopped (`agent end`, exit=stopped); a stop request whose agent already handed back is marked done
     3. a dev run ended without a hand-over: the change goes back to `ready` with a note (BR-S5 style)
     4. dead branch servers / stale QA containers (`qa-or-*`, `hd-boot-*` not running): removed (HD_DOCKER
        overrides docker; tests record the command)
@@ -48,6 +48,8 @@ def _agents(obs, idx):
     for r, why in agents.lingering(idx):
         agents.stop(r["name"], why)
         out.append(f"agent {r['name']} stopped: {why}")
+    for name in agents.settle_stops():
+        out.append(f"stop request of {name} cleared: its agent handed back")
     return out
 
 

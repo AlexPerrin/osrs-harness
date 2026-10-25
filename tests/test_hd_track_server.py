@@ -6,7 +6,7 @@ import hd_helpers as H
 from hd_helpers import SHA, SHB
 
 from hd import check, stages, store, tracks
-from hd.tracks.server import qa
+from hd.tracks.server import contribute, qa
 
 
 class ServerChainTest(unittest.TestCase):
@@ -91,6 +91,12 @@ class ServerChainTest(unittest.TestCase):
         self.assertEqual(stages.terminal(ch), "live")
         self.assertIsNone(stages.next_executor(ch))   # never gated (BR-C7)
 
+    def test_a_local_branch_is_fork_only_without_the_flag(self):
+        ch = H.change("loc2", "server", stage="gate", commit=SHA, branch="local/loc2")
+        self.assertEqual(stages.terminal(ch), "live")
+        self.assertIsNone(stages.next_executor(ch))
+        self.assertTrue(contribute.refusal(ch, SHA))
+
     def test_new_commit_reenters(self):
         """BR-C2: the branch tip in the dev's clone moved past the handed-over commit, before the contribution."""
         ch = H.change("feat", "server", stage="gate", commit=SHA, repo="/dev/clone")
@@ -150,10 +156,12 @@ class GateRecordTest(unittest.TestCase):
     """What `hd gate` accepts: QA's record, bound to the commit, every check named and every finding listed."""
 
     def test_pass_needs_green_ci_at_the_commit_and_no_findings(self):
-        ci = {"commit": SHA, "result": "success"}
+        ci = {"commit": SHA, "result": "success", "format": "success"}
         self.assertEqual(qa.record_problems(H.gate_text(SHA), SHA, "PASS", ci), [])
         self.assertTrue(any("record is for" in p for p in qa.record_problems(H.gate_text(SHB), SHA, "PASS", ci)))
         self.assertTrue(any("no green CI" in p for p in qa.record_problems(H.gate_text(SHA), SHA, "PASS", {})))
+        self.assertTrue(any("Formatting" in p for p in qa.record_problems(
+            H.gate_text(SHA), SHA, "PASS", {"commit": SHA, "result": "success", "format": "failure"})))
         self.assertTrue(any("no green CI" in p for p in qa.record_problems(
             H.gate_text(SHA), SHA, "PASS", {"commit": SHB, "result": "success"})))
         self.assertTrue(any("finding" in p for p in qa.record_problems(H.gate_text(SHA, findings=["x"]), SHA, "PASS", ci)))
@@ -167,9 +175,9 @@ class GateRecordTest(unittest.TestCase):
 
     def test_every_check_is_named_and_the_verdict_matches(self):
         text = H.gate_text(SHA).replace("- ingame: PASS\n", "")
-        self.assertTrue(any("ingame" in p for p in qa.record_problems(text, SHA, "PASS", {"commit": SHA, "result": "success"})))
+        self.assertTrue(any("ingame" in p for p in qa.record_problems(text, SHA, "PASS", {"commit": SHA, "result": "success", "format": "success"})))
         no_tests = H.gate_text(SHA).replace("- Tests: server:app; CI run 123\n", "")
-        self.assertTrue(any("Tests" in p for p in qa.record_problems(no_tests, SHA, "PASS", {"commit": SHA, "result": "success"})))
+        self.assertTrue(any("Tests" in p for p in qa.record_problems(no_tests, SHA, "PASS", {"commit": SHA, "result": "success", "format": "success"})))
         self.assertTrue(any("Tests" in p for p in qa.record_problems(no_tests, SHA, "FAIL")))
         self.assertEqual(qa.parse_record(H.gate_text(SHA))["tests"], "server:app; CI run 123")
         self.assertTrue(any("verdict line" in p for p in qa.record_problems(H.gate_text(SHA), SHA, "FAIL")))

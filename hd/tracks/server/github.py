@@ -56,14 +56,15 @@ def _upstream_repo():
 class GitHub:
     """Methods mixed into the core observer (it provides `_gh_json` and `_m`)."""
 
-    def fork_ci(self, branch, sha):
-        """'success' | 'failure' | 'pending' | 'none' (no run at the sha) | None (gh failed)."""
+    def fork_ci(self, branch, sha, workflow=None):
+        """'success' | 'failure' | 'pending' | 'none' (no run of the workflow, by name, at the sha) | None (gh failed)."""
+        workflow = workflow or ci_equivalence().get("fork_workflow_name", "CI")
         def f():
             runs = self._gh_json(["run", "list", "-R", _fork_repo(), "--branch", branch, "--limit", "20", "--json",
                                   "headSha,conclusion,status,workflowName,url"])
             if runs is None:
                 return None
-            at = [r for r in runs if r.get("headSha") == sha and r.get("workflowName") == ci_equivalence().get("fork_workflow_name", "CI")]
+            at = [r for r in runs if r.get("headSha") == sha and r.get("workflowName") == workflow]
             if not at:
                 return "none"
             c = at[0].get("conclusion")
@@ -72,7 +73,7 @@ class GitHub:
             if c in ("failure", "cancelled", "timed_out", "startup_failure"):
                 return "failure"
             return "pending"
-        return self._m(("ci", branch, sha), f)
+        return self._m(("ci", branch, sha, workflow), f)
 
     def upstream_ci(self, number, sha):
         """The upstream PR's checks at its head `sha`: 'success' | 'failure' | 'pending' | 'none' (PR head is not `sha`,
@@ -92,7 +93,7 @@ class GitHub:
         def f():
             if isinstance(number_or_branch, int) or str(number_or_branch).isdigit():
                 p = self._gh_json(["pr", "view", str(number_or_branch), "-R", _upstream_repo(), "--json",
-                                   "number,url,state,isDraft,headRefOid,mergedAt,title,headRefName,reviewRequests"])
+                                   "number,url,state,isDraft,headRefOid,mergedAt,title,headRefName"])
                 if p is None:
                     return None
                 prs = [p]
@@ -101,7 +102,7 @@ class GitHub:
                 owner = _fork_repo().split("/")[0]
                 prs = self._gh_json(["pr", "list", "-R", _upstream_repo(), "--head", str(number_or_branch),
                                      "--state", "all", "--limit", "10", "--json",
-                                     "number,url,state,isDraft,headRefOid,mergedAt,title,headRefName,headRepositoryOwner,reviewRequests"])
+                                     "number,url,state,isDraft,headRefOid,mergedAt,title,headRefName,headRepositoryOwner"])
                 if prs is not None:
                     prs = [p for p in prs if (p.get("headRepositoryOwner") or {}).get("login") == owner]
                 if prs is None:
@@ -112,8 +113,7 @@ class GitHub:
             p = prs[0]
             return {"number": p["number"], "url": p.get("url"), "state": str(p.get("state", "")).lower(),
                     "draft": bool(p.get("isDraft")), "head": p.get("headRefOid"), "merged": bool(p.get("mergedAt")),
-                    "title": p.get("title"), "branch": p.get("headRefName"),
-                    "reviewers": [r.get("login") or r.get("name") for r in p.get("reviewRequests") or []]}
+                    "title": p.get("title"), "branch": p.get("headRefName")}
         return self._m(("upstream_pr", str(number_or_branch)), f)
 
     def upstream_pr_reviews(self, number):
@@ -137,7 +137,7 @@ class GitHub:
 class FakeGitHub:
     """Methods mixed into the core fake observer."""
 
-    def fork_ci(self, branch, sha):
+    def fork_ci(self, branch, sha, workflow=None):
         return self.f.get("ci", {}).get((branch, sha), "none")
 
     def upstream_ci(self, number, sha):

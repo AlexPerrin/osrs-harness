@@ -61,6 +61,11 @@ class Change(dict):
     def path(self):
         return path(self["slug"])
 
+    @property
+    def fork_only(self):
+        """The change never goes upstream: `local_only`, or a branch under `local/`."""
+        return bool(self.get("local_only") or str(self.get("branch") or "").startswith("local/"))
+
     def chain(self):
         """The stages this change moves through, from its track."""
         from . import tracks

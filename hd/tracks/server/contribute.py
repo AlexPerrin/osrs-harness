@@ -1,15 +1,13 @@
 """The contribution (`hd contribute <slug> --approved <sha>`): the one atomic upstream sequence a change gets after the
 gate PASS and the user's yes in chat (docs/PROBLEM.md section 4, BR-A4):
 
-  push -> open -> ci -> comment -> ready -> review
+  push -> open -> ci -> comment -> ready
 
   push     the commit is in the PR branch on the fork (fast-forward, or the merge commit the dev built; never a force)
   open     the OpenRune PR exists (a draft when this run creates it)
   ci       the PR's checks are green at exactly that commit; failure stops here, before the comment, the PR stays as it is
   comment  the PR carries this commit's comment (marked `<!-- hd-contribute:<sha12> -->`)
   ready    the PR is out of draft
-  review   the policy's reviewers (`tracks.server.reviewers`) are requested; with none configured GitHub's CODEOWNERS request
-           on ready stands
 
 Every step is an observed fact, so a re-run resumes at the first step that is not true. The approval is bound to the
 commit: `--approved` must name the change's current commit, which must carry QA's record (the local file; its verdict
@@ -29,10 +27,10 @@ import time
 
 from ... import events, fork_clone, policy, store
 from ...util import same_commit, short
-from ..base import evidence_path
+from ..base import evidence_path, sync_evidence
 from . import qa
 
-STEPS = ("push", "open", "ci", "comment", "ready", "review")
+STEPS = ("push", "open", "ci", "comment", "ready")
 
 
 def marker(commit):
@@ -89,18 +87,13 @@ def steps(ch, obs):
     out.append(("comment", posted, "comment posted" if posted else "no comment for this commit yet" if posted is False
                 else "could not read the comments"))
     out.append(("ready", not pr.get("draft"), "PR ready for review" if not pr.get("draft") else "PR is a draft"))
-    want = policy.track("server").get("reviewers") or []
-    have = pr.get("reviewers") or []
-    ok = all(r in have for r in want)
-    out.append(("review", ok, ("review requested" if want else "no reviewers configured: GitHub's CODEOWNERS request on ready")
-                if ok else "reviewers not requested: " + ", ".join(r for r in want if r not in have)))
     return out
 
 
 def refusal(ch, approved):
     """Why this contribution cannot start (None = it can): every precondition at once."""
     out = []
-    if ch.get("track") != "server" or ch.get("local_only"):
+    if ch.get("track") != "server" or ch.fork_only:
         out.append("only a server change that is not local/* is contributed upstream")
     if not ch.get("commit"):
         return out + ["the change has no commit"]
@@ -155,13 +148,11 @@ def _do(step, ch, obs, git, gh, tmp):
         _sh([gh, "pr", "comment", str(pr["number"]), "-R", upstream, "--body-file", f], "comment")
     elif step == "ready":
         _sh([gh, "pr", "ready", str(pr["number"]), "-R", upstream], "move the PR out of draft")
-    elif step == "review":
-        want = [r for r in (policy.track("server").get("reviewers") or []) if r not in (pr.get("reviewers") or [])]
-        _sh([gh, "pr", "edit", str(pr["number"]), "-R", upstream, "--add-reviewer", ",".join(want)], "request review")
 
 
 def run(ch, obs, approved, git="git", gh="gh", wait=True, poll=30, sleep=time.sleep, tmp=None):
     import tempfile
+    sync_evidence(ch)
     why = refusal(ch, approved)
     if why:
         return 1, ["refused: " + w for w in why]

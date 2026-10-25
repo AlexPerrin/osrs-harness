@@ -145,6 +145,8 @@ def cmd_handover(a):
     if not passed:
         sys.exit("hd: hand-over refused, nothing recorded; fix these and run it again\n" + check.render(trial, items))
     ch.update({k: trial[k] for k in ("branch", "commit", "evidence", "repo") if k in trial})
+    from .tracks.base import sync_evidence
+    sync_evidence(ch)
     if a.summary:
         ch["summary"] = a.summary
     before = ch.stage

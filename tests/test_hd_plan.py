@@ -87,35 +87,41 @@ class CapacityTest(unittest.TestCase):
     def test_live_policy_defines_the_classes_and_two_clients(self):
         with open(LIVE_POLICY) as f:
             pol = yaml.safe_load(f)
-        self.assertEqual(sorted(pol["capacity"]), ["agent", "build", "client", "image"])
-        self.assertEqual(pol["capacity"]["client"], 2)
+        self.assertEqual(sorted(pol["capacity"]), ["agent", "build", "client", "device", "image"])
+        self.assertEqual((pol["capacity"]["client"], pol["capacity"]["device"]), (2, 0))
+        self.assertIn("device", pol["agents"]["roles"]["client-dev"]["uses"])
+        self.assertNotIn("client", pol["agents"]["roles"]["client-dev"]["uses"])
         for role, r in pol["agents"]["roles"].items():
             self.assertTrue(set(r["uses"]) <= set(pol["capacity"]), role)
         self.assertFalse(any(k.endswith("dev_slots") for t in pol["tracks"].values() for k in t))
 
     def test_a_role_fits_until_a_class_it_uses_is_full(self):
-        set_policy(capacity={"agent": 9, "build": 9, "client": 2, "image": 1})
+        set_policy(capacity={"agent": 9, "build": 9, "client": 2, "device": 1, "image": 1})
         running = [self.run_of("client-dev"), self.run_of("server-qa")]
-        self.assertEqual(capacity.full("client-dev", running), "client")
-        self.assertEqual(capacity.full("server-qa", running), "client")
+        self.assertEqual(capacity.full("client-dev", running), "device")
+        self.assertIsNone(capacity.full("server-qa", running[:1]), "QA's desktop clients do not take the device")
         self.assertIsNone(capacity.full("server-dev", running), "server-dev uses no client")
-        self.assertIsNone(capacity.full("client-dev", running[:1]))
+        self.assertIsNone(capacity.full("client-dev", running[1:]))
+        self.assertEqual(capacity.full("client-dev", [], []), None)
+        set_policy(capacity={"agent": 9, "build": 9, "client": 2, "device": 0, "image": 1})
+        self.assertEqual(capacity.full("client-dev", []), "device", "capacity 0 holds client-dev back")
+        self.assertIsNone(capacity.full("client-qa", []))
 
     def test_the_agent_class_caps_the_total(self):
         running = [self.run_of("harness-dev")] * 3
         self.assertEqual(capacity.full("harness-dev", running), "agent")
 
     def test_a_train_step_holds_its_class(self):
-        set_policy(capacity={"agent": 9, "build": 1, "client": 2, "image": 1})
+        set_policy(capacity={"agent": 9, "build": 1, "client": 2, "device": 1, "image": 1})
         self.assertIsNone(capacity.full("server-dev", [], [{"step": "queued"}]))
         self.assertEqual(capacity.full("server-dev", [], [{"step": "gating"}]), "build")
         self.assertEqual(capacity.used([], [{"step": "imaging"}])["image"], 1)
 
     def test_a_waiting_change_is_stalled_not_locked(self):
-        set_policy(capacity={"agent": 9, "build": 9, "client": 0, "image": 1})
+        set_policy(capacity={"agent": 9, "build": 9, "client": 2, "device": 0, "image": 1})
         H.change("c-a", "client"); H.change("s-a", "server")
         out = tick.tick(FakeObserver(), dry_run=True)
-        self.assertIn("c-a: client-dev waits for a free client slot [dry run]", out)
+        self.assertIn("c-a: client-dev waits for a free device slot [dry run]", out)
         self.assertIn("would dispatch server-dev for s-a (dev) [dry run]", out)
 
     def test_lint_names_an_undefined_class(self):
