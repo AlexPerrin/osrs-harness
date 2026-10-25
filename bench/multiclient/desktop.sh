@@ -4,6 +4,7 @@
 #   DESKTOP_TARGET_YAML=<file> desktop.sh start   # same, against another local server (QA branch
 #                                         server: openrune/upstream/qa/qa.sh start writes the file);
 #                                         stop (or the next plain start) restores bench/multiclient/proxy-targets.yaml
+#   bench/multiclient/desktop.sh free      # the first instance not in use (DESKTOP_INSTANCE=$(desktop.sh free))
 #   bench/multiclient/desktop.sh status    # our processes (executable under C:\osrs-test) + their sockets
 #   DESKTOP_INSTANCE=desktop2 desktop.sh <cmd>    # the second instance (C:\osrs-test2, devtools 7781;
 #                                         bench/multiclient/instance.sh); every command works on it
@@ -59,6 +60,14 @@ start)
   for _ in $(seq 30); do [ -s $WIN/rsprox.pid ] && break; sleep 1; done
   echo "started RSProx pid $(tr -d '\r\n' < $WIN/rsprox.pid 2>/dev/null || echo '?')"
   echo "log: $WIN/logs/rsprox-$ts.{out,err}"
+  ;;
+free)  # the first instance whose ports nobody listens on: take it, no lock (one window per agent)
+  listening="$(netstat.exe -ano | tr -d '\r' | awk '$4=="LISTENING"{print $2}')"
+  for n in desktop desktop2 desktop3 desktop4 desktop5; do
+    re="$(DESKTOP_INSTANCE=$n bash -c '. "$1/instance.sh" && echo "$PORTS_RE"' _ "$(dirname "$(readlink -f "$0")")")"
+    echo "$listening" | grep -qE ":($re)\$" || { echo "$n"; exit 0; }
+  done
+  echo "no free desktop instance" >&2; exit 1
   ;;
 status)
   $PS "\$ids = @($(ours_ps) | ForEach-Object { \$_.ProcessId });
