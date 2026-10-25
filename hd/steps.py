@@ -548,6 +548,7 @@ def dispatch(ctx):
         if free <= 0:
             break
         free -= 1
+        busy.add(ch["slug"])   # one run per change, also within this pass (a server change has two lists)
         n = len([r for r in ctx.runs if r.get("change") == ch["slug"]]) + 1
         out.append((ch, step, role, f"{ch['slug']}-{n}"))
     return out

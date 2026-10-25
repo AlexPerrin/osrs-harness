@@ -235,7 +235,7 @@ class R5Recovery(Sandbox):
             self.store.save_record(s, "handover", {"head": A, "base": B, "evidence": "e"})
             self.store.save_record(s, "gate", {"head": A, "base": B, "ok": True, "detail": ""})
         self.store.write({"pid": "7", "start": "1", "step": "rebuild", "tools": D, "failed_step": "rebuild", "ended": "t"}, "train.json")
-        self.assertEqual([(c["slug"], r) for c, s, r, n in steps.dispatch(self.ctx(F))], [("s", "integrator"), ("s", "server-qa"), ("t", "server-qa")])   # the review list runs beside it
+        self.assertEqual([(c["slug"], r) for c, s, r, n in steps.dispatch(self.ctx(F))], [("s", "integrator"), ("t", "server-qa")])   # one run per change
         self.store.save_run({"name": "s-9", "agent_id": "i", "role": "integrator", "change": "s", "head": D, "ended": None, "console_pid": os.getpid(), "console_start": "0"})
         F.f["procs"] = {(os.getpid(), "0")}
         F.f["refs"]["fork/local/integration-tools"] = C                                        # the integrator moved the tools branch
