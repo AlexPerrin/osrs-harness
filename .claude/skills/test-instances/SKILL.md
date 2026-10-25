@@ -8,7 +8,7 @@ description: "Rules for the test instances and data tools: starting your own cli
 - No instance is shared or locked: start your own client when you need one and stop it when you are done (before
   you hand over, gate or end). It has its own profile, devtools port and account state, named after you
   (desktop RuneLite: `DESKTOP_INSTANCE=<your-name>`, `DESKTOP_DEVTOOLS_PORT=<free port>`,
-  `tools/multiclient/desktop.sh start|stop`; an Android emulator: its own `ANDROID_SERIAL`). Never use another
+  `~/osrs-plugins-reverse/tools/multiclient/desktop.sh start|stop`; an Android emulator: its own `ANDROID_SERIAL`). Never use another
   agent's client, profile or port, and never leave yours running.
 - Set the devtools up when you start the client (`device-test` step 3) and remove the test jars and the
   `debug.osrsrl.devtools` property when you stop it.
@@ -25,9 +25,9 @@ screenshots unless the user asks.
 
 | Server | Gives | Rules | Used by |
 |---|---|---|---|
-| `osrs-mcp` | `wiki_search`, `wiki_page`, `wiki_npc_spawns`, `gameval_search`, `cache_search`, `*_reload` (read-only; no server keys, no live-server control; `tools/osrs-mcp/run.sh`) | Gamevals and cache are the tree it was built from (`openrune/src`), not upstream `main`; ids are assigned by upstream's tool (skill `server-track`), not looked up here | all roles: accuracy baseline, ids |
-| `osrs-devtools` | OpenRune-Developer-Tools in the Android plugin host: client state, chat, NPC/object/item actions, vars, dialogue, walking (`tools/devtools-mcp.sh`) | Needs `devtools.jar` in plugins/ and `setprop debug.osrsrl.devtools 1` plus a restart; remove both when you stop the client. `get_chat_history` under-reports repeats: confirm with a screenshot | client roles |
-| `osrs-devtools-desktop` | The same tools in the isolated desktop RuneLite (`tools/multiclient/desktop-devtools-mcp.sh`) | Start your own client first (`tools/multiclient/desktop.sh start`) | all roles |
+| `osrs-mcp` | `wiki_search`, `wiki_page`, `wiki_npc_spawns`, `gameval_search`, `cache_search`, `*_reload` (read-only; no server keys, no live-server control; `mcp/osrs-mcp.sh`) | Gamevals and cache are the tree it was built from (`openrune/src`), not upstream `main`; ids are assigned by upstream's tool (skill `server-track`), not looked up here | all roles: accuracy baseline, ids |
+| `osrs-devtools` | OpenRune-Developer-Tools in the Android plugin host: client state, chat, NPC/object/item actions, vars, dialogue, walking (`~/osrs-plugins-reverse/tools/devtools-mcp.sh`) | Needs `devtools.jar` in plugins/ and `setprop debug.osrsrl.devtools 1` plus a restart; remove both when you stop the client. `get_chat_history` under-reports repeats: confirm with a screenshot | client roles |
+| `osrs-devtools-desktop` | The same tools in the isolated desktop RuneLite (`~/osrs-plugins-reverse/tools/multiclient/desktop-devtools-mcp.sh`) | Start your own client first (`~/osrs-plugins-reverse/tools/multiclient/desktop.sh start`) | all roles |
 
 ## Capacity
 BlueStacks instances (about 2-3 GB each) and desktop clients (about 1 GB each): start only what you use. Builds go through `tools/buildq.sh`

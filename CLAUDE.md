@@ -7,16 +7,17 @@ client repo holds client code and releases only; server code and server tooling 
 
 **New session: read docs/PROBLEM.md (the problem, constraints, workflow and rules, BR-*), then docs/ARCHITECTURE.md (how it is
 built), docs/HANDOFF.md (current state) and, before repeating anything, docs/ISSUES.md (incidents).**
-Run from the client checkout (`HD_CLIENT_ROOT`, default `~/osrs-plugins-reverse`), where agents work, evidence lives
-(`re/evidence/<slug>/`) and the client builds; the client repo keeps thin shims at `tools/harness/hd.py`
-and `tools/hooks/*.py` that exec this repo.
+Every session and agent runs from this repo (hooks, agents, skills and MCP servers are wired in `.claude/` and `.mcp.json`
+here). The client checkout (`HD_CLIENT_ROOT`, default `~/osrs-plugins-reverse`) is where agents' worktrees, evidence
+(`re/evidence/<slug>/`) and the client builds live; it holds client code and releases only.
 
 ```
 hd.py            the command line (python3 ~/osrs-harness/hd.py ...; `hd` in the docs)
 hd/              the daemon (store, events, policy, stages, observe, check, locks (leases.py), agents, batches, ship, heal, tick,
                  daemon, kpi, metrics) and the console's side (actions, drive); hd/tracks/ holds each track
                  (client, harness, server) behind one interface: the core only orchestrates between them
-hooks/           the Claude Code hooks the role files and the client repo's .claude wiring exec
+hooks/           the Claude Code hooks (wired in .claude/settings.json and the role files)
+mcp/             MCP launchers (osrs-mcp); osrs-devtools and the desktop bridge launch from the client repo's tools/ (.mcp.json)
 harness/         policy.yaml and changes/ (committed); state/ (git-ignored)
 .claude/         agents/ (role files) and skills/ (drive = the console loop; the track rules; the QA procedures)
 docs/            PROBLEM.md (rules), ARCHITECTURE.md (mechanism), HANDOFF.md (current state), ISSUES.md (incidents)
@@ -47,3 +48,18 @@ report, never in the docs. docs/ARCHITECTURE.md states the mechanism only; no ru
 - Hooks and `ask` rules live in the committed `.claude/settings.json`, never the personal `settings.local.json`; allow
   rules name scripts, not whole interpreters.
 - Guards stay on: agents without the role hooks can push upstream.
+
+## Shared rules (every role, both products)
+- **Evidence** goes in `re/evidence/<slug>/` in the client main checkout, never a session scratchpad.
+- **Testing tools over screenshots**: client, desktop and server state is read through the MCP data tools (`osrs-devtools`,
+  `osrs-devtools-desktop`, `osrs-mcp`; `server-probe` for logs and packets). A screenshot is evidence only for how
+  something is drawn, and agents take none unless the user asks.
+- **Accuracy**: server behaviour must match the official server; divergences are caveats or fixes.
+- **Privacy**: no client ever contacts Jagex or RuneScape servers. Every APK goes through the telemetry patch
+  (`tools/repack.sh` in the client repo). Never put the user's email or personal identifiers in HTTP requests; use a
+  generic User-Agent.
+- **The user's own RuneLite** (C:\Users\Alex\.runelite) is never read or modified.
+- **Tester account**: never ::empty it, keep its GE offer (lobster), drop only items you spawned.
+- **Processes**: only stop processes you started.
+- **Builds** go through the fork's `tools/buildq.sh`; client host builds are `host/build.sh` + `ninja -C re/build` + repack.
+- **Denied actions**: don't work around them; report them to the orchestrator.

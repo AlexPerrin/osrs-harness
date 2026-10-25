@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "osrs-mcp": {
+      "type": "stdio",
+      "command": "mcp/osrs-mcp.sh",
+      "args": []
+    },
+    "osrs-devtools": {
+      "type": "stdio",
+      "command": "/home/alex/osrs-plugins-reverse/tools/devtools-mcp.sh",
+      "args": []
+    },
+    "osrs-devtools-desktop": {
+      "type": "stdio",
+      "command": "/home/alex/osrs-plugins-reverse/tools/multiclient/desktop-devtools-mcp.sh",
+      "args": []
+    }
+  }
+}

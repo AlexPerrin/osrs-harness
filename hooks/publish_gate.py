@@ -22,7 +22,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import hdpaths  # noqa: E402
 
-ROOT = os.environ.get("CLAUDE_PROJECT_DIR") or os.environ.get("HD_CLIENT_ROOT") or os.path.expanduser("~/osrs-plugins-reverse")
+ROOT = os.environ.get("HD_CLIENT_ROOT") or os.path.expanduser("~/osrs-plugins-reverse")   # the client checkout; CLAUDE_PROJECT_DIR is the harness
 CLONE = hdpaths.fork_clone()
 
 

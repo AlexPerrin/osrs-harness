@@ -25,7 +25,7 @@ import hdpaths  # noqa: E402,F401
 import shellparse as sp  # noqa: E402
 from hd.tracks.server import hooks as server_hooks  # noqa: E402
 
-ROOT = os.environ.get("CLAUDE_PROJECT_DIR") or os.environ.get("HD_CLIENT_ROOT") or os.path.expanduser("~/osrs-plugins-reverse")
+ROOT = os.environ.get("HD_CLIENT_ROOT") or os.path.expanduser("~/osrs-plugins-reverse")   # the client checkout; CLAUDE_PROJECT_DIR is the harness
 OURS = {"alexperrin/osrs-plugins-reverse", "alexperrin/openrune-server", "alexperrin/osrs-harness"}
 FORK = "AlexPerrin/OpenRune-Server"
 UPSTREAM = "OpenRune/OpenRune-Server"
