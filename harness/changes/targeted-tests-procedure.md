@@ -4,17 +4,25 @@ track: harness
 title: Dev and QA run only the touched modules' tests; the full suite is the fork CI on the scratch merge
 prio: P2
 role: harness-dev
-stage: dev
+stage: live
 hold: null
 deps: []
-branch: null
-commit: null
+branch: main
+commit: ade63be115d4c111d62b1803f802090b354d1caf
 local_only: false
-owner: hd22
+owner: null
+evidence: /home/alex/osrs-harness/docs
+summary: 'Merged into main: targeted tests rule and the gate.md Tests line.'
+live_commit: ade63be115d4c111d62b1803f802090b354d1caf
 booked:
   dev: '|da39a3ee5e6b'
+cost:
+  runs: 1
+  turns: 0
+  tokens: 0
+  minutes: 0
 created: '2026-10-25T01:26:53Z'
-updated: '2026-10-25T01:28:24Z'
+updated: '2026-10-25T01:29:20Z'
 ---
 ## Change
 Dev and QA run only the touched modules' tests; the full suite is the fork CI on the scratch merge
@@ -30,3 +38,7 @@ Dev and QA run only the touched modules' tests; the full suite is the fork CI on
 - 2026-10-25T01:26:53Z ready -> dev: dispatched to hd22
 - 2026-10-25T01:26:53Z run hd22 started (harness-dev, stage dev)
 - 2026-10-25T01:28:24Z dod ticked: 1, 2, 3
+- 2026-10-25T01:28:40Z run hd22 ended: ? turns, ? tokens, exit ok
+- 2026-10-25T01:28:56Z dev -> gate: hand-over recorded
+- 2026-10-25T01:28:56Z handover main@ade63be11: Merged into main: targeted tests rule and the gate.md Tests line.
+- 2026-10-25T01:29:20Z gate -> live: observed

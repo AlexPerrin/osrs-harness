@@ -4,18 +4,20 @@ track: server
 title: 'Genie #355: address maintainer review and our gate findings'
 prio: P0
 role: server-dev
-stage: ready
+stage: gate
 hold: null
 deps: []
 branch: content/genie
-commit: null
+commit: 07f629a8e6d01c0d644b6871ed8926d012d91a79
 repo: /home/alex/src/openrune-work/agents/sd45/or
 local_only: false
-owner: null
+owner: sq61
 evidence: /home/alex/osrs-plugins-reverse/re/evidence/genie-review-355
 network: true
-summary: 'Merge commit on the #355 head: the rebuilt Genie event on current main; no force-push.'
-booked: null
+summary: 'Clean Genie tip 57887e5c8 on upstream main 5c4c9c106 (4 Genie files, comments removed), merge 07f629a8e6d01c0d644b6871ed8926d012d91a79 onto #355 head 1d9b6fa49. Ran only :content:events:random-events
+  spotlessCheck, test and integration (2 tests); gameval check clean.'
+booked:
+  gate: 07f629a8e6d01c0d644b6871ed8926d012d91a79
 cost:
   runs: 20
   turns: 0
@@ -23,7 +25,7 @@ cost:
   usd: 0
   tokens: 0
 created: '2026-10-24T19:31:52Z'
-updated: '2026-10-25T01:28:25Z'
+updated: '2026-10-25T01:29:03Z'
 ---
 ## Change
 Upstream #355 (draft) has two review findings from eaglepurerocketgrape (2026-10-22 11:42). Head content/genie 1d9b6fa49. Folds in the pending gate findings held on `genie`.
@@ -130,3 +132,6 @@ Upstream #355 (draft) has two review findings from eaglepurerocketgrape (2026-10
 - 2026-10-25T01:25:26Z gate -> contribute: observed
 - 2026-10-25T01:25:34Z run sd81 ended: ? turns, ? tokens, exit stopped:lingering: owner is None (change at contribute)
 - 2026-10-25T01:28:25Z contribute -> ready: branch moved to 07f629a8e past ca5d988ff: hand over again (BR-C2)
+- 2026-10-25T01:28:44Z ready -> gate: hand-over recorded
+- 2026-10-25T01:28:44Z handover content/genie@07f629a8e: Clean Genie tip 57887e5c8 on upstream main 5c4c9c106 (4 Genie files, comments removed), merge 07f629a8e6d01c0d644b6871ed8926d012d91a79 onto #355 head 1d9b6fa49. Ran only :content:events:random-events spotlessCheck, test and integration (2 tests); gameval check clean.
+- 2026-10-25T01:29:03Z run sq61 started (server-qa, stage gate)
