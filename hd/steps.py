@@ -420,10 +420,28 @@ def _incomplete(ch):
     return out
 
 
+def _fix_in_progress(ctx, ch):
+    """A dev run is alive on a change for this PR, or a dev ref holds commits the PR head does not (the user: a PR is a
+    draft while a fix is in progress)."""
+    pr = _pr(ctx, ch)
+    if not pr:
+        return False
+    mine = [c for c in ctx.changes if c["track"] == "server" and public_branch(c) == public_branch(ch)]
+    devs = {ctx.track(c)["dev"] for c in mine}
+    if any(r.get("change") in {c["slug"] for c in mine} and r.get("role") in devs for r in alive_runs(ctx)):
+        return True
+    for c in mine:
+        h = head(ctx, c)
+        if h and pr.get("head") and h != pr["head"] and ctx.F.contains(ctx.cfg["paths"]["fork"], pr["head"], h) is False:
+            return True
+    return False
+
+
 def _blocked(ctx, ch):
-    """What puts a PR back to draft: a step before ready is open (a failed review, a new head) or a finding is unanswered."""
+    """What puts a PR back to draft: a step before ready is open (a failed review, a new head), a finding is unanswered,
+    or a fix is in progress."""
     before = UPSTREAM[:UPSTREAM.index(READY)]
-    return not all(s.done(ctx, ch) is True for s in before) or bool(_unanswered(ctx, ch))
+    return not all(s.done(ctx, ch) is True for s in before) or bool(_unanswered(ctx, ch)) or _fix_in_progress(ctx, ch)
 
 
 def _may_be_ready(ctx, ch):

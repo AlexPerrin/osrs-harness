@@ -453,6 +453,18 @@ class ServerTrack(Sandbox):
         F.f["comments"][7][0]["body"] = "progress update\r\n\r\n" + steps.MARK.format(A[:12])
         self.assertTrue(steps._title_done(self.ctx(F), ch) and steps._comment_done(self.ctx(F), ch))
 
+    def test_a_pr_is_a_draft_while_a_fix_is_in_progress(self):
+        self.change("s", track="server")
+        F = Fake(refs={"fork/dev/s": A}, anc={(A, A)},
+                 prs={"content/s": {"number": 7, "state": "open", "draft": False, "head": A, "merged": False, "branch": "content/s"}})
+        ch = self.ctx(F).by_slug["s"]
+        self.assertFalse(steps._fix_in_progress(self.ctx(F), ch))
+        self.store.save_run({"name": "s-2", "agent_id": "y", "role": "server-dev", "change": "s", "ended": None})
+        self.assertTrue(steps._fix_in_progress(self.ctx(F), ch))                  # a dev is working on it
+        os.remove(self.store.path("runs", "s-2.json"))
+        F.f["refs"]["fork/dev/s"] = C                                             # a commit the PR does not have yet
+        self.assertTrue(steps._fix_in_progress(self.ctx(F), self.ctx(F).by_slug["s"]))
+
     def test_a_squash_merged_pr_is_done(self):
         self.change("s", track="server")
         F = Fake(refs={"fork/dev/s": A, "origin/main": B},
