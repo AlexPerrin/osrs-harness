@@ -123,7 +123,7 @@ class R2Flow(Sandbox):
         F.f["checks"] = {(7, A): "success"}
         F.f["comments"] = {7: [{"id": "m", "author": "maint", "body": "please", "at": "t", "kind": "comment"}]}
         self.assertIn(("s", "comment", "script"), names(self.ctx(F)))
-        F.f["comments"][7].append({"id": "x", "author": "alexperrin", "body": "x\n\n" + steps.MARK.format(A[:12]), "at": "t", "kind": "comment"})   # the prepared text
+        F.f["comments"][7].append({"id": "x", "author": "alexperrin", "body": f"Pushed `{A[:9]}`\n\n" + steps.MARK.format(A[:12]), "at": "t", "kind": "comment"})   # the prepared text
         self.assertIn(("s", "ready", "script"), names(self.ctx(F)))
         F.f["prs"]["content/s"]["draft"] = False
         self.assertIn(("s", "merged", "wait"), names(self.ctx(F)))
@@ -473,13 +473,17 @@ class ServerTrack(Sandbox):
     def test_title_and_comment_follow_the_prepared_texts(self):
         self.change("s", track="server")
         self.evidence("s", "pr-title.txt", "pr-comment.md")
-        for name, text in (("pr-title.txt", "feat: X"), ("pr-comment.md", "progress update")):
+        for name, text in (("pr-title.txt", "feat: X"), ("pr-comment.md", f"Pushed `{C[:9]}`: progress update")):
             with open(os.path.join(self.ev, "s", name), "w") as f:
                 f.write(text)
         F = Fake(refs={"fork/dev/s": A}, prs={"content/s": {"number": 7, "state": "open", "draft": True, "head": A, "title": "old"}},
                  comments={7: [{"id": "IC_1", "author": "alexperrin", "body": "final update\n\n" + steps.MARK.format(A[:12]), "at": "t", "kind": "comment"}]})
         ch = self.ctx(F).by_slug["s"]
         self.assertFalse(steps._title_done(self.ctx(F), ch))
+        self.assertTrue(steps._comment_done(self.ctx(F), ch))                     # text written for another commit: not published
+        self.assertEqual(steps.COMMENT.actor(self.ctx(F), ch), "server-dev")
+        with open(os.path.join(self.ev, "s", "pr-comment.md"), "w") as f:
+            f.write(f"Pushed `{A[:9]}`: progress update")
         self.assertFalse(steps._comment_done(self.ctx(F), ch))                    # names the head but says something else
         with mock.patch.object(steps, "sh", return_value=R(0)) as run:
             self.assertEqual(steps.COMMENT.do(self.ctx(F), ch), "comment edited")
@@ -487,7 +491,7 @@ class ServerTrack(Sandbox):
             self.assertEqual(steps.TITLE.do(self.ctx(F), ch), "title set")
             self.assertIn("title=feat: X", run.call_args[0][0])
         F.f["prs"]["content/s"]["title"] = "feat: X"
-        F.f["comments"][7][0]["body"] = "progress update\r\n\r\n" + steps.MARK.format(A[:12])
+        F.f["comments"][7][0]["body"] = f"Pushed `{A[:9]}`: progress update\r\n\r\n" + steps.MARK.format(A[:12])
         self.assertTrue(steps._title_done(self.ctx(F), ch) and steps._comment_done(self.ctx(F), ch))
 
     def test_a_pr_is_a_draft_while_a_fix_is_in_progress(self):
@@ -523,9 +527,9 @@ class ServerTrack(Sandbox):
         self.evidence("s", "pr-comment.md")
         self.assertIn(("s", "comment", "script"), names(self.ctx(F)))        # every PR gets a comment before ready
         F.f["comments"] = {7: [{"id": "m", "author": "maint", "body": "x", "at": "t", "kind": "comment"}]}
-        F.f["comments"][7].append({"id": "o", "author": "alexperrin", "body": f"Pushed `{A[:9]}`", "at": "t", "kind": "comment"})
+        F.f["comments"][7].append({"id": "o", "author": "alexperrin", "body": f"Pushed `{A[:9]}` earlier", "at": "t", "kind": "comment"})
         self.assertIn(("s", "comment", "script"), names(self.ctx(F)))        # names the commit, but not the prepared text: edited
-        F.f["comments"][7][-1]["body"] = "x\n" + steps.MARK.format(A[:12])
+        F.f["comments"][7][-1]["body"] = f"Pushed `{A[:9]}`\n" + steps.MARK.format(A[:12])
         self.assertIn(("s", "ready", "script"), names(self.ctx(F)))          # our comment names the commit and says the text
         F.f["comments"] = {7: [{"id": "b", "author": "github-actions", "bot": True, "body": "x", "at": "t", "kind": "comment"},
                               {"id": "g", "author": None, "body": "x", "at": "t", "kind": "comment"}]}

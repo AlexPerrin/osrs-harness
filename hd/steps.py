@@ -364,20 +364,25 @@ def _comment_done(ctx, ch):
         return None
     if not head(ctx, ch):
         return False
-    ours, want = _ours_at_head(ctx, ch), _texts(ch)["comment"]
+    ours, want = _ours_at_head(ctx, ch), _prepared(ctx, ch)
     return bool(ours) and (not want or _norm(ours[-1]["body"]) == _norm(want))
 
 
+def _prepared(ctx, ch):
+    """pr-comment.md when it is written for the head (it names it): a dev's text for a later commit is not published."""
+    want, h = _texts(ch)["comment"], head(ctx, ch)
+    return want if want and h and h[:9] in want else ""
+
+
 def _comment_actor(ctx, ch):
-    return "script" if _texts(ch)["comment"] else _dev(ctx, ch)
+    return "script" if _prepared(ctx, ch) else _dev(ctx, ch)
 
 
 GQL_EDIT = "mutation($id:ID!,$b:String!){updateIssueComment(input:{id:$id,body:$b}){issueComment{id}}}"
 
 
 def _comment(ctx, ch):
-    t = _texts(ch)
-    body = (t["comment"] or f"Updated to {head(ctx, ch)[:9]}.") + "\n\n" + MARK.format(head(ctx, ch)[:12]) + "\n"
+    body = (_prepared(ctx, ch) or f"Updated to {head(ctx, ch)[:9]}.") + "\n\n" + MARK.format(head(ctx, ch)[:12]) + "\n"
     ours = _ours_at_head(ctx, ch)
     if ours:   # our comment at this head exists: edit it in place (GraphQL takes the node id gh reports)
         r = sh(["gh", "api", "graphql", "-f", "query=" + GQL_EDIT, "-f", f"id={ours[-1]['id']}", "-f", f"b={body}"])
