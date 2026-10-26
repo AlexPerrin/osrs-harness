@@ -48,8 +48,8 @@ summary lists what was pruned, the docs never do.
 ## Shared rules (every role, both products)
 - **Evidence** goes in `~/osrs-harness/evidence/<slug>/`, never a session scratchpad.
 - **Testing tools over screenshots**: client, desktop and server state is read through the MCP data tools (`osrs-devtools`,
-  `osrs-devtools-desktop`, `osrs-mcp`; `server-probe` for logs and packets). A screenshot is evidence only for how
-  something is drawn, and agents take none unless the user asks.
+  `osrs-devtools-desktop`, `osrs-mcp`; `server-probe` for logs and packets) and text reads first. A screenshot costs
+  much context: it is the fallback only when no data tool or text read answers, or evidence of how something is drawn.
 - **Accuracy**: server behaviour must match the official server; divergences are caveats or fixes.
 - **Privacy**: no client ever contacts Jagex or RuneScape servers. Every APK goes through the telemetry patch
   (`tools/repack.sh` in the client repo). Never put the user's email or personal identifiers in HTTP requests.
