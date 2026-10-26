@@ -51,6 +51,10 @@ start)
   # whose window it is. DESKTOP_OWNER defaults to the instance name.
   TITLE="OpenRune Test - ${DESKTOP_OWNER:-$DESKTOP_INSTANCE}"
   sed -i "s|^  - name: .*|  - name: $TITLE|" "$T"
+  # A client with no preferences stops at "You must accept our terms of use"; it keeps the acceptance in
+  # preferences.dat, so an empty one gets the accepted copy beside this script.
+  P=$WIN/home/.rlcustom/jagexcache/oldschool/LIVE/preferences.dat
+  [ -s "$P" ] || { mkdir -p "$(dirname "$P")"; cp "$(dirname "$(readlink -f "$0")")/preferences.dat" "$P"; }
   ts=$(date +%Y%m%d-%H%M%S)
   rm -f $WIN/rsprox.pid
   # The interop pipe stays open while the Windows child lives, so background the PowerShell.

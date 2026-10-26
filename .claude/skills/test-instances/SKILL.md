@@ -22,13 +22,15 @@ description: "Rules for the test instances and data tools: starting your own cli
 
 ## MCP servers
 Agents inherit the session's MCP tools; load them with ToolSearch (e.g.
-`select:mcp__osrs-mcp__wiki_page,mcp__osrs-mcp__gameval_search`). Game state comes from the data tools, never
-screenshots unless the user asks.
+`select:mcp__osrs-mcp__wiki_page,mcp__osrs-mcp__gameval_search`). Game and screen state come from the data tools and
+text reads first (logcat, `dumpsys`, `uiautomator dump`; each need and its tool: skill `device-test` step 5, the same
+tools on desktop); a screenshot costs far more context and is the fallback only when none answers (how something is
+drawn).
 
 | Server | Gives | Rules | Used by |
 |---|---|---|---|
 | `osrs-mcp` | `wiki_search`, `wiki_page`, `wiki_npc_spawns`, `gameval_search`, `cache_search`, `*_reload` (read-only; no server keys, no live-server control; `mcp/osrs-mcp.sh`) | Gamevals and cache are the tree it was built from (`openrune/src`), not upstream `main`; ids are assigned by upstream's tool (skill `server-track`), not looked up here | all roles: accuracy baseline, ids |
-| `osrs-devtools` | OpenRune-Developer-Tools in the Android plugin host: client state, chat, NPC/object/item actions, vars, dialogue, walking (`~/osrs-plugins-reverse/tools/devtools-mcp.sh`) | Needs `devtools.jar` in plugins/ and `setprop debug.osrsrl.devtools 1` plus a restart; remove both when you stop the client. `get_chat_history` under-reports repeats: confirm with a screenshot | client roles |
+| `osrs-devtools` | OpenRune-Developer-Tools in the Android plugin host: client state, chat, NPC/object/item actions, vars, dialogue, walking (`~/osrs-plugins-reverse/tools/devtools-mcp.sh`) | Needs `devtools.jar` in plugins/ and `setprop debug.osrsrl.devtools 1` plus a restart; remove both when you stop the client. `get_chat_history` under-reports repeats | client roles |
 | `osrs-devtools-desktop` | The same tools in the isolated desktop RuneLite (`~/osrs-harness/bench/multiclient/desktop-devtools-mcp.sh`) | Start your own client first (`~/osrs-harness/bench/multiclient/desktop.sh start`) | all roles |
 
 ## Capacity
