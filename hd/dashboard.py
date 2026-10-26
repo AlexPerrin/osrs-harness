@@ -38,6 +38,19 @@ def _activity(run):
     return _et(ts), said[-240:]
 
 
+WORDS = {"done": "done", "handover": "dev working", "gate": "gate", "merge": "merging", "queue": "deploying",
+         "review": "in review", "approve": "your yes", "push": "pushing", "pr": "opening PR", "title": "PR title",
+         "ci": "upstream CI", "comment": "PR comment", "ready": "marking ready", "merged": "waiting for upstream merge",
+         "release": "releasing", "measure": "measuring"}
+
+
+def _stage(ch, stage):
+    """'done | merged' -> 'test server: done; upstream: waiting for upstream merge'."""
+    names = ["test server", "upstream"] if ch["track"] == "server" and ch.get("kind") != "local" and len(stage) == 2 else \
+            ["live"] if len(stage) == 1 else [f"list {i + 1}" for i in range(len(stage))]
+    return "; ".join(f"{n}: {WORDS.get(s.rstrip('?'), s)}{' (unknown)' if s.endswith('?') else ''}" for n, s in zip(names, stage))
+
+
 def _table(head, rows):
     e = html.escape
     th = "".join(f"<th>{e(h)}</th>" for h in head)
@@ -77,7 +90,7 @@ def render(ctx):
         who = step.actor(ctx, ch)
         nxt.setdefault(ch["slug"], []).append({"script": "the pass", "user": "you", steps.WAIT: "upstream"}.get(who, who) + f" ({step.name})")
     queue = _table(("#", "pri", "track", "change", "stage", "next", "last script step"),
-                   [(i + 1, c["priority"], c["track"], c["slug"], " | ".join(c["stage"]),
+                   [(i + 1, c["priority"], c["track"], c["slug"], _stage(ctx.by_slug[c["slug"]], c["stage"]),
                      f"running: {busy[c['slug']]}" if c["slug"] in busy else ", ".join(nxt.get(c["slug"], ["waiting on a dependency"])),
                      c["last"] or "") for i, c in enumerate(v["changes"])])
     return f"""<!doctype html><html><head><meta charset=utf-8><meta http-equiv=refresh content=30>
