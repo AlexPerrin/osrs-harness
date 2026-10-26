@@ -634,7 +634,8 @@ def dispatch(ctx):
             break
         free -= 1
         busy.add(ch["slug"])   # one run per change, also within this pass (a server change has two lists)
-        n = len([r for r in ctx.runs if r.get("change") == ch["slug"]]) + 1
+        n = max([int(r["name"].rsplit("-", 1)[1]) for r in ctx.runs if r.get("change") == ch["slug"]
+                 and r["name"].rsplit("-", 1)[-1].isdigit()] or [0]) + 1   # next free number: a skipped spawn leaves a gap
         out.append((ch, step, role, f"{ch['slug']}-{n}"))
     return out
 

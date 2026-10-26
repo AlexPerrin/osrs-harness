@@ -35,6 +35,13 @@ class R1Goals(Sandbox):
         ctx = self.ctx(Fake(refs={"origin/main": A}))
         self.assertEqual([r for c, s, r, n in steps.dispatch(ctx)], ["client-dev"])
 
+    def test_a_run_name_is_the_next_free_number(self):
+        self.goal()
+        self.change("probe", goal="client-api")
+        for n in ("probe-1", "probe-4"):   # a hand-started run or a skipped spawn leaves a gap
+            self.store.save_run({"name": n, "change": "probe", "role": "client-dev", "ended": "t"})
+        self.assertEqual([n for c, s, r, n in steps.dispatch(self.ctx(Fake(refs={"origin/main": A})))], ["probe-5"])
+
     def test_hd_measure_records_value_and_base(self):
         self.goal()
         rep = self.evidence("client-api", "report.md")
