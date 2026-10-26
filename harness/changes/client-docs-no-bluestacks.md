@@ -4,7 +4,7 @@ track: client
 kind: change
 title: 'Client repo: BlueStacks references replaced by the Agent_Phone emulator (docs
   and scripts)'
-priority: P3
+priority: P2
 deps: []
 created: '2026-10-25T22:33:11Z'
 ---
