@@ -7,6 +7,12 @@ docs/PROBLEM.md, docs/PRD.md and docs/ARCHITECTURE.md and questions all four.
 
 ## Open
 
+- **Parallel changes pick the same new gameval ids.** Upstream's `fix_gameval_conflicts.py` hands out ids from the top
+  of each table down, so two branches built at the same time each take the same "next free" id: four clashes on
+  2026-10-25 (varps 63892, 64595, 65471, 65470), between upstream PRs and fork-only branches alike, each found only by
+  the train's cache step. Its area ids also run past the server's area limit (32766). v8: one place assigns new ids
+  for every open change (a reserved range per change, or ids assigned against all open heads at hand-over), and the
+  gate checks a change's ids against every other open change's head.
 - **A pass change goes live on upstream within a minute.** The timer runs `main`, so a commit that changes an upstream
   step acts on real PRs at the next tick: twice on 2026-10-25 a rule committed before its dry run put a PR in a wrong
   visible state (#355 drafted, #367 marked ready for a minute). Until v8 the console pauses the pass
