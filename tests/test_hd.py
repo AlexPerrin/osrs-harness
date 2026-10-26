@@ -2,6 +2,7 @@
 import io
 import json
 import os
+import subprocess
 import sys
 from unittest import mock
 
@@ -285,11 +286,15 @@ class R5Recovery(Sandbox):
         os.makedirs(os.path.join(self.tmp, "work", "agents", "r1"))
         F = Fake(containers=[{"name": "qa-dev-r1", "status": "running"}, {"name": "hd-boot-abc", "status": "exited"},
                              {"name": "osrs-openrune", "status": "running"}], docker_ok=False)
-        with mock.patch.object(tick, "sh") as sh:
+        os.makedirs(os.path.join(self.tmp, "work", "agents", "r0"))
+        self.store.save_run({"name": "r0", "agent_id": "w", "role": "server-dev", "change": "s", "ended": "t"})
+        unpushed = lambda a, **k: subprocess.CompletedProcess(a, 0, "4b8cce9 fix\n" if "agents/r0/" in a[2] + "/" else "", "")
+        with mock.patch.object(tick, "sh", side_effect=unpushed) as sh:
             out = tick.repairs(self.ctx(F))
-        self.assertEqual(sorted(c.args[0][3] for c in sh.call_args_list), ["hd-boot-abc", "qa-dev-r1"])
+        self.assertEqual(sorted(c.args[0][3] for c in sh.call_args_list if c.args[0][0] == "docker"), ["hd-boot-abc", "qa-dev-r1"])
         self.assertFalse(os.path.exists(os.path.join(self.tmp, "work", "agents", "r1")))
-        self.assertEqual(len(out), 3)
+        self.assertTrue(os.path.exists(os.path.join(self.tmp, "work", "agents", "r0")))   # unpushed commits outlive the run
+        self.assertEqual(len(out), 4)
         self.assertEqual(len(tick.alerts(self.ctx(F))), 1)
         self.store.write({"integration": A, "image": "osrs-openrune:integration-aaaaaaa", "rollback": "osrs-openrune:rollback-x"}, "live.json")
         F.f["images"] = ["osrs-openrune:integration-aaaaaaa", "osrs-openrune:integration-bbbbbbb"]

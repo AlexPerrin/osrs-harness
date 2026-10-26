@@ -96,6 +96,10 @@ def repairs(ctx, dry=False):
                 store.event("repair", what="container", name=n)
     for d in glob.glob(os.path.join(ctx.cfg["paths"]["work"], "agents", "*")):
         if os.path.basename(d) in ended:
+            r = sh(["git", "-C", os.path.join(d, "or"), "log", "--oneline", "--branches", "--not", "--remotes"])
+            if r and r.stdout.strip():   # commits the run never pushed are kept for its successor
+                out.append(f"clone {d}: run ended with unpushed commits; kept")
+                continue
             out.append(f"clone {d}: run ended; removed")
             if not dry:
                 shutil.rmtree(d, ignore_errors=True)
