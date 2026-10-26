@@ -215,6 +215,9 @@ def _train_alive(ctx):
     return bool(t.get("pid")) and not t.get("ended") and ctx.F.alive(t["pid"], t.get("start"))
 
 
+PASS_PIN = re.compile(r"integration: pin \S+ at [0-9a-f]{9}")   # server.pin's own subject
+
+
 def _train_failed(ctx):
     """The train stopped on a fault the integrator must resolve, and the tools branch has not moved since."""
     t = train_state()
@@ -227,7 +230,7 @@ def _train_failed(ctx):
         return True
     log = ctx.F.git(ctx.cfg["paths"]["fork"], "log", "--format=%s", f"{t['tools']}..{tools}")   # the pass's own pins resolve nothing
     subjects = log.stdout.splitlines() if log is not None and log.returncode == 0 else []
-    return bool(subjects) and all(s.startswith("integration: pin ") for s in subjects)
+    return bool(subjects) and all(PASS_PIN.fullmatch(s) for s in subjects)   # an integrator's re-pin says why: a resolution
 
 
 def _queue_actor(ctx, ch):

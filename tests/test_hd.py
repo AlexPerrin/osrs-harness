@@ -226,6 +226,8 @@ class R5Recovery(Sandbox):
         F.f["refs"]["fork/local/integration-tools"] = C
         F.f["log"] = "integration: pin dev/t at bbbbbbbbb\n"
         self.assertEqual(steps.QUEUE.actor(self.ctx(F), self.ctx(F).by_slug["s"]), "integrator")   # a pin resolves nothing
+        F.f["log"] = "integration: pin dev/t at bbbbbbbbb (varp 65468, off 65470)\n"
+        self.assertEqual(steps.QUEUE.actor(self.ctx(F), self.ctx(F).by_slug["s"]), "script")   # the integrator's re-pin says why
         F.f["log"] = "integration: rr-cache for fix/22\n"
         self.assertEqual(steps.QUEUE.actor(self.ctx(F), self.ctx(F).by_slug["s"]), "script")
 
