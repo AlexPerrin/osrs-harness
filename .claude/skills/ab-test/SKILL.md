@@ -12,8 +12,8 @@ driven with `osrs-devtools`.
 1. Put both sides in the same state with the same commands (`::quest`, `::item`, `::tele`).
 2. Install the plugin: the hub build on desktop (by config, never sideloaded), the host build on Android.
    Record both versions.
-3. Step in lockstep; at each step capture `screenshot`, the plugin's widgets, the quest varps (`get_var`) and the
-   highlight targets on both.
+3. Step in lockstep; at each step capture the plugin's widgets, the quest varps (`get_var`) and the highlight targets
+   on both; a `screenshot` only for a difference in how something is drawn.
 4. Server-vs-server: the same steps on desktop against the branch server (spare ports) and against main.
 
 ## Report
