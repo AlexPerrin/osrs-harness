@@ -14,7 +14,7 @@ appended). Reference: `docs/app-telemetry.md` (read in full before any build tha
 1. Analyse with `reverse` (Ghidra on `re/ghidra`, `-readOnly` unless the task updates the project; Ghidra's own project
    lock serialises writers) and, when the feature depends on what the server sends, `server-probe`. Ids and game data
    from `osrs-mcp`.
-2. Build on `client/<slug>`. Host build: `host/build.sh`, `ninja -C re/build`, `tools/repack.sh`; every APK goes through
+2. Build on `client/<slug>`. Host build: `host/build.sh`, `ninja -C re/build`, `OPENRUNE=1 LOCAL_AUTH=1 tools/repack.sh` (never a plain repack: it talks to Jagex; the guard refuses it), and before any install the log has the 7 `telemetry:` lines and `patched RSA modulus`, `patched /jav_config.ws` and the `net/openid/appauth` line; every APK goes through
    the telemetry patch (7 `telemetry:` lines).
 3. Verify the changed plugin or host path on the device (`device-test`, your own Agent_Phone emulator against the test server). Evidence
    is a logcat extract or a data-tool dump. Only when relevant: `network-qa` when the change adds or alters outbound

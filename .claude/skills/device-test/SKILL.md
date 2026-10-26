@@ -4,7 +4,7 @@ description: "Test on the Android emulator (Agent_Phone) against the OpenRune te
 ---
 # Device test (your own Agent_Phone emulator, its own adb port; app uid 10071)
 
-1. **Instance.** Start your own emulator (the Agent_Phone AVD read-only on a free even port, command in skill `test-instances`), `export ANDROID_SERIAL=emulator-<port>`, then `adb uninstall com.jagex.oldscape.android` (a second guard; Agent_Phone holds no OSRS app) before installing the repack, stop on any install error, and launch only after `libosrsrl.so` is in the installed APK; stop it when done; never touch an instance already open; no lock. Client repo paths below are under `~/osrs-plugins-reverse` (docs, tools, re/).
+1. **Instance.** Start your own emulator (the Agent_Phone AVD read-only on a free even port, command in skill `test-instances`), `export ANDROID_SERIAL=emulator-<port>`, then `adb uninstall com.jagex.oldscape.android` (a second guard; Agent_Phone holds no OSRS app) before installing the repack (only one whose log shows the test-server patches: skill build-test), stop on any install error, and launch only after `libosrsrl.so` is in the installed APK; stop it when done; never touch an instance already open; no lock. Client repo paths below are under `~/osrs-plugins-reverse` (docs, tools, re/).
 2. **Backup.** `~/osrs-harness/bench/device-restore-check.sh pre /tmp/osrs-slot/<name>` before touching anything.
 3. **Set up.** Push test jars to the plugins dir; for the `osrs-devtools` MCP push `devtools.jar`,
    `adb shell setprop debug.osrsrl.devtools 1` and restart the app (~/osrs-plugins-reverse/docs/plugin-host.md).

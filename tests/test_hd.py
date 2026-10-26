@@ -77,9 +77,11 @@ class R2Flow(Sandbox):
         gate = importlib.util.module_from_spec(spec); spec.loader.exec_module(gate)
         self.evidence("c1", "repack.log", "logcat.txt")
         ev = os.path.join(self.ev, "c1")
-        open(os.path.join(ev, "repack.log"), "w").write("telemetry: x\n" * 7)
+        server = "patched RSA modulus at 0x1\npatched /jav_config.ws at 0x2\npatched /x/net/openid/appauth/n.smali\n"
         open(os.path.join(ev, "api-probe.tsv"), "w").write("# build: v0.1.1-59-gabcdef123456\n")
-        for out, ok in (("docs/a.md\n", 0), ("host/X.java\ndocs/a.md\n", 1)):
+        for log, out, ok in (("telemetry: x\n" * 7 + server, "docs/a.md\n", 0), ("telemetry: x\n" * 7 + server, "host/X.java\ndocs/a.md\n", 1),
+                             ("telemetry: x\n" * 7, "docs/a.md\n", 1)):   # a stock repack also has seven telemetry lines: it talks to Jagex
+            open(os.path.join(ev, "repack.log"), "w").write(log)
             with mock.patch.object(gate.subprocess, "run", return_value=R(0, out)), mock.patch("sys.stdout", new_callable=io.StringIO):
                 self.assertEqual(gate.main("c1", "f" * 40, B, ev), ok)
 
@@ -171,6 +173,12 @@ class R4Authority(Sandbox):
         url = {"fork": "git@github.com:AlexPerrin/OpenRune-Server.git", "origin": "https://github.com/OpenRune/OpenRune-Server.git"}
         run = lambda args, **k: type("R", (), {"returncode": 0, "stdout": url.get(args[-1], "") + "\n", "stderr": ""})()
         return hook.Guard(self.store.config(), role, slug, run=run).decide(cmd, self.tmp)
+
+    def test_a_repack_always_targets_the_test_server(self):
+        self.assertIsNotNone(self.guard("cd ~/osrs-plugins-reverse && tools/repack.sh", role="client-dev"))
+        self.assertIsNotNone(self.guard("tools/repack.sh --install", role="console"))
+        self.assertIsNone(self.guard("OPENRUNE=1 LOCAL_AUTH=1 tools/repack.sh 2>&1 | tee repack.log", role="client-dev"))
+        self.assertIsNone(self.guard("export OPENRUNE=1 LOCAL_AUTH=1; bash tools/repack.sh", role="client-dev"))
 
     def test_only_the_console_clears_the_shared_cs2_volume(self):
         qa = "~/src/openrune-work/server-tools/upstream/qa/qa.sh"

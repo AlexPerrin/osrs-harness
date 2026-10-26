@@ -56,5 +56,6 @@ summary lists what was pruned, the docs never do.
 - **The user's own RuneLite** (C:\Users\Alex\.runelite) is never read or modified.
 - **Tester account**: never ::empty it, keep its GE offer (lobster), drop only items you spawned.
 - **Processes**: only stop processes you started.
-- **Builds** go through the fork's `tools/buildq.sh`; client host builds are `host/build.sh` + `ninja -C re/build` + repack.
+- **Builds** go through the fork's `tools/buildq.sh`; client host builds are `host/build.sh` + `ninja -C re/build` +
+  `OPENRUNE=1 LOCAL_AUTH=1 tools/repack.sh` (a plain repack keeps Jagex's servers; the guard refuses it).
 - **Denied actions**: don't work around them; report them.

@@ -69,7 +69,7 @@ gets the cache steps first (the daemon is stopped for them: the cache tool needs
 `qa.sh gate` where CI doesn't apply), and for the upstream gate only server-qa's run at the fixed commit counts.
 
 ## Client host
-In `~/osrs-plugins-reverse`: `host/build.sh`, `ninja -C re/build`, then `tools/repack.sh` (7 `telemetry:` lines).
+In `~/osrs-plugins-reverse`: `host/build.sh`, `ninja -C re/build`, then `OPENRUNE=1 LOCAL_AUTH=1 tools/repack.sh` (never a plain repack: it talks to Jagex; the guard refuses it), and before any install the log has the 7 `telemetry:` lines and `patched RSA modulus`, `patched /jav_config.ws` and the `net/openid/appauth` line.
 
 ## Report
 One line per step from `summary`: pass or fail, the time, and the log path; the `tests` counts. A failure in a

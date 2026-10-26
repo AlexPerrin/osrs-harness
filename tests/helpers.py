@@ -117,7 +117,8 @@ class Sandbox(unittest.TestCase):
         os.makedirs(d, exist_ok=True)
         for n in names:
             with open(os.path.join(d, n), "w") as f:
-                f.write("telemetry: x\n" * 7 if n.startswith("repack") else "x\n")
+                f.write("telemetry: x\n" * 7 + "patched RSA modulus at 0x1\npatched /jav_config.ws at 0x2\n"
+                        "patched /x/net/openid/appauth/n.smali\n" if n.startswith("repack") else "x\n")
         return d
 
     def ctx(self, F):

@@ -226,6 +226,8 @@ class Guard:
                 why = self.push(seg, w, cwd)
             if not why and GH_WRITE.search(seg):
                 why = self.gh(seg)
+            if not why and any(os.path.basename(x) == "repack.sh" for x in w) and not re.search(r"\bOPENRUNE=1\b", cmd):
+                why = "tools/repack.sh without OPENRUNE=1 builds an APK that talks to Jagex: `OPENRUNE=1 LOCAL_AUTH=1 tools/repack.sh`"
             if not why and self.role != "console" and any(os.path.basename(x) == "qa.sh" for x in w) and "refresh-cs2" in w:
                 why = "`qa.sh refresh-cs2` clears the shared CS2 volume and every agent's dev container: the console alone runs it"
             if not why and _hd_sub(w) == "approve" and self.role != "console":

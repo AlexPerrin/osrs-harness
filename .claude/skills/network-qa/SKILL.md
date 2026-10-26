@@ -15,7 +15,8 @@ version; the sidecar or jav_config; host networking code; a hub plugin that make
 3. DNS: `adb logcat -d | grep -i "asked for"`.
 4. Compare against the expected hosts; anything else, or anything on the must-not-appear list: stop and report
    at once.
-5. Check the build's `repack.sh` log has the `telemetry:` lines.
+5. Check the build's `repack.sh` log has the `telemetry:` lines and the test-server patches (`patched RSA modulus`,
+   `patched /jav_config.ws`, the `net/openid/appauth` line).
 
 ## Report
 The build, the time window, the DNS list and the distinct socket addresses, added under a dated heading in
