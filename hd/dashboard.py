@@ -62,10 +62,15 @@ def render(ctx):
     from .cli import view
     v = view(ctx, briefs=False)
     e = html.escape
+    paused = {}
+    for ev in _lines(store.path("events.jsonl")):   # the stop hook's pause events: an agent waiting on its own background work
+        if ev.get("kind") == "run" and ev.get("run"):
+            paused[ev["run"]] = ev.get("action") == "pause" and ev.get("ts")
     running = []
     for r in steps.alive_runs(ctx):
         ts, said = _activity(r)
-        running.append((r["name"], r.get("role"), r.get("change"), _et(r.get("started")), ts, said))
+        state = f"paused on its own background work since {_et(paused[r['name']])}" if paused.get(r["name"]) else "working"
+        running.append((r["name"], r.get("role"), r.get("change"), state, _et(r.get("started")), ts, said))
     ended = sorted((r for r in ctx.runs if r.get("ended")), key=lambda r: r["ended"], reverse=True)[:12]
     recent = [(r["name"], r.get("role"), _et(r["ended"]), {True: "yes", False: "no", None: "-"}[r.get("record")],
                (r.get("last") or "")[-160:]) for r in ended]
@@ -107,7 +112,7 @@ pre{{white-space:pre-wrap;background:var(--card);padding:10px;border-radius:6px;
 <h1>osrs-harness</h1><small>written by the pass at {e(_et(store.now()))}; refreshes every 30 s</small>{alerts}
 <h2>Status</h2><div class=stats>{stat}</div>
 <h2>Waiting for you</h2>{waiting or '<small>nothing</small>'}
-<h2>Agents running</h2><div class=wrap>{_table(("run", "role", "change", "started", "last activity", "last said"), running)}</div>
+<h2>Agents running</h2><small>the harness's runs; a run's own read-only subtasks are not listed</small><div class=wrap>{_table(("run", "role", "change", "state", "started", "last activity", "last said"), running)}</div>
 <h2>Next to spawn</h2><div class=wrap>{_table(("run", "role", "change", "step"), [(s["name"], s["role"], s["change"], s["step"]) for s in v["spawn"]])}</div>
 <h2>Task queue</h2><small>in execution order: priority, then age (the order the harness spawns in)</small><div class=wrap>{queue}</div>
 <h2>Upstream PRs</h2><div class=wrap>{_table(("PR", "change", "state", "draft", "head"), prs)}</div>
