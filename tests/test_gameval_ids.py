@@ -54,6 +54,13 @@ class GamevalIds(unittest.TestCase):
         gameval_ids.assign(self.repo, self.repo)
         self.assertIn("third_flag = 65533\n", open(os.path.join(self.repo, TOML)).read())
 
+    def test_session_trailer_fails_the_gate(self):
+        import server
+        g(self.repo, "checkout", "-q", "-B", "dev/fourth", "main")
+        g(self.repo, "commit", "-q", "--allow-empty", "-m", "feat: x\n\nClaude-Session: https://claude.ai/code/s")
+        self.assertEqual(len(server.session_tagged(self.repo, "HEAD", "origin/main", "fork/content/none")), 1)
+        self.assertEqual(server.session_tagged(self.repo, "fork/dev/first", "origin/main"), [])
+
 
 if __name__ == "__main__":
     unittest.main()

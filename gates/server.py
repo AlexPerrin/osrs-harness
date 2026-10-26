@@ -2,7 +2,8 @@
 """The server gate (ARCHITECTURE 4): gates/server.py <slug> <head> <base> <evidence>. Exit 0 ok, 1 fail, 2 pending.
 
   1. the evidence dir holds the accuracy spec (accuracy*.md); the PR texts are the publish steps' concern; every
-     custom gameval id is free in upstream main, the train and the other open dev heads (gameval_ids.py)
+     custom gameval id is free in upstream main, the train and the other open dev heads (gameval_ids.py); no commit
+     not yet on upstream main or the PR branch carries a Claude-Session trailer
   2. a change whose PR is at <head>: GitHub's own merge state and the checks on the PR head (no scratch merge); else
      the scratch merge <head> + upstream main (<base>) in state/gates/<slug>/or, pushed to the fork's gate/<slug>; the
      merge commit on the fork with those two parents is reused
@@ -60,6 +61,12 @@ def scratch_clone(cfg, slug):
     return path
 
 
+def session_tagged(repo, head, *known):
+    known = [k for k in known if k and git(repo, "rev-parse", "-q", "--verify", k).returncode == 0]
+    log = git(repo, "log", "--format=%H%x00%B%x01", head, "--not", *known).stdout
+    return [c.strip()[:9] for c in log.split("\x01") if "\nClaude-Session:" in c]
+
+
 def main(slug, head, base, ev):
     cfg = store.config()
     if not glob.glob(os.path.join(ev, "accuracy*.md")):
@@ -70,6 +77,10 @@ def main(slug, head, base, ev):
         return 1
     F = Facts(cfg)
     ch = next((c for c in store.changes() if c["slug"] == slug), None)
+    tagged = session_tagged(fork, head, "origin/main", f"fork/{steps.public_branch(ch)}" if ch else "")
+    if tagged:   # upstream is never force-pushed: the trailer would stay public
+        print(f"commits with a Claude-Session trailer (reword before the push): {', '.join(tagged)}")
+        return 1
     pr = F.pr(steps.public_branch(ch)) if ch else None
     if pr and pr.get("head") == head and pr["state"] == "open":   # GitHub already merges and checks the PR head
         if pr.get("mergeable") == "CONFLICTING":
