@@ -38,7 +38,7 @@ def _activity(run):
     return _et(ts), said[-240:]
 
 
-WORDS = {"done": "done", "handover": "dev working", "gate": "gate", "merge": "merging", "queue": "deploying",
+WORDS = {"done": "done", "handover": "the dev's step", "gate": "gate", "merge": "merging", "queue": "deploying",
          "review": "in review", "approve": "your yes", "push": "pushing", "pr": "opening PR", "title": "PR title",
          "ci": "upstream CI", "comment": "PR comment", "ready": "marking ready", "merged": "waiting for upstream merge",
          "release": "releasing", "measure": "measuring"}
