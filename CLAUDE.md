@@ -34,7 +34,7 @@ summary lists what was pruned, the docs never do.
 ## Rules
 - The user's OK only for OpenRune upstream actions and client releases.
 - Commits pathspec-only, authored as Alex Perrin <44126061+AlexPerrin@users.noreply.github.com>, ending with the
-  Claude co-author line.
+  Claude co-author line only (no Claude-Session line).
 - Harness changes go through a harness-dev run or this console session, with a test per requirement touched.
 - Decide on observable facts, never on time estimates; one simple mechanism over stacked rules.
 - Docs state current truth only: no revision justification, history or dated rationale. A quick fix lands at once
