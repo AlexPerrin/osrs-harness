@@ -59,7 +59,9 @@ it later renumbers.
 3. Verify: skill `build-test` (the touched modules' tests and `spotlessCheck`), behaviour against the spec, `ab-test`
    on desktop RuneLite where it renders.
 4. Self-check the diff against upstream AGENTS.md and CONTRIBUTING; write `pr-title.txt`, `pr-body.md`,
-   `pr-comment.md` (skill `pr-text-review`) in the evidence dir.
+   `pr-comment.md` (skill `pr-text-review`) in the evidence dir. `pr-comment.md` names the head you hand over and covers
+   every commit the push carries since the PR's current head (the PR's headRefOid), not only yours; it claims nothing
+   pushed that is not (the pass posts it after the approved push).
 5. Push `dev/<slug>`, then `hd handover <slug> <sha>`.
 
 ## The gate (script, no agent)
