@@ -28,6 +28,8 @@ build slot.
 ## Server branch: the local gate (only where the fork CI cannot run)
 The branch gate (STATE.md on the fork's `docs` branch, "Build, test, deploy"; QA.md section 1). The QA helper is
 `openrune/upstream/qa/qa.sh`: `clone <slug> <commit> main`, then `gate <clone>`.
+- Never `qa.sh refresh-cs2` (the guard refuses it): it clears the shared CS2 volume and every agent's dev container.
+  CS2 syntax errors that are not your change come from a stale base: merge current upstream main into your build tree.
 - A fresh `git clone --shared` at the commit (one clone per gate: a shared tree leaks outputs). Copy
   `game.example.yml` to `game.yml` before any run (qa.sh does). Without it the server writes a default `game.yml`
   with `revision: 233`, and `integration` and the boot fail with ComponentDecoder IndexOutOfBounds in every

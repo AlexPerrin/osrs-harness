@@ -172,6 +172,13 @@ class R4Authority(Sandbox):
         run = lambda args, **k: type("R", (), {"returncode": 0, "stdout": url.get(args[-1], "") + "\n", "stderr": ""})()
         return hook.Guard(self.store.config(), role, slug, run=run).decide(cmd, self.tmp)
 
+    def test_only_the_console_clears_the_shared_cs2_volume(self):
+        qa = "~/src/openrune-work/server-tools/upstream/qa/qa.sh"
+        self.assertIsNotNone(self.guard(f"{qa} refresh-cs2"))
+        self.assertIsNotNone(self.guard(f"cd /tmp && bash {qa} refresh-cs2", role="server-qa"))
+        self.assertIsNone(self.guard(f"{qa} refresh-cs2", role="console"))
+        self.assertIsNone(self.guard(f"QA_NAME=x {qa} dev content/foo"))
+
     def test_upstream_is_deny_by_default(self):
         self.assertIsNotNone(self.guard("gh pr comment 5 -R OpenRune/OpenRune-Server -b hi"))
         self.assertIsNotNone(self.guard("gh pr comment 5 -R OpenRune/OpenRune-Server -b hi", role="console"))
