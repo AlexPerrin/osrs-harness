@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """The server gate (ARCHITECTURE 4): gates/server.py <slug> <head> <base> <evidence>. Exit 0 ok, 1 fail, 2 pending.
 
-  1. the evidence dir holds the accuracy spec (accuracy*.md); the PR texts are the publish steps' concern
+  1. the evidence dir holds the accuracy spec (accuracy*.md); the PR texts are the publish steps' concern; every
+     custom gameval id is free in upstream main, the train and the other open dev heads (gameval_ids.py)
   2. a change whose PR is at <head>: GitHub's own merge state and the checks on the PR head (no scratch merge); else
      the scratch merge <head> + upstream main (<base>) in state/gates/<slug>/or, pushed to the fork's gate/<slug>; the
      merge commit on the fork with those two parents is reused
@@ -18,6 +19,8 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from hd import steps, store  # noqa: E402
 from hd.facts import Facts, sh  # noqa: E402
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import gameval_ids  # noqa: E402
 
 WORKFLOWS = (("ci.yml", "CI"), ("Formatting", "Formatting"))
 TEST_PATH = re.compile(r"(^|/)src/(test|androidTest)/|(^|/)[^/]*Tests?\.kt$")
@@ -61,6 +64,9 @@ def main(slug, head, base, ev):
     cfg = store.config()
     if not glob.glob(os.path.join(ev, "accuracy*.md")):
         print("missing accuracy*.md in the evidence dir")
+        return 1
+    fork = os.path.expanduser(cfg["paths"]["fork"])
+    if gameval_ids.check(fork, head, slug):   # an id another branch going live already holds fails here, not in the train
         return 1
     F = Facts(cfg)
     ch = next((c for c in store.changes() if c["slug"] == slug), None)

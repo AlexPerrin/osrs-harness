@@ -36,6 +36,7 @@ flowchart LR
 | `hd/server.py` | the server track's own code: pins on the tools branch, starting the train, filing maintainer findings |
 | `hd/tick.py` | one pass: repairs, then the first unmet script step of each ready change, then findings; alerts |
 | `gates/client.py`, `gates/server.py`, `gates/harness.py` | the script gate of each track: `<slug> <head> <base> <evidence>`, exit 0 ok, 1 fail, 2 pending |
+| `gates/gameval_ids.py` | custom gameval ids unique across upstream main, the train's branches and the open dev heads: `check` (in the server gate; the later holder of an id renumbers), `assign` (the dev's ids) |
 | `hooks/hook.py` (+ `shellparse.py`) | one program, three events (section 6) |
 | `train/train.sh`, `image.sh`, `deploy.sh`, `Dockerfile.integration` | the one long process (section 7) |
 | `hd.yaml` | repos, paths, the tracks (dev ref, base, remote), the roles (push refs, record owed, worktree), the agent count |

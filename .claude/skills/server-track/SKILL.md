@@ -44,9 +44,13 @@ server (`integration`) as soon as its gate passes and, independently, upstream a
   PR's timeline for good. Branches and CI runs on the fork are fine.
 
 ## Gameval ids
-Write each new gameval as `name = -1`, run `python3 tools/scripts/fix_gameval_conflicts.py` on the branch (needs
-`.data/gamevals-binary/max-ids.toml` from `freshCache`), commit what it assigns. Names carry the feature; saves are
-keyed by name. On a clash in the integration tree, the id goes to the branch later in `integration.txt`.
+First use the official one: a varp, varbit or other gameval in the cache (`gameval_search`, ids up to
+`.data/gamevals-binary/max-ids.toml`) that holds the same state is the id, never a custom one. For state the official
+cache has no id for, write `name = -1`, run `python3 ~/osrs-harness/gates/gameval_ids.py assign ~/src/OpenRune-Server
+<your tree>` (it gives the highest id free in upstream main, every branch the train merges and every open dev head),
+then `tools/scripts/fix_gameval_conflicts.py --check`, and push at once. Names carry the feature; saves are keyed by
+name. The server gate runs `gameval_ids.py check`: of two branches holding one id under two names, the one that took
+it later renumbers.
 
 ## The dev's check (server-dev)
 1. Spec `accuracy.md` in the evidence dir first (skill `accuracy-check`). A decision you cannot take (the PR split, an
@@ -77,7 +81,7 @@ Work in `~/src/openrune-work/integration/tree` and `~/src/openrune-work/integrat
   branch, commit and push it. The next train replays it.
 - **Superseded branch** (same fix twice, one upstream): drop it from `integration.txt` and `integration.lock`, commit,
   push; `hd ask` on its change.
-- **Gameval clash**: `fix_gameval_conflicts.py` in the build; a fix that belongs on a branch with an open upstream PR
+- **Gameval clash**: `gameval_ids.py check` names the holder that renumbers; a fix that belongs on a branch with an open upstream PR
   is the dev's: `hd ask` on that change.
 - **Gate or boot failure**: read `<clone>.logs/summary`, the failing step's log or the boot log; drop the branch at fault
   and `hd ask` on its change with the cause; fix nothing on content branches.
