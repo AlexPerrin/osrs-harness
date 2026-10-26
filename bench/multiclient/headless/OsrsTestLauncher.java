@@ -106,7 +106,7 @@ public final class OsrsTestLauncher
 
 		// RSProx's HTTP port is 43600 + (proxy port - first proxy port); burning ports moves both.
 		int skip = Integer.getInteger("osrstest.portskip", 0);
-		if (skip < 0 || skip > 50)
+		if (skip < 0 || skip > 80)   // desktop5 skips 80 (instance.sh)
 		{
 			die("osrstest.portskip out of range: " + skip);
 		}
