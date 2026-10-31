@@ -254,8 +254,13 @@ def _queue(ctx, ch):
 # server: upstream
 
 def _verdict_rec(ctx, ch):
-    v = ctx.rec(ch, "verdict")
-    return v if store.valid(v, head(ctx, ch)) else None
+    v, h = ctx.rec(ch, "verdict"), head(ctx, ch)
+    if not store.valid(v, h):
+        return None
+    ho = ctx.rec(ch, "handover") or {}
+    if v.get("pass") is False and ho.get("head") == h and (ho.get("ts") or "") > (v.get("ts") or ""):
+        return None   # the dev answered the FAIL without a new commit (a text fix): the reviewer looks again
+    return v
 
 
 def _review_done(ctx, ch):

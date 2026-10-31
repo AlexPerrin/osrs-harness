@@ -415,6 +415,9 @@ class R6Economy(Sandbox):
         b = steps.brief(self.ctx(F), self.ctx(F).by_slug["s"], steps.REVIEW, "s-2")
         self.assertIn("review failed", b.lower())
         self.assertIn("hd handover s <sha>", b)                                      # the dev owes a commit, not a verdict
+        self.assertEqual(steps.REVIEW.actor(self.ctx(F), self.ctx(F).by_slug["s"]), "server-dev")
+        self.store.save_record("s", "handover", {"head": A, "base": B, "evidence": "e", "ts": "9999"})   # a text fix, same head
+        self.assertEqual(steps.REVIEW.actor(self.ctx(F), self.ctx(F).by_slug["s"]), "server-qa")
 
 
 class R7Visibility(Sandbox):
