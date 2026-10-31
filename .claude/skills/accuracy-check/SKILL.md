@@ -1,6 +1,6 @@
 ---
 name: accuracy-check
-description: "Write or check a server feature's accuracy spec against OSRS sources (wiki, cache, Mod posts), and check behaviour against it. Use before coding a server feature, before handing it over (the dev's check), and in QA's aggregate."
+description: "Write or check a server feature's accuracy spec against OSRS sources (RSProx recordings and the wiki, cache and Mod posts first, then LostCity), and check behaviour against it. Use before coding a server feature, before handing it over (the dev's check), and in QA's aggregate."
 ---
 # Accuracy check
 
@@ -8,9 +8,18 @@ The spec is `accuracy.md` in the change's evidence dir `~/osrs-harness/evidence/
 `osrs-mcp` MCP (`wiki_search`, `wiki_page`, `wiki_npc_spawns`, `cache_search`; load with ToolSearch).
 
 ## Sources, in order
-1. **OSRS Wiki** (pages, transcripts, update history), the **cache** (osrs-mcp `cache_search`, gamevals) and **Mod
-   posts**: the accuracy baseline. A rule cites one of these, or it's a guess.
-2. **Reference implementations**, read-only clones in `re/ref/` (refresh with `git -C re/ref/<repo> pull`), for logic
+RSProx recordings and the wiki (with the cache and Mod posts) are the baseline together; LostCity comes only after
+them. Where a recording and the wiki disagree, cite both and follow the newer (a recording's revision against the
+wiki's update history); either one beats LostCity.
+1. **RSProx recordings of the official game**: community captures from rsprox.net, for anything they show (anims,
+   spot anims, sounds, messages, dialogue order, varps, interfaces, tick timings). The index, search,
+   transcribe method and coverage are in `references/rsprox.md` on the fork's `docs` branch; the recordings and
+   transcripts stay local under `re/ref/rsprox/` (git-ignored). They may contain other players' names and chat:
+   never commit, quote or upload them; cite only recording ids and the packets you checked. We never record the
+   official game ourselves. See "RSProx comparison" in both procedures below.
+2. **OSRS Wiki** (pages, transcripts, update history), the **cache** (osrs-mcp `cache_search`, gamevals) and **Mod
+   posts**. A rule cites a recording or one of these, or it's a guess.
+3. **Reference implementations**, read-only clones in `re/ref/` (refresh with `git -C re/ref/<repo> pull`), for logic
    the wiki doesn't spell out: tick timings, dialogue flow and branches, state machines, edge cases (interrupted
    dialogue, full inventory, logout mid-event). They are evidence for a guess, never a source for a rule:
    - `re/ref/Content/scripts` (LostCity, MIT): RuneScript content of 2004 RuneScape (quests incl. mcannon, doric,
@@ -23,12 +32,6 @@ The spec is `accuracy.md` in the change's evidence dir `~/osrs-harness/evidence/
    Read for behaviour, never copy code or text into our branches (different languages anyway; licences and
    provenance differ). In the spec, say "per LostCity <file>" next to a guess so QA can check it; the PR's Data
    sources may name LostCity as a reference only when a rule followed it.
-3. **RSProx recordings of the official game**: community captures from rsprox.net. They
-   are part of this accuracy check, not a separate gate step: see "RSProx comparison" in both procedures below. The
-   index, search, transcribe method and coverage are in `references/rsprox.md` on the fork's `docs` branch; the
-   recordings and transcripts stay local under `re/ref/rsprox/` (git-ignored). They may contain other players'
-   names and chat: never commit, quote or upload them; cite only recording ids and the packets you checked. We never
-   record the official game ourselves.
 4. The RuneLite plugins that read the mechanic (what they parse is what the client expects).
 
 ## Writing the spec (server-dev)
