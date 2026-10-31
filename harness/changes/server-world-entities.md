@@ -1,7 +1,7 @@
 ---
 slug: server-world-entities
 track: server
-kind: change
+kind: local
 title: 'World entities: the server never creates one (no boat or other world entity
   in any scene)'
 priority: P2
