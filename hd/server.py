@@ -99,7 +99,7 @@ def start_train(ctx):
 def findings(ctx):
     """[slug] of the changes filed this pass."""
     out = []
-    carried = {str(c.get("finding")) for c in ctx.changes if c.get("finding")}
+    carried = {str(f) for c in ctx.changes for f in [c.get("finding"), *c.get("folded", [])] if f}   # folded: answered by that change
     for ch in ctx.changes:
         if ch["track"] != "server" or ch.get("kind") != "change":
             continue

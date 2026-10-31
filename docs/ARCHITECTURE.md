@@ -64,6 +64,7 @@ goal: client-api             # optional
 branch: fix/stile-approach   # server: the public PR branch (default content/<slug>)
 pr: 406                      # server: the PR this change acts on
 finding: IC_kwDO…            # server: the maintainer comment it answers
+folded: [IC_kwDO…]           # server: later comments this change's reply answers too (never filed on their own)
 network: true                # client: the gate wants a Network QA report
 ---
 ## Change / ## Definition of done / ## Answers

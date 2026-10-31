@@ -644,3 +644,6 @@ class ServerTrack(Sandbox):
         F.f["comments"][7] += [{"id": "IC_3", "author": "maint", "body": "more", "at": "2026-10-25T12:00:00Z", "kind": "comment"},
                                {"id": "IC_4", "author": "alexperrin", "body": "done", "at": "2026-10-25T12:30:00Z", "kind": "comment"}]
         self.assertEqual(server.findings(self.ctx(F)), [])                   # answered by our later comment
+        self.change("t", track="server", folded=["IC_5"])
+        F.f["comments"][7] += [{"id": "IC_5", "author": "maint", "body": "still draft?", "at": "2026-10-25T13:00:00Z", "kind": "comment"}]
+        self.assertEqual(server.findings(self.ctx(F)), [])                   # folded into change t: its reply answers it
