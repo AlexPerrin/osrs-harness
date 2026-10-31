@@ -1,4 +1,18 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(git -C * push --force-with-lease* fork *:refs/heads/dev/*)",
+      "Bash(git -C * push --force-with-lease* fork *:dev/*)",
+      "Bash(git -C * push --force fork *:refs/heads/dev/*)",
+      "Bash(git -C * push --force fork *:dev/*)"
+    ]
+  },
+  "autoMode": {
+    "allow": [
+      "$defaults",
+      "A forced push (--force or --force-with-lease) to a dev/* branch of the fork remote (AlexPerrin/OpenRune-Server) is allowed: it rewords commit messages, and the harness guard hook refuses it unless the new head keeps the remote tip's tree. Forced pushes to any other branch or remote stay blocked."
+    ]
+  },
   "hooks": {
     "PreToolUse": [
       {
