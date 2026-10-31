@@ -7,6 +7,19 @@ docs/PROBLEM.md, docs/PRD.md and docs/ARCHITECTURE.md and questions all four.
 
 ## Open
 
+- **Review does not converge.** The four upstream review changes took 77 of 131 runs and 41 of 66 agent-hours
+  (goblin-367-fftgsrq: 23 runs, 8 QA rounds). Each QA round confirms the previous findings fixed and then finds new
+  ones (goblin 4, 2, 1, PASS, 4, 6, 4; hunter 9, 5, 5, PASS, 10, 5), and several rounds failed on PR text alone, at
+  the cost of a full dev and QA run. Why: QA stops at what it finds first and checks nothing against a fixed list, and
+  only the latest `verdict.json` is kept, so findings per round cannot be measured. v8: QA runs one fixed, exhaustive
+  checklist per change (accuracy spec, live AGENTS.md rules, PR text) before its first verdict; the dev checks the same
+  list before hand-over; every verdict is appended, not overwritten; a text-only finding is fixed without a new QA run.
+- **Agents run at the top of their context.** Average context per turn: server-dev 222k, client-dev 187k, server-qa
+  144k tokens (4.1B cache-read tokens over 22k turns). Why: dev runs read the evidence, logs and decompiled code
+  themselves instead of through subtasks. v8: read-heavy work goes to subtasks by default, and context per turn is a
+  measured number.
+- **The event log is mostly repeats.** 764 of 1174 step events repeat the change's previous step and detail (the
+  pass logs `queue: train running` and `gate pending` on every tick). v8: log a step only when it changes.
 - **A client build reached Jagex's servers.** Run `client-devtools-menu-actions-3` repacked without `OPENRUNE=1
   LOCAL_AUTH=1`, so the APK kept Jagex's jav_config, RSA modulus and AppAuth endpoints; on the emulator it very likely
   fetched Jagex's jav_config and world list and opened account.jagex.com in Chrome (no sign-in). The brief's build line
@@ -23,8 +36,9 @@ docs/PROBLEM.md, docs/PRD.md and docs/ARCHITECTURE.md and questions all four.
   each rot is an integrator run. v8: every pinned branch belongs to a change or to the fork's permanent local list, and a
   branch leaves integration by a fact (its change is gone), not by a resolution.
 - **Throughput is bounded by the console.** Agents are spawned by hand with the Agent tool, so listed spawns wait for the
-  user's presence, and a paused agent holds one of three slots. v8: measure how long spawns wait; decide whether the
-  pass may spawn.
+  user's presence, and a paused agent holds one of three slots. Measured from the record that makes a run due (gate,
+  verdict, answer) to its start: median 11 min, p90 83 min, worst 534 min (105 spawns). v8: decide whether the pass
+  may spawn.
 - **The guard judges command text.** A local `git remote set-url` naming upstream was denied while the pass's own
   `gh pr ready` runs outside the guard. v8: judge by effect only (the remote resolved at push time, the repo named to
   gh).
