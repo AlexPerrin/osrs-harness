@@ -189,9 +189,10 @@ class Guard:
         d, src = sp.source_dir(p["dir"]), (r.lstrip("+").split(":")[0] or "HEAD")
         tip = self.run(["git", "-C", d, "ls-remote", p["remote"], "refs/heads/" + sp.dest(r)], capture_output=True,
                        text=True).stdout.split()
-        trees = self.run(["git", "-C", d, "rev-parse", "--verify", "-q", src + "^{tree}", (tip or ["-"])[0] + "^{tree}"],
-                         capture_output=True, text=True).stdout.split()
-        return len(tip) == 2 and len(trees) == 2 and trees[0] == trees[1]
+        t = self.run(["git", "-C", d, "rev-parse", src + "^{tree}", (tip or ["-"])[0] + "^{tree}"], capture_output=True,
+                     text=True)
+        trees = t.stdout.split()
+        return len(tip) == 2 and t.returncode == 0 and len(trees) == 2 and trees[0] == trees[1]
 
     def gh(self, seg):
         if GH_READ.search(seg):
