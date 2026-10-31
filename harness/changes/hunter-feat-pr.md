@@ -31,3 +31,4 @@ clean. Title: "feat: Hunter skill".
 ## Answers
 - 2026-10-25T23:47:13Z a
 - 2026-10-26T02:10:16Z b
+- 2026-10-31T03:00:07Z The user: yes, renumber. Renumber the dbrow ids with gates/gameval_ids.py assign on current upstream main, rerun the gate (gameval_ids.py check now catches ids upstream main took after the branch's base), and hand over again so the branch is re-pinned.
