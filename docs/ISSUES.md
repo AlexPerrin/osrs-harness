@@ -7,6 +7,12 @@ docs/PROBLEM.md, docs/PRD.md and docs/ARCHITECTURE.md and questions all four.
 
 ## Open
 
+- **A client build reached Jagex's servers.** Run `client-devtools-menu-actions-3` repacked without `OPENRUNE=1
+  LOCAL_AUTH=1`, so the APK kept Jagex's jav_config, RSA modulus and AppAuth endpoints; on the emulator it very likely
+  fetched Jagex's jav_config and world list and opened account.jagex.com in Chrome (no sign-in). The brief's build line
+  and the "7 telemetry lines" check pass a stock-server build too. The guard now refuses a plain repack and the client
+  gate wants the test-server patch lines; v8: no APK is installable without those lines in its repack log, checked at
+  install, not only at the gate.
 - **A pass change goes live on upstream within a minute.** The timer runs `main`, so a commit that changes an upstream
   step acts on real PRs at the next tick: twice on 2026-10-25 a rule committed before its dry run put a PR in a wrong
   visible state (#355 drafted, #367 marked ready for a minute). Until v8 the console pauses the pass
