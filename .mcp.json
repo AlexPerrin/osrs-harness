@@ -5,7 +5,7 @@
       "command": "mcp/osrs-mcp.sh",
       "args": []
     },
-    "osrs-devtools": {
+    "osrs-devtools-mobile": {
       "type": "stdio",
       "command": "/home/alex/osrs-plugins-reverse/tools/devtools-mcp.sh",
       "args": []

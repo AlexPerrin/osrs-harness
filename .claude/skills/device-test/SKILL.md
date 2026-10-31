@@ -6,13 +6,13 @@ description: "Test on the Android emulator (Agent_Phone) against the OpenRune te
 
 1. **Instance.** Start your own emulator (the Agent_Phone AVD read-only on a free even port, command in skill `test-instances`), `export ANDROID_SERIAL=emulator-<port>`, then `adb uninstall com.jagex.oldscape.android` (a second guard; Agent_Phone holds no OSRS app) before installing the repack (only one whose log shows the test-server patches: skill build-test), stop on any install error, and launch only after `libosrsrl.so` is in the installed APK; stop it when done; never touch an instance already open; no lock. Client repo paths below are under `~/osrs-plugins-reverse` (docs, tools, re/).
 2. **Backup.** `~/osrs-harness/bench/device-restore-check.sh pre /tmp/osrs-slot/<name>` before touching anything.
-3. **Set up.** Push test jars to the plugins dir; for the `osrs-devtools` MCP push `devtools.jar`,
+3. **Set up.** Push test jars to the plugins dir; for the `osrs-devtools-mobile` MCP push `devtools.jar`,
    `adb shell setprop debug.osrsrl.devtools 1` and restart the app (~/osrs-plugins-reverse/docs/plugin-host.md).
 4. **Sign in.** `ANDROID_SERIAL=<serial> python3 -I ~/osrs-harness/bench/emulator_login.py` launches the repack (only
    after its check), signs in with "Sign in with Email / Username" (LOCAL_AUTH, never Google or Jagex screens), passes
    the tip, terms, Chrome and privacy dialogs, retries Play Now while the account is still logged in elsewhere, and
    exits 0 in game; exit 2 prints the screen it does not know as text. Run it again after any app restart.
-5. **Test.** Drive it with `osrs-devtools` (load with ToolSearch, or `python3 -I tools/devtools_mcp.py --call
+5. **Test.** Drive it with `osrs-devtools-mobile` (load with ToolSearch, or `python3 -I tools/devtools_mcp.py --call
    tools/call '{"name":...}'` from the client repo when the MCP did not connect) and read state as text, each need
    by its text way:
 

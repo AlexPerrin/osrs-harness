@@ -7,7 +7,7 @@ description: "Compare the same plugin or feature on desktop RuneLite and the And
 Procedure: ~/osrs-plugins-reverse/docs/multi-client.md "A/B recipe (desktop vs Android)". Desktop: the isolated RuneLite
 (`~/osrs-harness/bench/multiclient/desktop.sh start && desktop.sh login`, profile under C:\osrs-test only), driven with the
 `osrs-devtools-desktop` MCP (your own instance, skill `test-instances`). Android: the `device-test` skill,
-driven with `osrs-devtools`.
+driven with `osrs-devtools-mobile`.
 
 1. Put both sides in the same state with the same commands (`::quest`, `::item`, `::tele`).
 2. Install the plugin: the hub build on desktop (by config, never sideloaded), the host build on Android.

@@ -1,6 +1,6 @@
 ---
 name: test-instances
-description: "Rules for the test instances and data tools: starting your own client, the MCP servers (osrs-mcp, osrs-devtools, osrs-devtools-desktop), capacity. Use before any device or desktop client work, and before looking up game data."
+description: "Rules for the test instances and data tools: starting your own client, the MCP servers (osrs-mcp, osrs-devtools-mobile, osrs-devtools-desktop), capacity. Use before any device or desktop client work, and before looking up game data."
 ---
 # Your own client and data tools
 
@@ -30,7 +30,7 @@ drawn).
 | Server | Gives | Rules | Used by |
 |---|---|---|---|
 | `osrs-mcp` | `wiki_search`, `wiki_page`, `wiki_npc_spawns`, `gameval_search`, `cache_search`, `*_reload` (read-only; no server keys, no live-server control; `mcp/osrs-mcp.sh`) | Gamevals and cache are the tree it was built from (`openrune/src`), not upstream `main`; ids are assigned by upstream's tool (skill `server-track`), not looked up here | all roles: accuracy baseline, ids |
-| `osrs-devtools` | OpenRune-Developer-Tools in the Android plugin host: client state, chat, NPC/object/item actions, vars, dialogue, walking (`~/osrs-plugins-reverse/tools/devtools-mcp.sh`) | Needs `devtools.jar` in plugins/ and `setprop debug.osrsrl.devtools 1` plus a restart; remove both when you stop the client. `get_chat_history` under-reports repeats | client roles |
+| `osrs-devtools-mobile` | OpenRune-Developer-Tools in the Android plugin host: client state, chat, NPC/object/item actions, vars, dialogue, walking (`~/osrs-plugins-reverse/tools/devtools-mcp.sh`) | Needs `devtools.jar` in plugins/ and `setprop debug.osrsrl.devtools 1` plus a restart; remove both when you stop the client. `get_chat_history` under-reports repeats | client roles |
 | `osrs-devtools-desktop` | The same tools in the isolated desktop RuneLite (`~/osrs-harness/bench/multiclient/desktop-devtools-mcp.sh`) | Start your own client first (`~/osrs-harness/bench/multiclient/desktop.sh start`) | all roles |
 
 ## Capacity
