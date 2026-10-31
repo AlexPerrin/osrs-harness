@@ -7,13 +7,19 @@
     },
     "osrs-devtools-mobile": {
       "type": "stdio",
-      "command": "/home/alex/osrs-plugins-reverse/tools/devtools-mcp.sh",
-      "args": []
+      "command": "/home/alex/osrs-harness/mcp/devtools_bridge.py",
+      "args": [
+        "mobile",
+        "/home/alex/osrs-plugins-reverse/tools/devtools-mcp.sh"
+      ]
     },
     "osrs-devtools-desktop": {
       "type": "stdio",
-      "command": "/home/alex/osrs-harness/bench/multiclient/desktop-devtools-mcp.sh",
-      "args": []
+      "command": "/home/alex/osrs-harness/mcp/devtools_bridge.py",
+      "args": [
+        "desktop",
+        "/home/alex/osrs-harness/bench/multiclient/desktop-devtools-mcp.sh"
+      ]
     }
   }
 }

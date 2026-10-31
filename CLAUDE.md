@@ -14,7 +14,7 @@ gates/            the script gate of each track
 hooks/            hook.py (one program: run start, run stop, the guard) and its shell parser
 train/            train.sh, image.sh, deploy.sh, Dockerfile.integration: the one long process
 bench/            client instance tools: the emulator restore check, desktop RuneLite start and login, the headless launcher
-mcp/              the osrs-mcp launcher named by .mcp.json
+mcp/              the osrs-mcp launcher and the devtools front (connects with no client running) named by .mcp.json
 harness/          goals/ and changes/ (committed definitions); state/ and evidence/ at the root are git-ignored
 hd.yaml           repos, paths, tracks, roles, the agent count
 .claude/          agents/ (role files) and skills/ (drive = the console loop; the track rules; the QA procedures)
