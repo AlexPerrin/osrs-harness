@@ -5,11 +5,11 @@ kind: change
 title: 'Clans: clan broadcasts'
 priority: P3
 deps:
-- server-clan-settings
+- server-clan-guest
 created: '2026-10-31T18:03:38Z'
 ---
 ## Change
-Split from server-clan-channels (the user, 2026-10-31: clans in five PRs, in order, each off upstream main: core, guest clans, settings interfaces, broadcasts, Clan Hall). This PR: clan broadcasts, as on the OSRS wiki, built on the clans core. Draft spec: /home/alex/osrs-harness/evidence/server-clan-channels/accuracy.md. Cross-world clans are a stated caveat.
+Split from server-clan-channels (the user, 2026-10-31: clans in five PRs, in order, each off upstream main: core with the settings interfaces, guest clans, broadcasts, Clan Hall). This PR: clan broadcasts, as on the OSRS wiki, built on the clans core. Draft spec: /home/alex/osrs-harness/evidence/server-clan-channels/accuracy.md. Cross-world clans are a stated caveat.
 
 ## Definition of done
 - the gate passes; the review passes (scope, upstream style, PR text, in game on a branch server)
