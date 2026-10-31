@@ -17,3 +17,4 @@ The user, 2026-10-25: "We migrated from BlueStacks to Android Studio at some poi
 
 ## Answers
 - 2026-10-31T01:52:03Z console: server-openrune-http-sidecar-down added as a dep. When it lands, rerun the plugin-test.sh sign-in and hand over e8e9b0412.
+- 2026-10-31T04:08:26Z console: the sidecars serve again (8080 and 8082 return 200; the change was closed). Rerun the plugin-test.sh sign-in on your own Agent_Phone and hand over e8e9b0412.
