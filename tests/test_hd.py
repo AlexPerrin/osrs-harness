@@ -207,6 +207,21 @@ class R4Authority(Sandbox):
         self.assertIsNotNone(self.guard("git push"))
         self.assertIsNotNone(self.guard("x=$(git -C /x push fork HEAD:dev/s)"))
 
+    def test_a_forced_push_may_only_reword_a_dev_ref(self):
+        sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "hooks"))
+        import hook
+
+        def guard(cmd, new_tree):
+            def run(args, **k):
+                out = {"remote": "git@github.com:AlexPerrin/OpenRune-Server.git", "ls-remote": A + " refs/heads/dev/s",
+                       "rev-parse": new_tree + "\nT1"}[args[3]]  # git -C d <cmd>
+                return type("R", (), {"returncode": 0, "stdout": out + "\n", "stderr": ""})()
+            return hook.Guard(self.store.config(), "server-dev", "s", run=run).decide(cmd, self.tmp)
+        self.assertIsNone(guard("git -C /x push --force fork HEAD:refs/heads/dev/s", "T1"))
+        self.assertIsNotNone(guard("git -C /x push --force fork HEAD:refs/heads/dev/s", "T2"))
+        self.assertIsNotNone(guard("git -C /x push --force fork HEAD:refs/heads/content/s", "T1"))
+        self.assertIsNotNone(guard("git -C /x push --mirror fork", "T1"))
+
     def test_releases_tags_scripts_and_approve_are_the_passs(self):
         self.assertIsNotNone(self.guard("gh release create v1 -R AlexPerrin/osrs-plugins-reverse", role="console"))
         self.assertIsNotNone(self.guard("git tag v1", role="console"))

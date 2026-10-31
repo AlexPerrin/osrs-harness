@@ -9,9 +9,10 @@
                     `hd tick`. Without the hand-back it is a pause for background work, or a transcript not yet flushed:
                     the pass ends the run when it sees the hand-back. A stop cannot be refused.
   The guard (R4):   deny by default for OpenRune: a `git` or `gh` command naming the upstream repo passes
-                    only as a read; fork pushes and gh writes only to the role's refs (hd.yaml `roles`); forced pushes,
-                    tags, releases, the train scripts and docker writes on the live stack denied to all; `hd approve`
-                    only from the console. A write the parser cannot see is denied. Every denial is an event.
+                    only as a read; fork pushes and gh writes only to the role's refs (hd.yaml `roles`); forced pushes
+                    (but a dev/* reword that keeps the remote tip's tree), tags, releases, the train scripts and
+                    docker writes on the live stack denied to all; `hd approve` only from the console. A write the
+                    parser cannot see is denied. Every denial is an event.
 Never raises into the session.
 """
 import fnmatch
@@ -172,13 +173,25 @@ class Guard:
             return f"remote {p['remote']} is {url or 'unknown'}, not one of our repos"
         if self.role == "console":
             return None   # our repos are the user's: the console is free on them
-        if sp.forced(p) and not all(sp.dest(r).startswith("gate/") for r in p["refspecs"] or [""]):
+        if sp.forced(p) and not all(sp.dest(r).startswith("gate/") or self.same_tree(p, r) for r in p["refspecs"] or [""]):
             return "a forced or deleting push"
         pats = [a.replace("<slug>", self.slug or "<no-change>") for a in self.refs.get(self._key(repo)) or []]
         for r in p["refspecs"] or ["HEAD"]:
             if not any(fnmatch.fnmatchcase(sp.dest(r), pat) for pat in pats):
                 return f"ref {sp.dest(r)} on {repo}: {self.role} may push only {', '.join(pats) or 'nothing'}"
         return None
+
+    def same_tree(self, p, r):
+        """A forced push of a dev/* ref that keeps the code of the remote tip (a commit-message reword)."""
+        if not sp.dest(r).startswith("dev/") or any(o in ("--mirror", "--delete", "--prune") or o.startswith("-d")
+                                                    for o in p["opts"]):
+            return False
+        d, src = sp.source_dir(p["dir"]), (r.lstrip("+").split(":")[0] or "HEAD")
+        tip = self.run(["git", "-C", d, "ls-remote", p["remote"], "refs/heads/" + sp.dest(r)], capture_output=True,
+                       text=True).stdout.split()
+        trees = self.run(["git", "-C", d, "rev-parse", "--verify", "-q", src + "^{tree}", (tip or ["-"])[0] + "^{tree}"],
+                         capture_output=True, text=True).stdout.split()
+        return len(tip) == 2 and len(trees) == 2 and trees[0] == trees[1]
 
     def gh(self, seg):
         if GH_READ.search(seg):
