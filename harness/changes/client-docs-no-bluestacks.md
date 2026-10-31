@@ -5,7 +5,8 @@ kind: change
 title: 'Client repo: BlueStacks references replaced by the Agent_Phone emulator (docs
   and scripts)'
 priority: P2
-deps: [server-openrune-http-sidecar-down]
+deps:
+- server-openrune-http-sidecar-down
 created: '2026-10-25T22:33:11Z'
 ---
 ## Change
@@ -14,3 +15,6 @@ The user, 2026-10-25: "We migrated from BlueStacks to Android Studio at some poi
 ## Definition of done
 - `grep -ri bluestacks` over the repo (outside re/ and build outputs) finds nothing.
 - tools/plugin-test.sh and tools/release-dev.sh still run against an Agent_Phone emulator (one run of each, evidence in the evidence dir).
+
+## Answers
+- 2026-10-31T01:52:03Z console: server-openrune-http-sidecar-down added as a dep. When it lands, rerun the plugin-test.sh sign-in and hand over e8e9b0412.
