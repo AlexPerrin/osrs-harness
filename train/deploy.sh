@@ -3,7 +3,7 @@
 #   1. harness/state/images/<sha7>.json must say key_hash match and boot ok (image.sh)
 #   3. rollback tag first: osrs-openrune:241 -> osrs-openrune:rollback-<live sha7> (live.json's integration, else
 #      the live image id); then the new image -> osrs-openrune:241
-#   4. `docker compose --env-file switch.env up -d --no-deps openrune` in server-tools/, never --build
+#   4. `docker compose --env-file switch.env up -d --no-deps openrune http http-desktop` in server-tools/, never --build
 #   5. waits for "Server ready in" in the live container's log since the start; when the container exits first the
 #      rollback tag goes back to :241 and compose up runs again: result rollback, exit 1
 #   6. record harness/state/deploys/<sha7>.json {result: ok|rollback, image, rollback_tag, seconds, ready_line, since}
@@ -59,7 +59,7 @@ $DOCKER tag "$LIVE_TAG" "$rb" || die "rollback tag failed"
 $DOCKER tag "$tag" "$LIVE_TAG" || die "retag failed"
 
 # 4. compose up, never --build
-compose_up() { (cd "$OPENRUNE" && $DOCKER compose --env-file switch.env up -d --no-deps openrune); }
+compose_up() { (cd "$OPENRUNE" && $DOCKER compose --env-file switch.env up -d --no-deps openrune http http-desktop); }
 compose_up || { $DOCKER tag "$rb" "$LIVE_TAG"; record rollback "compose up failed"; die "compose up failed; $rb retagged as $LIVE_TAG" 1; }
 
 # 5. wait for the server: ends on "Server ready in" or on the container having exited

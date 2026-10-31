@@ -161,7 +161,7 @@ integration dir; the kernel frees it on death), rerun from the start after any s
 upstream `main` and the pins (`build-integration.sh` from `local/integration-tools`; `git rerere` replays the
 integrator's recorded resolutions), pushed with a lease; **gate** (`qa.sh clone`, `qa.sh gate`); **image** (`image.sh`:
 keys copied from the live image, hash compared, boot container); **deploy** (`deploy.sh`: rollback tag, `compose up -d
---no-deps`, "Server ready in" or roll back); write `live.json`. A fault for the integrator (a conflict, a gate, image or
+--no-deps` of the game and its two HTTP sidecars, "Server ready in" or roll back); write `live.json`. A fault for the integrator (a conflict, a gate, image or
 boot failure) sets `failed_step`: the pass lists the integrator until the tools branch moves, then reruns. Any other stop
 (a lease refused, a dead process) sets `ended` only and the next pass reruns.
 
