@@ -132,6 +132,18 @@ def repairs(ctx, dry=False):
     return out
 
 
+def push_self(F):
+    """The harness's own main goes to its GitHub repo once it holds commits origin lacks (the user's rule)."""
+    ahead = F.git(store.HD_HOME, "rev-list", "--count", "origin/main..main")
+    if ahead is None or ahead.returncode != 0 or not ahead.stdout.strip().isdigit() or int(ahead.stdout) == 0:
+        return []
+    r = F.git(store.HD_HOME, "push", "-q", "origin", "main")
+    if r is None or r.returncode != 0:
+        store.event("error", what="push harness", detail=((r.stderr if r else "") or "")[-300:])
+        return ["harness push failed"]
+    return [f"harness: pushed {int(ahead.stdout)} commit(s)"]
+
+
 def alerts(ctx):
     out = []
     if not ctx.F.docker_ok():
@@ -169,6 +181,7 @@ def run(F=None, dry=False):
                     store.event("step", change=ch["slug"], step="ready", detail=detail[:300])
         if not dry:
             out += [f"filed {s}" for s in server.findings(ctx)]
+            out += push_self(F)
             try:
                 from . import dashboard
                 dashboard.write(steps.Ctx(cfg, F))

@@ -34,7 +34,7 @@ flowchart LR
 | `hd/facts.py` | refs and containment (fetching each remote once per pass), `gh` PR state, checks and comments, fork CI runs, releases, containers, images, pids with start time |
 | `hd/steps.py` | the step lists per track and kind, dispatch, questions, cards, briefs; pure over `Ctx` apart from the script actions |
 | `hd/server.py` | the server track's own code: pins on the tools branch, starting the train, filing maintainer findings |
-| `hd/tick.py` | one pass: repairs, then the first unmet script step of each ready change, then findings; alerts |
+| `hd/tick.py` | one pass: repairs, then the first unmet script step of each ready change, then findings, then the harness's own `main` pushed to its GitHub repo when ahead; alerts |
 | `gates/client.py`, `gates/server.py`, `gates/harness.py` | the script gate of each track: `<slug> <head> <base> <evidence>`, exit 0 ok, 1 fail, 2 pending |
 | `gates/gameval_ids.py` | custom gameval ids unique across upstream main, the train's branches and the open dev heads: `check` (in the server gate; the later holder of an id renumbers), `assign` (the dev's ids) |
 | `hooks/hook.py` (+ `shellparse.py`) | one program, three events (section 6) |

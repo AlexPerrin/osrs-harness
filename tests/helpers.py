@@ -28,6 +28,8 @@ class Fake:
             return R(0, self.f.get("branch", "master") + "\n")
         if args[0] == "log":
             return R(0, self.f.get("log", ""))
+        if args[0] == "rev-list":
+            return R(0, self.f.get("ahead", "0") + "\n")
         return R(0, "")
 
     def fetch(self, repo, remote):

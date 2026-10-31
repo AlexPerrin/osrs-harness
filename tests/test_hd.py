@@ -629,6 +629,14 @@ class ServerTrack(Sandbox):
         self.assertEqual(server.pinned("fix/a 111\n", "fix/a", "222"), "fix/a 222\n")
         self.assertEqual(server.pinned("fix/a 111\n", "dev/x", "333"), "fix/a 111\ndev/x 333\n")
 
+    def test_the_harness_pushes_its_own_main_when_ahead(self):
+        F = Fake()
+        self.assertEqual(tick.push_self(F), [])
+        self.assertNotIn("push", [c[2] for c in F.calls])
+        F = Fake(ahead="3")
+        self.assertEqual(tick.push_self(F), ["harness: pushed 3 commit(s)"])
+        self.assertIn(("git", self.store.HD_HOME, "push", "-q", "origin", "main"), F.calls)
+
     def test_a_maintainer_finding_is_filed_once_as_a_p0_change(self):
         self.change("s", track="server")
         for k, d in (("handover", {"evidence": "e"}), ("gate", {"ok": True, "detail": ""}), ("verdict", {"pass": True, "findings": []})):
