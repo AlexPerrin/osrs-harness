@@ -249,6 +249,18 @@ class R5Recovery(Sandbox):
             tick.repairs(self.ctx(Fake()))
         self.assertTrue(self.store.run("r1")["ended"])
 
+    def test_a_run_that_wrote_its_record_is_over_without_a_hand_back(self):
+        self.change("s", track="server")
+        self.store.save_run({"name": "s-1", "agent_id": "x", "role": "server-dev", "change": "s", "started": "2000-01-01T00:00:00Z",
+                             "ended": None, "console_pid": os.getpid(), "console_start": "0"})
+        F = Fake(procs={(os.getpid(), "0")})
+        with mock.patch.object(tick, "sh"):
+            tick.repairs(self.ctx(F))
+            self.assertIsNone(self.store.run("s-1")["ended"])
+            self.store.save_record("s", "handover", {"head": A, "base": B, "evidence": "e"})
+            tick.repairs(self.ctx(F))
+        self.assertTrue(self.store.run("s-1")["record"])
+
     def test_dead_train_is_rerun_not_handed_to_the_integrator(self):
         self.change("s", track="server")
         self.store.save_record("s", "handover", {"head": A, "base": B, "evidence": "e"})

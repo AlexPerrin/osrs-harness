@@ -52,14 +52,19 @@ def handed_back(path):
     return False
 
 
-def end_run(run, last=""):
-    """The run is over: `record` says whether the role's record exists and is newer than the start."""
+def produced(run):
+    """Whether the role's record exists and is newer than the run's start (None for a role that owes none)."""
     kind = RECORD.get((store.config().get("roles") or {}).get(run.get("role"), {}).get("record") or "")
     rec = store.record(run["change"], kind) if kind else None
-    produced = None if not kind else bool(rec) and (rec.get("ts") or "") >= (run.get("started") or "")
-    run.update(ended=store.now(), record=produced, last=last, usage=usage(run.get("transcript")))
+    return None if not kind else bool(rec) and (rec.get("ts") or "") >= (run.get("started") or "")
+
+
+def end_run(run, last=""):
+    """The run is over: `record` says whether the role's record exists and is newer than the start."""
+    produced_ = produced(run)
+    run.update(ended=store.now(), record=produced_, last=last, usage=usage(run.get("transcript")))
     store.save_run(run)
-    store.event("run", action="end", run=run["name"], role=run.get("role"), change=run["change"], record=produced, **run["usage"])
+    store.event("run", action="end", run=run["name"], role=run.get("role"), change=run["change"], record=produced_, **run["usage"])
     return run
 
 
@@ -69,10 +74,10 @@ def repairs(ctx, dry=False):
     for r in ctx.runs:
         if r.get("ended"):
             continue
-        if r.get("transcript") and handed_back(r["transcript"]):
+        if r.get("transcript") and handed_back(r["transcript"]) or produced(r):
             out.append(f"run {r['name']}: handed back; ended")
             if not dry:
-                end_run(r, last="hand-back seen by the pass")
+                end_run(r, last="hand-back or record seen by the pass")
         elif not F.alive(r.get("console_pid"), r.get("console_start")):
             out.append(f"run {r['name']}: console died; ended")
             if not dry:
