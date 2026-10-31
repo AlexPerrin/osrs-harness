@@ -4,10 +4,12 @@
   1. the evidence dir holds the accuracy spec (accuracy*.md); the PR texts are the publish steps' concern; every
      custom gameval id is free in upstream main, the train and the other open dev heads (gameval_ids.py); no commit
      not yet on upstream main or the PR branch carries a Claude-Session trailer
-  2. a change whose PR is at <head>: GitHub's own merge state and the checks on the PR head (no scratch merge); else
+  2. the net diff <base>...<head> scanned: added test files and comment lines are printed for the reviewer; a module
+     whose main sources gain a call of the item-moving API (MOVES) with no test source of that module added or changed
+     fails (upstream AGENTS.md: a dupe test for every flow that moves items; skill dupe-check), each flow named
+  3. a change whose PR is at <head>: GitHub's own merge state and the checks on the PR head (no scratch merge); else
      the scratch merge <head> + upstream main (<base>) in state/gates/<slug>/or, pushed to the fork's gate/<slug>; the
      merge commit on the fork with those two parents is reused
-  3. the net diff scanned: added test files and comment lines are printed for the reviewer
   4. the fork's CI and Formatting workflows at the scratch commit: dispatched when absent, pending while they run, ok
      when both are green
 """
@@ -25,6 +27,9 @@ import gameval_ids  # noqa: E402
 
 WORKFLOWS = (("ci.yml", "CI"), ("Formatting", "Formatting"))
 TEST_PATH = re.compile(r"(^|/)src/(test|androidTest)/|(^|/)[^/]*Tests?\.kt$")
+# the fork's item-moving API: api/invtx, ProtectedAccess, ObjRepository (ground), the shop operations
+MOVES = re.compile(r"\b(inv(Add|Del|Transfer|Move|Replace|Swap|TakeFee|Transaction|Drop|Equip|Sell)[A-Za-z]*|wornUnequip"
+                   r"|shopBuy|objRepo\.(add|del))\(")
 COMMENT = re.compile(r"^\+\s*(//|/\*|\*(\s|/|$))")
 ENV = {"GIT_AUTHOR_NAME": "Alex Perrin", "GIT_AUTHOR_EMAIL": "44126061+AlexPerrin@users.noreply.github.com",
        "GIT_COMMITTER_NAME": "Alex Perrin", "GIT_COMMITTER_EMAIL": "44126061+AlexPerrin@users.noreply.github.com"}
@@ -46,6 +51,26 @@ def scan(diff):
             seen.add((path, line[1:].strip()))
             out.append(f"added comment in {path}: {line[1:].strip()[:100]}")
     return out[:40]
+
+
+def dupes(diff):
+    """(lines for the reviewer, the modules whose added main lines move items with no test source added or changed)."""
+    flows, tested, path = {}, set(), None
+    for line in diff.splitlines():
+        if line.startswith("diff --git "):
+            path = line.rsplit(" b/", 1)[-1]
+            if "/src/test/" in path:
+                tested.add(path.split("/src/test/")[0])
+        elif line.startswith("+") and not line.startswith("+++") and path and "/src/main/" in path \
+                and path.endswith((".kt", ".java")) and not COMMENT.match(line):
+            flows.setdefault(path, set()).update(m.group(1) for m in MOVES.finditer(line))
+    out, missing = [], set()
+    for p, calls in sorted((p, c) for p, c in flows.items() if c):
+        mod = p.split("/src/main/")[0]
+        if mod not in tested:
+            missing.add(mod)
+        out.append(f"item flow in {p}: {', '.join(sorted(calls))} ({'dupe tests changed' if mod in tested else 'NO dupe test'})")
+    return out, sorted(missing)
 
 
 def scratch_clone(cfg, slug):
@@ -80,6 +105,16 @@ def main(slug, head, base, ev):
     tagged = session_tagged(fork, head, "origin/main", f"fork/{steps.public_branch(ch)}" if ch else "")
     if tagged:   # upstream is never force-pushed: the trailer would stay public
         print(f"commits with a Claude-Session trailer (reword before the push): {', '.join(tagged)}")
+        return 1
+    diff = git(fork, "diff", "--unified=0", f"{base}...{head}")
+    if diff.returncode != 0:
+        print(f"cannot diff {base[:9]}...{head[:9]} in the fork clone")
+        return 2
+    flows, missing = dupes(diff.stdout)
+    for line in scan(diff.stdout) + flows:
+        print(f"for the reviewer: {line}")
+    if missing:
+        print(f"moves items with no dupe test in the same module (skill dupe-check): {', '.join(missing)}")
         return 1
     pr = F.pr(steps.public_branch(ch)) if ch else None
     if pr and pr.get("head") == head and pr["state"] == "open":   # GitHub already merges and checks the PR head
@@ -118,8 +153,6 @@ def main(slug, head, base, ev):
             print("cannot push the scratch branch to the fork")
             return 2
     print(f"scratch {scratch[:9]} = {head[:9]} + upstream main {base[:9]} on fork {branch}")
-    for line in scan(git(path, "diff", "--unified=0", f"{base}...{head}").stdout):
-        print(f"for the reviewer: {line}")
     ok, pending = True, False
     for wf, name in WORKFLOWS:
         state = F.fork_ci(branch, scratch, name)

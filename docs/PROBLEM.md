@@ -12,7 +12,7 @@ docs/ARCHITECTURE.md is the one solution we build.
 | A2 | Claude Code agents do the work. Only a live console session can spawn them (Agent tool); it can vanish at any moment (usage limit, WSL restart, compaction, closed terminal) and its agents die with it. |
 | A3 | Agents are fallible and their words are not evidence. Evidence is a commit on a ref, a file on disk, GitHub state, docker state, the process table. |
 | A4 | Two actions are public or irreversible: a write to OpenRune/OpenRune-Server and a client release. The user alone authorizes them, in chat. Everything else is the user's own and reversible. |
-| A5 | Upstream is maintained by others: one change per PR, no stacking, no tests unless asked, a defect reported at any time. The fork's CI on a scratch merge with current upstream `main` is the same fact as upstream's PR CI. |
+| A5 | Upstream is maintained by others: one change per PR, no stacking, no tests unless asked or the change moves items (a dupe test per such flow), a defect reported at any time. The fork's CI on a scratch merge with current upstream `main` is the same fact as upstream's PR CI. |
 | A6 | A change is live when its target contains it: client `master`, the tree the test server runs, harness `main`. A server change is done when upstream `main` contains it; every other change is done when live. |
 | A7 | Some things exist once: the integration clone, the live server, the Ghidra project, the Android device. The machine bounds how many agents, builds and clients run at once. |
 | A8 | Elapsed time says nothing about what happened. |

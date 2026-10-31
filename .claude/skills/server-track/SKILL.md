@@ -30,7 +30,7 @@ server (`integration`) as soon as its gate passes and, independently, upstream a
   filed by the pass as a P0 change on the same branch and PR.
 - **Upstream conventions** (AGENTS.md, CONTRIBUTING, `.github/pull_request_template.md` on upstream `main`; re-read
   them each time): the default is no test in an upstream PR (only a rule with several cases or a reviewer's request,
-  justified in the PR text); no new KDoc or explanatory comments; nothing public for a test; server toggles in the
+  justified in the PR text), except that every flow moving items needs its dupe tests (skill `dupe-check`); no new KDoc or explanatory comments; nothing public for a test; server toggles in the
   config with a default; commit subjects `feat:`/`fix:`. The PR text uses the template's sections plus problem, data
   sources, caveats, release note, `Depends:`; the checklist items as checkboxes verbatim, notes as plain text; in-game
   verification without cheats where possible, state in varbits/varps, gameval symbols not raw ids, no deviation from the
@@ -66,12 +66,15 @@ it later renumbers.
 
 ## The gate (script, no agent)
 Spec and PR texts present; the scratch merge head + upstream `main` pushed to `gate/<slug>`; fork CI and Formatting
-green there (the full suite); the diff scanned for added tests and comments (listed for the reviewer).
+green there (the full suite); the diff scanned for added tests and comments (listed for the reviewer); a module whose
+main sources gain an item-moving call with no test source of that module added or changed fails, each flow named
+(skill `dupe-check`).
 
 ## The reviewer's checks (server-qa)
 accuracy (spec and sources re-read through `osrs-mcp`, RSProx comparison) · scope (one change, nothing unrelated, no
 open upstream PR for the same content, `Depends:` stated, `fix_gameval_conflicts.py --check` clean) · style (no added
-comments, no unjustified test, nothing public for a test, `feat:`/`fix:`) · text (template sections, every claim true
+comments, no unjustified test, nothing public for a test, `feat:`/`fix:`) · dupes (each item-moving flow's four
+paths, skill `dupe-check`) · text (template sections, every claim true
 of the commit, caveats cover every gap; `pr-text-review`) · in game (the branch's own server on spare ports, your own
 desktop RuneLite with `osrs-devtools-desktop`; every player-facing claim; a blocker's repro passes). Then
 `hd verdict <slug> <sha> PASS|FAIL [findings]`, every finding at once.
