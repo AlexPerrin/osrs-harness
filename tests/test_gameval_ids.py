@@ -48,6 +48,13 @@ class GamevalIds(unittest.TestCase):
         self.assertEqual(gameval_ids.check(self.repo, "fork/dev/first"), 0)
         self.assertEqual(gameval_ids.check(self.repo, "fork/dev/second"), 1)
 
+    def test_an_id_upstream_main_took_later_fails_the_branch(self):
+        g(self.repo, "checkout", "-q", "main")
+        self.commit(".data/gamevals-binary/max-ids.toml", "[max_ids]\nvarp = 65534\n")   # main took 65534 as a base id
+        self.commit(TOML, "[gamevals.varp]\nmain_one = 65535\nfoundry = 65534\n")
+        g(self.repo, "push", "-q", "origin", "main")
+        self.assertEqual(gameval_ids.check(self.repo, "fork/dev/first"), 1)
+
     def test_assign_skips_every_member(self):
         g(self.repo, "checkout", "-q", "-B", "dev/third", "main")
         open(os.path.join(self.repo, TOML), "a").write("third_flag = -1\n")

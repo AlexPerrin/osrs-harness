@@ -48,9 +48,9 @@ def entries(text, path):
             yield table, m.group(2).strip(), int(m.group(4))
 
 
-def ids(repo, ref):
-    """{(table, id): name} of the custom ids at <ref>."""
-    maxes = max_ids(git(repo, "show", f"{ref}:.data/gamevals-binary/max-ids.toml"))
+def ids(repo, ref, maxes=None):
+    """{(table, id): name} of the custom ids at <ref>: past <ref>'s own max ids, or past `maxes` (another ref's)."""
+    maxes = maxes or max_ids(git(repo, "show", f"{ref}:.data/gamevals-binary/max-ids.toml"))
     out = {}
     for p in gameval_files(repo, ref):
         for t, name, i in entries(git(repo, "show", f"{ref}:{p}"), p):
@@ -97,9 +97,11 @@ def check(repo, ref, slug=None):
     mine = ids(repo, ref)
     bad = [f"area.{n} = {i} is past the server's area limit {TOP['area']}" for (t, i), n in mine.items()
            if t == "area" and i > TOP["area"]]
+    base = max_ids(git(repo, "show", f"{ref}:.data/gamevals-binary/max-ids.toml"))
     for label, r in dict(members(repo, slug)).items():
-        for (t, i), n in ids(repo, r).items():
-            if (t, i) in mine and mine[(t, i)] != n and (since(repo, r, n, i), n) < (since(repo, ref, mine[(t, i)], i), mine[(t, i)]):   # a tie: the name
+        for (t, i), n in ids(repo, r, base).items():   # past <ref>'s max: an id upstream main took since <ref>'s base counts
+            if (t, i) in mine and mine[(t, i)] != n and (label == "upstream main" or   # upstream main never renumbers
+                                                         (since(repo, r, n, i), n) < (since(repo, ref, mine[(t, i)], i), mine[(t, i)])):   # a tie: the name
                 bad.append(f"{t}.{mine[(t, i)]} = {i} is {t}.{n} on {label}, which had it first: renumber with "
                            f"`gameval_ids.py assign` (name = -1)")
     print("\n".join(bad) or f"gameval ids at {ref}: unique across upstream main, the train and the open dev heads")
