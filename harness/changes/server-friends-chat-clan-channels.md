@@ -17,3 +17,4 @@ Expected (official): joining a friends chat sends the channel (owner, name, kick
 
 ## Answers
 - 2026-10-31T01:30:14Z (c) plus (a): build a minimal test-only local/* branch now (a joinable friends chat listing the joiner, one clan whose settings and channel list the tester) that never goes upstream, to unblock client-api-probe-reach; for upstream, wait for Brixx420's work on #73.
+- 2026-10-31T01:34:39Z The user, revising the earlier answer: #73 is months old; supersede it, or open our PR over the top of it. Build friends chat and clans for upstream in the game server (friends chat first, clans second, one change per PR); the test-only local/* branch is no longer wanted.
