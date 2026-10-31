@@ -133,7 +133,7 @@ first line carries the input: ``Harness change `<slug>` run `<name>` head `<sha>
 |---|---|---|---|
 | Dev ref | `origin/client/<slug>` | fork `dev/<slug>` | local `harness/<slug>` |
 | Base | `origin/main` (checkout branch `master`) | upstream `main` (`origin/main` of the fork clone) | `main` |
-| Gate | repack log (seven telemetry lines), device evidence, Network QA report when `network`; a probe report built at another commit than `head` only when the difference is docs | accuracy spec present; scratch merge with upstream `main` on `gate/<slug>`; fork CI and Formatting green there; added tests and comments listed for the reviewer | the test suite at `head` in a throwaway worktree |
+| Gate | repack log (seven telemetry lines), device evidence, Network QA report when `network`; a probe report built at another commit than `head` only when the difference is docs | accuracy spec present; scratch merge with upstream `main` on `gate/<slug>`; fork CI and Formatting green there; added tests and comments listed for the reviewer; a module whose main sources gain a call of the item-moving API with no test source of that module added or changed fails, each flow named (upstream AGENTS.md's dupe tests, skill `dupe-check`) | the test suite at `head` in a throwaway worktree |
 | Reviewer | `client-qa` (release only) | `server-qa` | none |
 | Ship | merge into `master`, push `origin/main` | `train.sh`; publish steps to `content/<slug>` or `fix/<slug>` after approval | merge into `main`, push |
 

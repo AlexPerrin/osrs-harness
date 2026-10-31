@@ -617,10 +617,33 @@ class ServerTrack(Sandbox):
         pr = {"number": 9, "state": "open", "draft": True, "head": A, "merged": False, "branch": "content/p", "mergeable": "MERGEABLE"}
         with mock.patch.object(gate.Facts, "pr", lambda self, b: pr), mock.patch.object(gate.Facts, "pr_checks", lambda self, n, s: "success"), \
                 mock.patch.object(gate, "scratch_clone", side_effect=AssertionError("no scratch merge for a PR")), \
-                mock.patch("sys.stdout", new_callable=io.StringIO):
+                mock.patch.object(gate, "git", fake_git), mock.patch("sys.stdout", new_callable=io.StringIO):
             self.assertEqual(gate.main("p", A, B, os.path.join(self.ev, "p")), 0)
             pr["mergeable"] = "CONFLICTING"
             self.assertEqual(gate.main("p", A, B, os.path.join(self.ev, "p")), 1)
+
+    def test_the_gate_fails_an_item_moving_flow_with_no_dupe_test_in_its_module(self):
+        import importlib.util
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        spec = importlib.util.spec_from_file_location("gate_server", os.path.join(root, "gates", "server.py"))
+        gate = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(gate)
+        main = "diff --git a/content/x/src/main/kotlin/X.kt b/content/x/src/main/kotlin/X.kt\n" \
+               "+    if (invDel(inv, \"obj.a\")) invAdd(inv, \"obj.b\")\n+    // invAdd(inv, \"obj.c\") in a comment\n" \
+               "diff --git a/content/y/src/main/kotlin/Y.kt b/content/y/src/main/kotlin/Y.kt\n+    objRepo.add(obj, coords, 100)\n" \
+               "diff --git a/content/z/src/main/kotlin/Z.kt b/content/z/src/main/kotlin/Z.kt\n+    mes(\"no items move\")\n"
+        test = "diff --git a/content/x/src/test/kotlin/XTest.kt b/content/x/src/test/kotlin/XTest.kt\n+    @Test fun noDupe() {}\n"
+        flows, missing = gate.dupes(main)
+        self.assertEqual(missing, ["content/x", "content/y"])
+        self.assertIn("item flow in content/x/src/main/kotlin/X.kt: invAdd, invDel (NO dupe test)", flows)
+        self.assertEqual(len(flows), 2)                                         # comments and other calls are no flow
+        self.assertEqual(gate.dupes(main + test)[1], ["content/y"])             # a test of the same module covers it
+        self.evidence("s", "accuracy.md")
+        with mock.patch.object(gate, "git", lambda path, *a: R(0, main if a[0] == "diff" else "")), \
+                mock.patch.object(gate, "scratch_clone", side_effect=AssertionError("fails before the scratch merge")), \
+                mock.patch("sys.stdout", new_callable=io.StringIO) as out:
+            self.assertEqual(gate.main("s", A, B, os.path.join(self.ev, "s")), 1)
+        self.assertIn("no dupe test in the same module (skill dupe-check): content/x, content/y", out.getvalue())
 
     def test_list_and_pins(self):
         text = "# Upstream fixes\nfix/a\n# Content\ncontent/b\n# Local only\nlocal/c\n"

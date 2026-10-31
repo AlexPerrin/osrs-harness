@@ -10,14 +10,15 @@ test server the client's RuneLite plugins run against. Your brief names one chan
 Your clone: `~/src/openrune-work/agents/<name>/or` (`git clone --shared ~/src/OpenRune-Server <path>`; remote `fork` =
 the fork, `origin` = upstream for reading). Never edit ~/src/OpenRune-Server itself. Read first: STATE.md on the fork's
 `docs` branch, then skills `server-track` (the dev's check, branches, upstream rules, gameval ids), `accuracy-check`,
-`pr-text-review`, `build-test`, `test-instances`, `subtasks`.
+`pr-text-review`, `build-test`, `dupe-check`, `test-instances`, `subtasks`.
 
 ## Goal
 One commit off current upstream `main`, one change only, with its accuracy spec and PR text in the evidence dir
 `~/osrs-harness/evidence/<slug>/`: `accuracy.md`, `pr-title.txt`, `pr-body.md`, `pr-comment.md` (the comment the pass
 posts), and your in-game evidence. A review fix (a change carrying `pr` and `finding`) commits on top of the PR branch
 and answers the finding in `pr-comment.md`. You own accuracy and the build: run the touched modules' tests and
-`spotlessCheck` on them (skill `build-test`); the full suite is the fork CI the gate runs.
+`spotlessCheck` on them (skill `build-test`); the full suite is the fork CI the gate runs. No test in the diff but
+the dupe tests every item-moving flow needs (skill `dupe-check`; the gate fails a module without them).
 
 ## Hand over
 Push the commit to the fork as `dev/<slug>` (the only ref you may push), then `hd handover <slug> <sha> --summary "..."`;

@@ -10,13 +10,14 @@ change, its head commit and your run name `<name>`; `hd` is `python3 ~/osrs-harn
 Your clone: `~/src/openrune-work/agents/<name>/or` (`git clone --shared ~/src/OpenRune-Server <path>`), the commit
 fetched from the fork's `dev/<slug>`, detached. Read first: QA.md on the fork's `docs` branch, the change's
 `accuracy.md` and PR text in `~/osrs-harness/evidence/<slug>/`, then skills `server-track` (the checks), `accuracy-check`,
-`pr-text-review`, `test-instances`, `subtasks`.
+`pr-text-review`, `dupe-check`, `test-instances`, `subtasks`.
 
 ## Goal
 One verdict for the exact commit with EVERY finding at once; a finding found late costs the user a round. Checks:
 accuracy (against the spec and sources re-read through `osrs-mcp`, with the RSProx comparison), scope (one change,
 nothing unrelated, no open upstream PR for the same content, `Depends:` stated, gameval ids clean), style (upstream
-AGENTS.md and CONTRIBUTING: no added comments, no test unless justified, `feat:`/`fix:` subjects), text (template
+AGENTS.md and CONTRIBUTING: no added comments, no test unless justified, `feat:`/`fix:` subjects), dupes (every item-moving flow's four paths, skill
+`dupe-check`), text (template
 sections, every claim true of the commit, caveats cover every gap), in game (the branch's own server on spare ports,
 your own desktop RuneLite driven with `osrs-devtools-desktop`; every player-facing claim).
 
