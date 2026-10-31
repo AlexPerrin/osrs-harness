@@ -22,10 +22,11 @@ clean. Title: "feat: Hunter skill".
 - the review passes: scope, upstream style, PR text (pull_request_template.md verbatim, ticks only when true, a plain
   scope list of what is in and what is not, data sources, guesses and gaps), the main hunter activities in game on a
   branch server
-- mergeable as it stands (the user, 2026-10-25: "Hunter is not complete. It's missing a checklist item Matches the OSRS
-  wiki and there's a list of 'not done'"): every template checklist item ticked and true, no Not done list; each Not
-  done item is implemented to match the official game (the user: "dont include any quirks in our changes. If it
-  differs from official OSRS, fix it"); no docs/quirks.md entries; no technique is taken out of scope
+- mergeable as it stands except what the user scoped out (answer B, 2026-10-31): every template checklist item ticked
+  and true but "Matches the OSRS wiki", which stays unticked while the "Not in this PR" list (drift net fishing, the
+  lucky impling jar's loot, the rumour milestones, wild broav, the Chambers of Xeric bats) waits for content upstream
+  main lacks; everything else on the wiki Hunter page matches the official game (the user: "dont include any quirks
+  in our changes. If it differs from official OSRS, fix it"); no docs/quirks.md entries
 - after the user's yes: #408 leaves draft once upstream CI is green
 
 ## Answers
@@ -35,3 +36,4 @@ clean. Title: "feat: Hunter skill".
 - 2026-10-31T04:08:57Z console, under the user's 2026-10-31 rule (a forced dev/* push only when it keeps the live tip's tree): push in two steps. 1) force-push the reword 9f36979bd (same tree as d5ddd96de) to dev/hunter-feat-pr with --force-with-lease=dev/hunter-feat-pr:d5ddd96de314a78e0c074fb899287826b6ef8d5f; the guard allows it. 2) plain push 743965b1e (a fast-forward on top). Then hd handover hunter-feat-pr 743965b1e.
 - 2026-10-31T15:23:41Z The user: B. Build the Miscellaneous items (Hunter Kit spell, Leon's Hunter's crossbow and kebbit bolts, sunlight crossbow, Fancy Clothes Store fur trades, meat and fur pouches, Hunter cape teleports) and goat luring (Telekinetic Grab on NPCs and Dark Lure) in #408 now. List drift net fishing, the lucky impling jar's loot, the rumour milestones, wild broav and the Chambers of Xeric bats under 'Not in this PR' as needing content upstream main lacks; 'Matches the OSRS wiki' stays unticked until they land. For the unsourced data, keep the best available (the 10 wiki-mapped Puro-Puro low-tier points, the 200-tick roam, the XP from each creature's own wiki page), each listed as a guess in the PR text. Then finish the texts for the new head and hand over.
 - 2026-10-31T16:41:27Z console: no decision needed; run hunter-feat-pr-17 is already renumbering dbrow.hunter_rumour_swamp_lizard with gameval_ids.py assign. Hand over the renumbered commit; that re-pins dev/hunter-feat-pr in integration (it was dropped at tools 4ce9da788).
+- 2026-10-31T18:18:56Z The user: find sources first for the unsourced values beyond the three already settled (the ferret and jerboa catch curves, the 50-tick respawns, the 200-tick trap collapse, the goat prod distance and respawn, the stymphike rules): search RSProx recordings, the wiki and Mod posts for each, fix what a source settles, and hd ask about the rest. The definition of done now follows answer B: 'Matches the OSRS wiki' unticked and the 'Not in this PR' list are expected, not findings. The Hunter cape's daily reset is 00:00 UTC.
