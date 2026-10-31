@@ -32,3 +32,4 @@ clean. Title: "feat: Hunter skill".
 - 2026-10-25T23:47:13Z a
 - 2026-10-26T02:10:16Z b
 - 2026-10-31T03:00:07Z The user: yes, renumber. Renumber the dbrow ids with gates/gameval_ids.py assign on current upstream main, rerun the gate (gameval_ids.py check now catches ids upstream main took after the branch's base), and hand over again so the branch is re-pinned.
+- 2026-10-31T04:08:57Z console, under the user's 2026-10-31 rule (a forced dev/* push only when it keeps the live tip's tree): push in two steps. 1) force-push the reword 9f36979bd (same tree as d5ddd96de) to dev/hunter-feat-pr with --force-with-lease=dev/hunter-feat-pr:d5ddd96de314a78e0c074fb899287826b6ef8d5f; the guard allows it. 2) plain push 743965b1e (a fast-forward on top). Then hd handover hunter-feat-pr 743965b1e.
