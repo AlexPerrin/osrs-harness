@@ -119,7 +119,7 @@ class R2Flow(Sandbox):
         F.f["anc"] = {(A, A)}
         F.f["refs"]["fork/content/s"] = A
         self.assertIn(("s", "pr", "script"), names(self.ctx(F)))
-        F.f["prs"] = {"content/s": {"number": 7, "state": "open", "draft": True, "head": A, "merged": False, "branch": "content/s", "title": "x"}}
+        F.f["prs"] = {"content/s": {"number": 7, "state": "open", "draft": True, "head": A, "merged": False, "branch": "content/s", "title": "x", "body": "x"}}
         self.assertIn(("s", "ci", "wait"), names(self.ctx(F)))
         F.f["checks"] = {(7, A): "success"}
         F.f["comments"] = {7: [{"id": "m", "author": "maint", "body": "please", "at": "t", "kind": "comment"}]}
@@ -457,7 +457,7 @@ class ServerTrack(Sandbox):
             self.store.save_record("s", k, {"head": A, "base": B, **d})
         self.store.save_record("s", "approval", {"head": A})
         F = Fake(refs={"fork/dev/s": A, "fork/dev/s-f1": C, "origin/main": B, "fork/content/s": A, "fork/local/integration-tools": D}, anc={(A, A)},
-                 prs={"content/s": {"number": 7, "state": "open", "draft": False, "head": A, "merged": False, "branch": "content/s", "title": "x"}},
+                 prs={"content/s": {"number": 7, "state": "open", "draft": False, "head": A, "merged": False, "branch": "content/s", "title": "x", "body": "x"}},
                  checks={(7, A): "success"}, comments={7: [{"id": "m", "author": "maint", "body": "x", "at": "t", "kind": "comment"},
                                                           {"id": "o", "author": "alexperrin", "body": f"Pushed `{A[:9]}`", "at": "t", "kind": "comment"}]})
         self.assertIn(("s", "merged", "wait"), names(self.ctx(F)))
@@ -481,7 +481,7 @@ class ServerTrack(Sandbox):
     def test_a_pr_moved_past_the_head_and_a_dead_console(self):
         self.change("s", track="server")
         F = Fake(refs={"fork/dev/s": A, "origin/main": B}, anc={(C, A)},
-                 prs={"content/s": {"number": 7, "state": "open", "draft": False, "head": C, "merged": False, "branch": "content/s", "title": "x"}})
+                 prs={"content/s": {"number": 7, "state": "open", "draft": False, "head": C, "merged": False, "branch": "content/s", "title": "x", "body": "x"}})
         self.assertEqual(steps._ci_state(self.ctx(F), self.ctx(F).by_slug["s"]), "success")
         h = self.ctx(F).by_slug["s"]["hash"]
         self.store.save_run({"name": "s-1", "agent_id": "x", "role": "server-dev", "change": "s", "head": A, "def_hash": h,
@@ -494,7 +494,7 @@ class ServerTrack(Sandbox):
             self.store.save_record("s", k, {"head": A, "base": B, **d})
         self.store.save_record("s", "verdict", {"head": A, "base": B, "pass": False, "findings": ["incomplete"]})
         F = Fake(refs={"fork/dev/s": A, "origin/main": B, "fork/content/s": A}, anc={(A, A)},
-                 prs={"content/s": {"number": 7, "state": "open", "draft": False, "head": A, "merged": False, "branch": "content/s", "title": "x"}})
+                 prs={"content/s": {"number": 7, "state": "open", "draft": False, "head": A, "merged": False, "branch": "content/s", "title": "x", "body": "x"}})
         with mock.patch.object(steps, "sh", return_value=R(0)) as sh, mock.patch.object(server, "pin", return_value="pinned"), \
                 mock.patch.object(server, "start_train", return_value="started"):
             out = tick.run(F)
@@ -529,8 +529,21 @@ class ServerTrack(Sandbox):
         with mock.patch.object(steps, "sh", return_value=R(0)) as run:
             self.assertEqual(steps.COMMENT.do(self.ctx(F), ch), "comment edited")
             self.assertIn("id=IC_1", run.call_args[0][0])
-            self.assertEqual(steps.TITLE.do(self.ctx(F), ch), "title set")
+            self.assertEqual(steps.TITLE.do(self.ctx(F), ch), "texts set")
             self.assertIn("title=feat: X", run.call_args[0][0])
+        with open(os.path.join(self.ev, "s", "pr-body.md"), "w") as f:
+            f.write("## Summary\nnew body")
+        F.f["prs"]["content/s"].update(title="feat: X", body="old body")
+        self.assertTrue(steps._title_done(self.ctx(F), ch))                        # a description the user never approved stays
+        self.store.save_record("s", "approval", {"head": A, "body": steps.digest("## Summary\nnew body")})
+        self.assertFalse(steps._title_done(self.ctx(F), ch))                       # the approved text replaces it
+        with mock.patch.object(steps, "sh", return_value=R(0)) as run:
+            steps.TITLE.do(self.ctx(F), ch)
+            self.assertIn("body=## Summary\nnew body", run.call_args[0][0])
+            self.assertNotIn("title=feat: X", run.call_args[0][0])
+        F.f["prs"]["content/s"]["body"] = "## Summary\r\nnew body\r\n"
+        self.assertTrue(steps._title_done(self.ctx(F), ch))
+        F.f["prs"]["content/s"]["title"] = "old"
         F.f["prs"]["content/s"]["title"] = "feat: X"
         F.f["comments"][7][0]["body"] = f"Pushed `{A[:9]}`: progress update\r\n\r\n" + steps.MARK.format(A[:12])
         self.assertTrue(steps._title_done(self.ctx(F), ch) and steps._comment_done(self.ctx(F), ch))
@@ -562,7 +575,7 @@ class ServerTrack(Sandbox):
         self.assertIn(("s", "pr", "server-dev"), names(self.ctx(F)))          # no pr-title.txt or pr-body.md: the dev's step
         self.evidence("s", "pr-title.txt", "pr-body.md")
         self.assertIn(("s", "pr", "script"), names(self.ctx(F)))
-        F.f["prs"] = {"content/s": {"number": 7, "state": "open", "draft": True, "head": A, "merged": False, "branch": "content/s", "title": "x"}}
+        F.f["prs"] = {"content/s": {"number": 7, "state": "open", "draft": True, "head": A, "merged": False, "branch": "content/s", "title": "x", "body": "x"}}
         F.f["checks"] = {(7, A): "success"}
         self.assertIn(("s", "comment", "server-dev"), names(self.ctx(F)))    # no comment yet and none prepared: the dev writes it
         self.evidence("s", "pr-comment.md")
@@ -615,7 +628,7 @@ class ServerTrack(Sandbox):
             self.store.save_record("s", k, {"head": A, "base": B, **d})
         self.store.save_record("s", "approval", {"head": A, "ts": "2026-10-25T10:00:00Z"})
         F = Fake(refs={"fork/dev/s": A, "origin/main": B, "fork/content/s": A},
-                 prs={"content/s": {"number": 7, "state": "open", "draft": False, "head": A, "merged": False, "branch": "content/s", "title": "x"}},
+                 prs={"content/s": {"number": 7, "state": "open", "draft": False, "head": A, "merged": False, "branch": "content/s", "title": "x", "body": "x"}},
                  checks={(7, A): "success"},
                  comments={7: [{"id": "IC_1", "author": "maint", "body": "please fix", "at": "2026-10-25T11:00:00Z", "kind": "comment"},
                                {"id": "IC_0", "author": "maint", "body": "old", "at": "2026-10-25T09:00:00Z", "kind": "comment"},

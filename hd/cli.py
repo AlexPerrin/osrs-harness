@@ -177,7 +177,7 @@ def cmd_approve(a):
         why.append("no passing review at this head")
     if why:
         _refuse(why)
-    store.save_record(ch["slug"], "approval", {"head": h})
+    store.save_record(ch["slug"], "approval", {"head": h, "body": steps.digest(steps._texts(ch)["body"])})   # the card's body
     print(f"approved {ch['slug']} {h[:9]}")
 
 

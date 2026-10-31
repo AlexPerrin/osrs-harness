@@ -10,6 +10,7 @@ from the script actions, which run commands and return a detail line.
   questions(ctx) / cards(ctx)      what waits for the user (R7)
   brief(ctx, ch, step, name)       the agent's prompt
 """
+import hashlib
 import os
 import re
 import shutil
@@ -394,15 +395,28 @@ def _comment(ctx, ch):
     return "commented" if r is not None and r.returncode == 0 else f"comment failed: {(r.stderr if r else '')[-300:]}"
 
 
+def digest(text):
+    return hashlib.sha256(_norm(text).encode()).hexdigest()[:16]
+
+
+def _stale_texts(ctx, ch):
+    """The PR fields that differ from pr-title.txt / pr-body.md (an absent text is not wanted). The body replaces an
+    existing description only as the user approved it: the approval at this head holds its digest."""
+    pr, t, ap = _pr(ctx, ch), _texts(ch), ctx.rec(ch, "approval") or {}
+    body_ok = ap.get("head") == head(ctx, ch) and ap.get("body") == digest(t["body"])
+    return {k: t[k] for k in ("title", "body") if t[k] and _norm(pr.get(k) or "") != _norm(t[k]) and (k == "title" or body_ok)}
+
+
 def _title_done(ctx, ch):
-    pr, want = _pr(ctx, ch), _texts(ch)["title"]
-    return None if pr is None else bool(pr) and (not want or pr.get("title") == want)
+    pr = _pr(ctx, ch)
+    return None if pr is None else bool(pr) and not _stale_texts(ctx, ch)
 
 
 def _title(ctx, ch):
     pr = _pr(ctx, ch)   # REST: `gh pr edit` fails on repos that still list classic projects
-    r = sh(["gh", "api", "-X", "PATCH", f"repos/{ctx.cfg['repos']['upstream']}/pulls/{pr['number']}", "-f", f"title={_texts(ch)['title']}"])
-    return "title set" if r is not None and r.returncode == 0 else f"title failed: {(r.stderr if r else '')[-300:]}"
+    fields = [a for k, v in _stale_texts(ctx, ch).items() for a in ("-f", f"{k}={v}")]
+    r = sh(["gh", "api", "-X", "PATCH", f"repos/{ctx.cfg['repos']['upstream']}/pulls/{pr['number']}"] + fields)
+    return "texts set" if r is not None and r.returncode == 0 else f"texts failed: {(r.stderr if r else '')[-300:]}"
 
 
 def _unanswered(ctx, ch):
