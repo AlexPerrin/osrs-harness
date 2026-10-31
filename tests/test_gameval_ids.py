@@ -54,6 +54,10 @@ class GamevalIds(unittest.TestCase):
         self.commit(TOML, "[gamevals.varp]\nmain_one = 65535\nfoundry = 65534\n")
         g(self.repo, "push", "-q", "origin", "main")
         self.assertEqual(gameval_ids.check(self.repo, "fork/dev/first"), 1)
+        g(self.repo, "checkout", "-q", "-B", "dev/fifth", "main")                         # a branch on the new main
+        self.commit("x.txt", "x")
+        g(self.repo, "push", "-q", "fork", "dev/fifth")
+        self.assertEqual(gameval_ids.check(self.repo, "fork/dev/fifth"), 0)                # main's id is not the branch's
 
     def test_assign_skips_every_member(self):
         g(self.repo, "checkout", "-q", "-B", "dev/third", "main")

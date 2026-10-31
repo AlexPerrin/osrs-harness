@@ -98,7 +98,10 @@ def check(repo, ref, slug=None):
     bad = [f"area.{n} = {i} is past the server's area limit {TOP['area']}" for (t, i), n in mine.items()
            if t == "area" and i > TOP["area"]]
     base = max_ids(git(repo, "show", f"{ref}:.data/gamevals-binary/max-ids.toml"))
-    for label, r in dict(members(repo, slug)).items():
+    mem = dict(members(repo, slug))   # fetches upstream main first
+    main = ids(repo, "origin/main", base)
+    mine = {k: n for k, n in mine.items() if main.get(k) != n}   # upstream main's own ids are not <ref>'s to renumber
+    for label, r in mem.items():
         for (t, i), n in ids(repo, r, base).items():   # past <ref>'s max: an id upstream main took since <ref>'s base counts
             if (t, i) in mine and mine[(t, i)] != n and (label == "upstream main" or   # upstream main never renumbers
                                                          (since(repo, r, n, i), n) < (since(repo, ref, mine[(t, i)], i), mine[(t, i)])):   # a tie: the name
