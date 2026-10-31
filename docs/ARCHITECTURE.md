@@ -175,8 +175,8 @@ Steps of the harness itself, first in every pass; each repair is one event; noth
 | a run ended without its record on an input that has not changed | its `last` message is a question for the user (dispatch rule) |
 | two passes | the second waits on the `flock`, then finds nothing to do |
 | `train.json` names a dead pid and has no `ended` | `ended` with the step it died in; rerun by the next `queue` |
-| a `qa-dev-<run>` container of an ended run; an `hd-boot-*` container with no alive train; an agent clone of an ended run | remove |
-| images beyond `live.json`'s live and rollback | `docker rmi` |
+| a `qa-dev-<run>` container of an ended run; a `<owner>-dev-gradle` or `-gate-gradle` volume whose owner is no running run; an `hd-boot-*` container with no alive train; an agent clone of an ended run | remove |
+| `integration-*`, `live-*` and `rollback-*` image tags beyond `live.json`'s live and rollback, no train alive | `docker rmi` |
 | Docker down, `gh` unauthenticated | one alert in `hd`; no step that needs it runs |
 
 ## 9. Requirements to mechanisms

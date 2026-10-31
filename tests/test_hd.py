@@ -324,7 +324,8 @@ class R5Recovery(Sandbox):
         self.assertEqual(len(out), 4)
         self.assertEqual(len(tick.alerts(self.ctx(F))), 1)
         self.store.write({"integration": A, "image": "osrs-openrune:integration-aaaaaaa", "rollback": "osrs-openrune:rollback-x"}, "live.json")
-        F.f["images"] = ["osrs-openrune:integration-aaaaaaa", "osrs-openrune:integration-bbbbbbb"]
+        F.f["images"] = ["osrs-openrune:integration-aaaaaaa", "osrs-openrune:integration-bbbbbbb", "osrs-openrune:241",
+                         "osrs-openrune:rollback-x", "osrs-openrune:rollback-y", "osrs-openrune:live-abc"]
         self.store.write({"pid": "7", "start": "1", "step": "image"}, "train.json")
         F.f["procs"] = {("7", "1")}
         with mock.patch.object(tick, "sh") as sh:
@@ -333,7 +334,15 @@ class R5Recovery(Sandbox):
         F.f["procs"] = set()
         with mock.patch.object(tick, "sh") as sh:
             tick.repairs(self.ctx(F))
-        self.assertIn(["docker", "rmi", "osrs-openrune:integration-bbbbbbb"], [c.args[0] for c in sh.call_args_list])
+        rmi = sorted(c.args[0][2] for c in sh.call_args_list if c.args[0][1] == "rmi")
+        self.assertEqual(rmi, ["osrs-openrune:integration-bbbbbbb", "osrs-openrune:live-abc", "osrs-openrune:rollback-y"])
+        self.store.save_run({"name": "r2", "agent_id": "z", "role": "server-dev", "change": "s", "ended": None,
+                             "console_pid": os.getpid(), "console_start": "0"})
+        F.f["procs"] = {(os.getpid(), "0")}
+        F.f["volumes"] = ["r1-dev-gradle", "r2-dev-gradle", "sd44-gate-gradle", "gradle-build-cache"]
+        with mock.patch.object(tick, "sh") as sh:
+            tick.repairs(self.ctx(F))
+        self.assertEqual([c.args[0][3] for c in sh.call_args_list if c.args[0][1:3] == ["volume", "rm"]], ["r1-dev-gradle", "sd44-gate-gradle"])
 
     def test_a_stop_without_a_hand_back_is_a_pause(self):
         sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "hooks"))

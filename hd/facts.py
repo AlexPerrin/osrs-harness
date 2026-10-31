@@ -163,6 +163,10 @@ class Facts:
         r = sh(["docker", "images", repo, "--format", "{{.Repository}}:{{.Tag}}"], timeout=60)
         return None if r is None or r.returncode != 0 else [l for l in r.stdout.splitlines() if l and ":<none>" not in l]
 
+    def volumes(self):
+        r = sh(["docker", "volume", "ls", "-q"], timeout=60)
+        return None if r is None or r.returncode != 0 else r.stdout.split()
+
     @staticmethod
     def proc_start(pid):
         """The start time of `pid` (clock ticks since boot), or None when there is no such process."""

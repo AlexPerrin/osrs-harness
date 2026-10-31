@@ -4,6 +4,7 @@ whose dependencies are live, then file maintainer findings. `run(F, dry)` return
 import glob
 import json
 import os
+import re
 import shutil
 
 from . import server, steps, store
@@ -99,6 +100,14 @@ def repairs(ctx, dry=False):
             if not dry:
                 sh(["docker", "rm", "-f", n], timeout=120)
                 store.event("repair", what="container", name=n)
+    running = {r["name"] for r in ctx.runs if not r.get("ended")}
+    for v in F.volumes() or []:
+        m = re.fullmatch(r"(.+)-(dev|gate)-gradle", v)
+        if m and m.group(1) not in running:   # docker refuses a volume a container still holds
+            out.append(f"volume {v}: owner gone; removed")
+            if not dry:
+                sh(["docker", "volume", "rm", v], timeout=120)
+                store.event("repair", what="volume", name=v)
     for d in glob.glob(os.path.join(ctx.cfg["paths"]["work"], "agents", "*")):
         if os.path.basename(d) in ended:
             r = sh(["git", "-C", os.path.join(d, "or"), "log", "--oneline", "--branches", "--not", "--remotes"])
@@ -112,7 +121,7 @@ def repairs(ctx, dry=False):
     live = store.read("live.json") or {}
     keep = {live.get("image"), live.get("rollback")}
     for img in F.images(LIVE_IMAGES) or []:
-        if img.startswith(f"{LIVE_IMAGES}:integration-") and img not in keep and live.get("image") and not steps._train_alive(ctx):
+        if img.startswith(tuple(f"{LIVE_IMAGES}:{k}-" for k in ("integration", "live", "rollback"))) and img not in keep and live.get("image") and not steps._train_alive(ctx):
             out.append(f"image {img}: neither live nor rollback; removed")
             if not dry:
                 sh(["docker", "rmi", img], timeout=120)

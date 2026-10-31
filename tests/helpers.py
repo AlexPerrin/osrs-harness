@@ -74,6 +74,9 @@ class Fake:
     def images(self, repo):
         return self.f.get("images", [])
 
+    def volumes(self):
+        return self.f.get("volumes", [])
+
     def alive(self, pid, start):
         return (pid, start) in self.f.get("procs", set())
 
