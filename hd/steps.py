@@ -22,6 +22,7 @@ from .facts import sh
 AUTHOR = "Alex Perrin <44126061+AlexPerrin@users.noreply.github.com>"
 TRAILER = "Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 MARK = "<!-- hd:{} -->"
+ATTRIBUTION = "🤖 Generated with [Claude Code](https://claude.com/claude-code)"
 WAIT = "wait"
 
 
@@ -360,7 +361,8 @@ def _ours_at_head(ctx, ch):
 
 
 def _norm(text):
-    return "\n".join(l.rstrip() for l in re.sub(r"<!-- hd:\w+ -->", "", text.replace("\r\n", "\n")).strip().splitlines())
+    text = re.sub(r"<!-- hd:\w+ -->", "", text.replace("\r\n", "\n")).replace(ATTRIBUTION, "")
+    return "\n".join(l.rstrip() for l in text.strip().splitlines())
 
 
 def _comment_done(ctx, ch):
@@ -388,7 +390,7 @@ GQL_EDIT = "mutation($id:ID!,$b:String!){updateIssueComment(input:{id:$id,body:$
 
 
 def _comment(ctx, ch):
-    body = (_prepared(ctx, ch) or f"Updated to {head(ctx, ch)[:9]}.") + "\n\n" + MARK.format(head(ctx, ch)[:12]) + "\n"
+    body = (_prepared(ctx, ch) or f"Updated to {head(ctx, ch)[:9]}.") + f"\n\n{ATTRIBUTION}\n" + MARK.format(head(ctx, ch)[:12]) + "\n"
     ours = _ours_at_head(ctx, ch)
     if ours:   # our comment at this head exists: edit it in place (GraphQL takes the node id gh reports)
         r = sh(["gh", "api", "graphql", "-f", "query=" + GQL_EDIT, "-f", f"id={ours[-1]['id']}", "-f", f"b={body}"])

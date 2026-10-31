@@ -532,6 +532,10 @@ class ServerTrack(Sandbox):
         with mock.patch.object(steps, "sh", return_value=R(0)) as run:
             self.assertEqual(steps.COMMENT.do(self.ctx(F), ch), "comment edited")
             self.assertIn("id=IC_1", run.call_args[0][0])
+            self.assertIn(f"b=Pushed `{A[:9]}`: progress update\n\n{steps.ATTRIBUTION}\n", " ".join(run.call_args[0][0]))
+        F.f["comments"][7][0]["body"] = f"Pushed `{A[:9]}`: progress update\n\n{steps.ATTRIBUTION}\n" + steps.MARK.format(A[:12])
+        self.assertTrue(steps._comment_done(self.ctx(F), ch))                     # the attribution line is ours, not a difference
+        with mock.patch.object(steps, "sh", return_value=R(0)) as run:
             self.assertEqual(steps.TITLE.do(self.ctx(F), ch), "texts set")
             self.assertIn("title=feat: X", run.call_args[0][0])
         with open(os.path.join(self.ev, "s", "pr-body.md"), "w") as f:
